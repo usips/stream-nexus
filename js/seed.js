@@ -21,6 +21,7 @@
 // @match https://vk.com/video/lives?z=*
 // @match https://twitter.com/i/broadcasts/*
 // @match https://x.com/i/broadcasts/*
+// @match https://nest.xmrchat.com/tips/page/*
 // @connect *
 // @grant unsafeWindow
 // @run-at document-start
@@ -853,6 +854,38 @@
                 this.channel = parseInt(document.querySelector('.rumbles-vote-pill').dataset.id, 10);
             }
 
+            if (this.channel !== null) {
+                this.fetchEmotes();
+            }
+
+        }
+
+        fetchEmotes() {
+            const init = document.querySelector('body > script:not([src])');
+            const code = init.textContent;
+
+            // yes, really.
+            const regex = /{items:(\[[^\(\)]*\]}\])}\);/;
+            const match = code.match(regex);
+            if (match) {
+                // yes. really.
+                const itemsObj = eval(`"use strict";(${match[1]})`);
+                itemsObj.forEach((channel) => {
+                    if (channel.emotes !== undefined && channel.emotes.length > 0) {
+                        channel.emotes.forEach((emote) => {
+                            // emotes_pack_id: 1881816
+                            // file: "https://ak2.rmbl.ws/z12/F/3/4/s/F34si.aaa.png"
+                            // id: 139169247
+                            // is_subs_only: false
+                            // moderation_status: "NOT_MODERATED"
+                            // name: "r+rumblecandy"
+                            // pack_id: 1881816
+                            // position: 0
+                            this.emotes[emote.name] = emote.file;
+                        });
+                    }
+                });
+            }
         }
 
         receiveChatPairs(messages, users) {
@@ -1225,6 +1258,73 @@
     }
 
     //
+    // VK
+    //
+    // ❌ Capture new messages.
+    // ✔️ Capture sent messages.
+    // ❌ Capture existing messages.
+    // ❌ Capture emotes.
+    // ❌ Capture moderator actions.
+    // ❌ Capture view counts.
+    //
+    class VK extends Seed {
+        constructor() {
+            const namespace = "a59f077b-d072-41c0-976e-22c7e4ebf6f8";
+            const platform = "VK";
+            const channel = window.location.href.split('/').filter(x => x).at(-1); // Broadcast ID, not channel name.
+            super(namespace, platform, channel);
+        }
+
+        prepareChatMessages(json) {
+            var messages = [];
+
+            json.forEach((pair) => {
+                const message = new ChatMessage(UUID.v5(pair.body.uuid, this.namespace), this.platform, this.channel);
+
+                message.username = pair.sender.username;
+                message.message = pair.body.body;
+                message.sent_at = pair.body.timestamp;
+                // TODO: Sender avatars not present.
+                message.avatar = pair.sender.profile_image_url ?? "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png";
+                message.is_verified = pair.sender.verified ?? false;
+
+                messages.push(message);
+            });
+
+            return messages;
+        }
+
+        // {
+        //     "payload": [
+        //         0,
+        //         [
+        //             "<div class=\"mv_chat_message \" id=\"mv_chat_msg-25924859_9887\" data-msg-id=\"9887\">\n  <a class=\"mv_chat_message_author_thumb\" href=\"\/madattheinternet\" target=\"_blank\">\n    <img loading=\"lazy\" class=\"mv_chat_message_author_thumb_img\" src=\"https:\/\/sun6-23.userapi.com\/s\/v1\/if2\/pl-0Ti7w_2Q1yTTYwYaLTmVnUq0rCCizszrHJpzskeIg75nSirIKf24MvTWx6QzK47iXlWaVRdkpaeLhee76wIrr.jpg?size=50x50&quality=96&crop=8,0,248,248&ava=1\"\/>\n  <\/a>\n  <div class=\"mv_chat_message_content\">\n    <a class=\"mv_chat_message_author_name\" href=\"\/madattheinternet\" target=\"_blank\"><div class=\"mv_chat_message_author_name_text\">Dzhoshua Mun<\/div><\/a>\n    <div class=\"mv_chat_message_text\">test<\/div>\n  <\/div>\n  <div class=\"mv_chat_message_actions\"><a class=\"mv_chat_message_action\"\n  onclick=\"VideoChat.deleteMessage('-25924859_9887', '1704819918_b9150b027078ca02bb')\"\n  aria-label=\"Delete\"\n  onmouseover=\"showTooltip(this, {text:  'Delete', black: 1, shift: [0, 8, 0], center: 1})\"\n  >\n  <svg fill=\"none\" height=\"20\" viewBox=\"0 0 20 20\" width=\"20\" xmlns=\"http:\/\/www.w3.org\/2000\/svg\"><path clip-rule=\"evenodd\" d=\"M4.72 4.72c.3-.3.77-.3 1.06 0L10 8.94l4.22-4.22a.75.75 0 1 1 1.06 1.06L11.06 10l4.22 4.22a.75.75 0 1 1-1.06 1.06L10 11.06l-4.22 4.22a.75.75 0 0 1-1.06-1.06L8.94 10 4.72 5.78a.75.75 0 0 1 0-1.06z\" fill=\"currentColor\" fill-rule=\"evenodd\"\/><\/svg>\n<\/a><\/div>\n<\/div>",
+        //             9887,
+        //             []
+        //         ]
+        //     ],
+        //     "statsMeta": {
+        //         "platform": "web2",
+        //         "st": false,
+        //         "time": 1704819918,
+        //         "hash": "qs0awBYZDkNrIqEqLNKNoEq0qTowlBb308vx3kqZoRo",
+        //         "reloadVersion": 13
+        //     },
+        //     "loaderVersion": "20829863990",
+        //     "langPack": 3,
+        //     "langVersion": "7201"
+        // }
+
+        onXhrReadyStateChange(xhr, event) {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                if (xhr.response.url.indexOf("act=post_comment") > 0) {
+
+                }
+            }
+        }
+    }
+
+    //
     // 𝕏
     //
     // ✔️ Capture new messages.
@@ -1323,22 +1423,43 @@
     }
 
     //
-    // VK
+    // XMR
     //
-    // ❌ Capture new messages.
+    // ✔️ Capture new messages.
     // ✔️ Capture sent messages.
-    // ❌ Capture existing messages.
-    // ❌ Capture emotes.
-    // ❌ Capture moderator actions.
-    // ❌ Capture view counts.
+    // ⭕ Capture existing messages.
+    // ⭕ Capture emotes.
+    // ⭕ Capture moderator actions.
+    // ✔️ Capture view counts.
     //
-    class VK extends Seed {
+    // Protip: Use this query to find Livestreams.
+    // https://twitter.com/search?f=live&q=twitter.com%2Fi%2Fbroadcasts%20filter%3Alinks%20-filter%3Areplies&src=typed_query
+    //
+    class XMR extends Seed {
         constructor() {
-            const namespace = "a59f077b-d072-41c0-976e-22c7e4ebf6f8";
-            const platform = "VK";
-            const channel = window.location.href.split('/').filter(x => x).at(-1); // Broadcast ID, not channel name.
+            const namespace = "1d3826ed-45b7-4654-8051-4d685fe87151";
+            const platform = "XMR";
+            const channel = window.location.href.split('/').filter(x => x).at(4);
             super(namespace, platform, channel);
         }
+
+        //{
+        //    "id": 2843,
+        //    "name": "Josh",
+        //    "message": "Test",
+        //    "private": false,
+        //    "createdAt": "2025-01-09T17:38:30.094Z",
+        //    "expiresAt": null,
+        //    "payment": {
+        //      "id": 2911,
+        //      "pageSlug": null,
+        //      "amount": "10267470000",
+        //      "paidAmount": "10267470000",
+        //      "createdAt": "2025-01-09T17:38:30.097Z",
+        //      "paidAt": "2025-01-09T17:39:12.480Z"
+        //    },
+        //    "swap": null
+        //}
 
         prepareChatMessages(pairs) {
             var messages = [];
@@ -1349,36 +1470,12 @@
                 message.username = pair.sender.username;
                 message.message = pair.body.body;
                 message.sent_at = pair.body.timestamp;
-                // TODO: Sender avatars not present.
-                message.avatar = pair.sender.profile_image_url ?? "https://abs.twimg.com/sticky/default_profile_images/default_profile_400x400.png";
-                message.is_verified = pair.sender.verified ?? false;
 
                 messages.push(message);
             });
 
             return messages;
         }
-
-        // {
-        //     "payload": [
-        //         0,
-        //         [
-        //             "<div class=\"mv_chat_message \" id=\"mv_chat_msg-25924859_9887\" data-msg-id=\"9887\">\n  <a class=\"mv_chat_message_author_thumb\" href=\"\/madattheinternet\" target=\"_blank\">\n    <img loading=\"lazy\" class=\"mv_chat_message_author_thumb_img\" src=\"https:\/\/sun6-23.userapi.com\/s\/v1\/if2\/pl-0Ti7w_2Q1yTTYwYaLTmVnUq0rCCizszrHJpzskeIg75nSirIKf24MvTWx6QzK47iXlWaVRdkpaeLhee76wIrr.jpg?size=50x50&quality=96&crop=8,0,248,248&ava=1\"\/>\n  <\/a>\n  <div class=\"mv_chat_message_content\">\n    <a class=\"mv_chat_message_author_name\" href=\"\/madattheinternet\" target=\"_blank\"><div class=\"mv_chat_message_author_name_text\">Dzhoshua Mun<\/div><\/a>\n    <div class=\"mv_chat_message_text\">test<\/div>\n  <\/div>\n  <div class=\"mv_chat_message_actions\"><a class=\"mv_chat_message_action\"\n  onclick=\"VideoChat.deleteMessage('-25924859_9887', '1704819918_b9150b027078ca02bb')\"\n  aria-label=\"Delete\"\n  onmouseover=\"showTooltip(this, {text:  'Delete', black: 1, shift: [0, 8, 0], center: 1})\"\n  >\n  <svg fill=\"none\" height=\"20\" viewBox=\"0 0 20 20\" width=\"20\" xmlns=\"http:\/\/www.w3.org\/2000\/svg\"><path clip-rule=\"evenodd\" d=\"M4.72 4.72c.3-.3.77-.3 1.06 0L10 8.94l4.22-4.22a.75.75 0 1 1 1.06 1.06L11.06 10l4.22 4.22a.75.75 0 1 1-1.06 1.06L10 11.06l-4.22 4.22a.75.75 0 0 1-1.06-1.06L8.94 10 4.72 5.78a.75.75 0 0 1 0-1.06z\" fill=\"currentColor\" fill-rule=\"evenodd\"\/><\/svg>\n<\/a><\/div>\n<\/div>",
-        //             9887,
-        //             []
-        //         ]
-        //     ],
-        //     "statsMeta": {
-        //         "platform": "web2",
-        //         "st": false,
-        //         "time": 1704819918,
-        //         "hash": "qs0awBYZDkNrIqEqLNKNoEq0qTowlBb308vx3kqZoRo",
-        //         "reloadVersion": 13
-        //     },
-        //     "loaderVersion": "20829863990",
-        //     "langPack": 3,
-        //     "langVersion": "7201"
-        // }
 
         onXhrReadyStateChange(xhr, event) {
             if (xhr.readyState === XMLHttpRequest.DONE) {
