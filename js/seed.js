@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name S.N.E.E.D.
-// @version 1.2.1
+// @version 1.2.2
 // @description Stream Nexus userscript.
 // @license BSD-3-Clause
 // @author Joshua Moon <josh@josh.rs>
@@ -21,6 +21,7 @@
 // @match https://vk.com/video/lives?z=*
 // @match https://twitter.com/i/broadcasts/*
 // @match https://x.com/i/broadcasts/*
+// @match https://xmrchat.com/*
 // @connect *
 // @grant unsafeWindow
 // @run-at document-start
@@ -1389,6 +1390,60 @@
         }
     }
 
+    class XMRChat extends Seed {
+        constructor() {
+            const namespace = '11b4c41e-429b-43a8-8b27-7abcccd4f656';
+            const platform = 'XMR Chat';
+            const channel = window.location.href
+                .split('/')
+                .filter((x) => x)[2]
+                .toLowerCase();
+            super(namespace, platform, channel);
+            this.xmrToUsd = 150; // XMR never changes anyways...
+            this.processedMessages = [];
+
+            fetch('https://api.coin-stats.com/v4/coins?limit=100&keyword=xmr').then(response => response.json())
+            .then(json => {
+              if (json.coins.length === 1 && json.coins[0].s === 'XMR') {
+                this.xmrToUsd = json.coins[0].pu;
+              }
+            });
+        }
+
+        fetchDonations(sendMessages) {
+          fetch('https://nest.xmrchat.com/tips/page/' + this.channel)
+          .then(response => response.json())
+          .then(json => {
+              let donations = [];
+              json.forEach(donation => {
+                if (this.processedMessages.indexOf(donation.id) !== -1) return;
+                let msg = new ChatMessage(
+                  crypto.randomUUID(),
+                  this.platform,
+                  this.channel
+                );
+                msg.username = donation.name;
+                msg.amount = Number(donation.payment.amount) / 1e12 * this.xmrToUsd;
+                msg.message = donation.message;
+                msg.is_premium = true;
+                msg.currency = 'USD';
+                donations.push(msg);
+                this.processedMessages.push(donation.id);
+              });
+              donations.reverse();
+              if (sendMessages)
+                this.sendChatMessages(donations);
+          });
+        }
+
+        onDocumentReady(event) {
+            setTimeout(() => {
+                this.fetchDonations(false); // collect existing donations
+                setInterval(() => this.fetchDonations(true), 1000);
+            }, 1000);
+        }
+    }
+
     //
     // Seed Selection
     //
@@ -1414,6 +1469,9 @@
         case "twitter.com":
         case "x.com":
             WINDOW.SNEEDER = new X;
+            break;
+        case "xmrchat.com":
+            WINDOW.SNEEDER = new XMRChat();
             break;
         default:
             WINDOW.SNEEDER = null;
