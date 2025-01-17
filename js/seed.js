@@ -21,7 +21,7 @@
 // @match https://vk.com/video/lives?z=*
 // @match https://twitter.com/i/broadcasts/*
 // @match https://x.com/i/broadcasts/*
-// @match https://nest.xmrchat.com/tips/page/*
+// @match https://xmrchat.com/streamer
 // @connect *
 // @grant unsafeWindow
 // @run-at document-start
@@ -207,7 +207,7 @@
             this.chatSocketTimeout = setTimeout(() => this.createChatSocket(), 3000);
         }
 
-        /// Sends messages to the Rz`ust backend, or adds them to the queue.
+        /// Sends messages to the Rust backend, or adds them to the queue.
         sendChatMessages(messages) {
             // Check if the chat socket is open.
             const ws_open = this?.chatSocket?.readyState === WebSocket.OPEN;
@@ -1426,20 +1426,35 @@
     // XMR
     //
     // ✔️ Capture new messages.
-    // ✔️ Capture sent messages.
+    // ➖ Capture sent messages.
     // ⭕ Capture existing messages.
-    // ⭕ Capture emotes.
-    // ⭕ Capture moderator actions.
-    // ✔️ Capture view counts.
+    // ➖ Capture emotes.
+    // ➖ Capture moderator actions.
+    // ➖ Capture view counts.
     //
     // Protip: Use this query to find Livestreams.
     // https://twitter.com/search?f=live&q=twitter.com%2Fi%2Fbroadcasts%20filter%3Alinks%20-filter%3Areplies&src=typed_query
     //
-    class XMR extends Seed {
+    class XMRChat extends Seed {
+        messagesRead = [];
+        xmrPrice = 200;
+
         constructor() {
-            const namespace = "1d3826ed-45b7-4654-8051-4d685fe87151";
-            const platform = "XMR";
-            const channel = window.location.href.split('/').filter(x => x).at(4);
+            const namespace = "806b15e6-d8fe-4344-b66d-9604b5d60241";
+            const platform = "XMRChat";
+            const channel = "xmrchat";//window.location.href.split('/').filter(x => x).at(4);
+
+            // TODO: Push this to the backend.
+            fetch('https://nest.xmrchat.com/prices/xmr')
+                .then(response => response.text())
+                .then(text => {
+                    this.xmrPrice = parseFloat(text);
+                    this.log("Fetched XMR price:", this.xmrPrice);
+                })
+                .catch(error => {
+                    this.warn("Failed to fetch XMR price.", error);
+                });
+
             super(namespace, platform, channel);
         }
 
@@ -1461,26 +1476,55 @@
         //    "swap": null
         //}
 
-        prepareChatMessages(pairs) {
-            var messages = [];
+        prepareChatMessage(tip) {
+            WINDOW.console.log(tip);
+            const message = new ChatMessage(
+                UUID.v5(`XMRCHAT-${tip.id}`, this.namespace),
+                this.platform,
+                this.channel
+            );
+            message.username = tip.name;
+            message.message = tip.message;
+            message.sent_at = Math.floor((new Date(tip.createdAt)).getTime() / 1000);
+            message.amount = this.xmrPrice * (parseFloat(tip.payment.amount) / 1e12);
+            message.currency = "USD";
 
-            pairs.forEach((pair) => {
-                const message = new ChatMessage(pair.body.uuid, this.platform, this.channel);
 
-                message.username = pair.sender.username;
-                message.message = pair.body.body;
-                message.sent_at = pair.body.timestamp;
-
-                messages.push(message);
-            });
-
-            return messages;
+            return message;
         }
 
         onXhrReadyStateChange(xhr, event) {
             if (xhr.readyState === XMLHttpRequest.DONE) {
-                if (xhr.response.url.indexOf("act=post_comment") > 0) {
+                if (xhr.responseURL.indexOf("/tips/page/") > 0) {
+                    const json = JSON.parse(xhr.response);
+                    json.forEach((tip) => {
+                        // Deduplicate
+                        if (this.messagesRead.indexOf(tip.id) > -1) {
+                            return;
+                        }
+                        this.messagesRead.push(tip.id);
 
+                        // Last week only
+                        // TODO: Make this check flexible?
+                        const createdAt = new Date(tip.createdAt);
+                        const sixDaysAgo = new Date();
+                        sixDaysAgo.setDate(sixDaysAgo.getDate() - 6);
+
+                        if (createdAt < sixDaysAgo) {
+                            this.warn("Skipping message older than 6 days.");
+                            return;
+                        }
+
+                        // XMRChat allows private messages to be sent, which should not appear on HUD.
+                        // TODO: Show private messages on Dashboard still? Would need backend end.
+                        if (tip.private === true) {
+                            this.warn("Skipping private message.");
+                        }
+
+                        // Submit
+                        const message = this.prepareChatMessage(tip);
+                        this.sendChatMessages([message]);
+                    });
                 }
             }
         }
@@ -1511,6 +1555,9 @@
         case "twitter.com":
         case "x.com":
             WINDOW.SNEEDER = new X;
+            break;
+        case "xmrchat.com":
+            WINDOW.SNEEDER = new XMRChat;
             break;
         default:
             WINDOW.SNEEDER = null;

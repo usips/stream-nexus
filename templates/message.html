@@ -12,7 +12,7 @@
                 <span class="msg-username">{{ message.username|safe }}</span>
                 <span class="msg-badges">
                     {% if message.is_verified %}
-                    <span class="material-symbols-outlined">verified</span>
+                    <span class="material-symbols-outlined">✓</span>
                     {% endif %}
                 </span>
             </div>
@@ -30,7 +30,7 @@
             <span class="msg-username">{{ message.username|safe }}</span>
             <span class="msg-badges">
                 {% if message.is_verified %}
-                <span class="material-symbols-outlined">verified</span>
+                <span class="material-symbols-outlined">✓</span>
                 {% endif %}
             </span>
         </div>

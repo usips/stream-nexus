@@ -202,11 +202,10 @@ function send_paid_message() {
     switch (msg.platform) {
         case "mail":
         case "usps":
-            msg.avatar = "/logo/United_States_Postal_Service_(emblem).png";
+            msg.avatar = "/logo/usps.png";
             break;
     }
 
-    console.log(msg);
     return send_message(msg);
 }
 

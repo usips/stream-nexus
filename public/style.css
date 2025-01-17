@@ -185,6 +185,10 @@ section#chat {
     box-sizing: border-box;
     background: white;
     border-color: var(--brand-color);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .msg--p-mail .msg-avatar-border {
@@ -249,6 +253,11 @@ section#chat {
     content: '@';
 }
 
+
+.msg--p-XMRChat .msg-avatar-border {
+    --brand-color: var(--xmr-brand, rgb(255 127 10));
+}
+
 .msg--t {
     --message-bg-color: #1565C0;
     --message-head-color: #1565C0;
@@ -300,12 +309,11 @@ section#chat {
 
 .msg-letter {
     display: inline-block;
-    width: 100%;
-    line-height: 0.8;
-    text-align: center;
-    vertical-align: top;
-    font-weight: bold;
     color: var(--brand-color);
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 0;
+    vertical-align: top;
 }
 
 .msg-avatar {
