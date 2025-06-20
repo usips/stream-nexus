@@ -256,6 +256,7 @@ section#chat {
 
 .msg--p-XMRChat .msg-avatar-border {
     --brand-color: var(--xmr-brand, rgb(255 127 10));
+    background: #494949;
 }
 
 .msg--t {
