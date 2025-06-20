@@ -14,9 +14,14 @@ pub struct ExchangeRates {
 
 impl ExchangeRates {
     pub fn get_usd(&self, currency: &str, amount: &f64) -> f64 {
-        let usd = self.rates.get("USD").unwrap();
+        // Probably a bit quicker.
+        if currency == "USD" {
+            return *amount;
+        }
+
         match self.rates.get(currency) {
-            Some(rate) => usd * (amount / rate), // (EUR->USD) * (XYZ->EUR) == (XYZ->USD)
+            // Note: Rates are stored as (XYZ->USD), not (USD->XYZ).
+            Some(rate) => amount * rate,
             None => {
                 log::warn!("Could not find exchange rate for {}", currency);
                 0.0
@@ -62,8 +67,19 @@ fn parse_xml(body: &str) -> Result<ExchangeRates> {
 
     assert_ne!(rates.len(), 0);
     rates.insert(String::from("EUR"), 1.0);
-    // Static RUB rate taken on 2024-08-24.
-    rates.insert(String::from("RUB"), 102.33);
+    // Static EUR->RUB rate taken on 2025-01-28.
+    rates.insert(String::from("RUB"), 102.57);
+
+    // Convert rates to be relative to USD.
+    // Helps reduce repetitive arithmetic down the line.
+    let usd = *(rates.get("USD").unwrap());
+    rates.remove("USD");
+    for (_, v) in rates.iter_mut() {
+        // (EUR->USD) / (EUR->XYZ) == (XYZ->USD)
+        *v = usd / *v;
+    }
+    // $1 USD == $1 USD. Redundant placeholder for safety.
+    rates.insert(String::from("USD"), 1.0);
 
     Ok(ExchangeRates { rates })
 }

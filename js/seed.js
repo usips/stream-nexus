@@ -866,7 +866,7 @@
             const code = init.textContent;
 
             // yes, really.
-            const regex = /{items:(\[[^\(\)]*\]}\])}\);/;
+            const regex = /{items:(\[[^\(\)]*\]}\])}/;
             const match = code.match(regex);
             if (match) {
                 // yes. really.
@@ -882,6 +882,7 @@
                             // name: "r+rumblecandy"
                             // pack_id: 1881816
                             // position: 0
+                            console.log("Adding emote", emote.name, emote.file);
                             this.emotes[emote.name] = emote.file;
                         });
                     }
