@@ -13,6 +13,7 @@
 // @match https://odysee.com/*
 // @match https://odysee.com/$/popout/*
 // @match https://rumble.com/v*.html
+// @match https://rumble.com/c/*/live
 // @match https://rumble.com/chat/popup/*
 // @match https://twitch.tv/*
 // @match https://twitch.tv/popout/*/chat

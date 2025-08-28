@@ -113,6 +113,14 @@ impl Handler<message::Content> for ChatServer {
             0.0
         };
 
+        msg.chat_message.username = msg
+            .chat_message
+            .username
+            .replace("&", "&amp;")
+            .replace("\"", "&quot")
+            .replace("'", "&#039;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;");
         msg.chat_message.message = msg
             .chat_message
             .message
