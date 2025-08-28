@@ -53,9 +53,10 @@
             this.channel = channel;
             this.sent_at = Date.now(); // System timestamp for display ordering.
             this.received_at = Date.now(); // Local timestamp for management.
+            this.is_placeholder = false;
 
             this.message = "";
-            this.emojis = [];
+            this.emojis = []; // (find, replace, alt)
 
             this.username = "DUMMY_USER";
             this.avatar = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="; // Transparent pixel.
@@ -134,6 +135,7 @@
         }
 
         async fetchDependencies() {
+            /**
             // Need import for  UUIDv5 for deterministic UUIDs.
             // Deterministic UUIDs help deduplicate messages in anomalous events.
             try {
@@ -143,6 +145,12 @@
                 // TODO: There should be a better way to communicate critical errors to broadcaster.
                 this.warn("Failed to load UUID library.", e);
             }
+            */
+
+            // call the cops i don't give a fuck
+            !function (r, e) { "object" == typeof exports && "undefined" != typeof module ? module.exports = e() : "function" == typeof define && define.amd ? define(e) : (r = "undefined" != typeof globalThis ? globalThis : r || self).uuidv5 = e() }(this, (function () { "use strict"; var r = /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|00000000-0000-0000-0000-000000000000)$/i; function e(e) { return "string" == typeof e && r.test(e) } for (var t = [], n = 0; n < 256; ++n)t.push((n + 256).toString(16).substr(1)); function a(r, e, t, n) { switch (r) { case 0: return e & t ^ ~e & n; case 1: return e ^ t ^ n; case 2: return e & t ^ e & n ^ t & n; case 3: return e ^ t ^ n } } function o(r, e) { return r << e | r >>> 32 - e } return function (r, n, a) { function o(r, o, i, f) { if ("string" == typeof r && (r = function (r) { r = unescape(encodeURIComponent(r)); for (var e = [], t = 0; t < r.length; ++t)e.push(r.charCodeAt(t)); return e }(r)), "string" == typeof o && (o = function (r) { if (!e(r)) throw TypeError("Invalid UUID"); var t, n = new Uint8Array(16); return n[0] = (t = parseInt(r.slice(0, 8), 16)) >>> 24, n[1] = t >>> 16 & 255, n[2] = t >>> 8 & 255, n[3] = 255 & t, n[4] = (t = parseInt(r.slice(9, 13), 16)) >>> 8, n[5] = 255 & t, n[6] = (t = parseInt(r.slice(14, 18), 16)) >>> 8, n[7] = 255 & t, n[8] = (t = parseInt(r.slice(19, 23), 16)) >>> 8, n[9] = 255 & t, n[10] = (t = parseInt(r.slice(24, 36), 16)) / 1099511627776 & 255, n[11] = t / 4294967296 & 255, n[12] = t >>> 24 & 255, n[13] = t >>> 16 & 255, n[14] = t >>> 8 & 255, n[15] = 255 & t, n }(o)), 16 !== o.length) throw TypeError("Namespace must be array-like (16 iterable integer values, 0-255)"); var s = new Uint8Array(16 + r.length); if (s.set(o), s.set(r, o.length), (s = a(s))[6] = 15 & s[6] | n, s[8] = 63 & s[8] | 128, i) { f = f || 0; for (var u = 0; u < 16; ++u)i[f + u] = s[u]; return i } return function (r) { var n = arguments.length > 1 && void 0 !== arguments[1] ? arguments[1] : 0, a = (t[r[n + 0]] + t[r[n + 1]] + t[r[n + 2]] + t[r[n + 3]] + "-" + t[r[n + 4]] + t[r[n + 5]] + "-" + t[r[n + 6]] + t[r[n + 7]] + "-" + t[r[n + 8]] + t[r[n + 9]] + "-" + t[r[n + 10]] + t[r[n + 11]] + t[r[n + 12]] + t[r[n + 13]] + t[r[n + 14]] + t[r[n + 15]]).toLowerCase(); if (!e(a)) throw TypeError("Stringified UUID is invalid"); return a }(s) } try { o.name = r } catch (r) { } return o.DNS = "6ba7b810-9dad-11d1-80b4-00c04fd430c8", o.URL = "6ba7b811-9dad-11d1-80b4-00c04fd430c8", o }("v5", 80, (function (r) { var e = [1518500249, 1859775393, 2400959708, 3395469782], t = [1732584193, 4023233417, 2562383102, 271733878, 3285377520]; if ("string" == typeof r) { var n = unescape(encodeURIComponent(r)); r = []; for (var i = 0; i < n.length; ++i)r.push(n.charCodeAt(i)) } else Array.isArray(r) || (r = Array.prototype.slice.call(r)); r.push(128); for (var f = r.length / 4 + 2, s = Math.ceil(f / 16), u = new Array(s), c = 0; c < s; ++c) { for (var l = new Uint32Array(16), p = 0; p < 16; ++p)l[p] = r[64 * c + 4 * p] << 24 | r[64 * c + 4 * p + 1] << 16 | r[64 * c + 4 * p + 2] << 8 | r[64 * c + 4 * p + 3]; u[c] = l } u[s - 1][14] = 8 * (r.length - 1) / Math.pow(2, 32), u[s - 1][14] = Math.floor(u[s - 1][14]), u[s - 1][15] = 8 * (r.length - 1) & 4294967295; for (var d = 0; d < s; ++d) { for (var h = new Uint32Array(80), v = 0; v < 16; ++v)h[v] = u[d][v]; for (var y = 16; y < 80; ++y)h[y] = o(h[y - 3] ^ h[y - 8] ^ h[y - 14] ^ h[y - 16], 1); for (var g = t[0], b = t[1], w = t[2], U = t[3], A = t[4], I = 0; I < 80; ++I) { var m = Math.floor(I / 20), C = o(g, 5) + a(m, b, w, U) + A + e[m] + h[I] >>> 0; A = U, U = w, w = o(b, 30) >>> 0, b = g, g = C } t[0] = t[0] + g >>> 0, t[1] = t[1] + b >>> 0, t[2] = t[2] + w >>> 0, t[3] = t[3] + U >>> 0, t[4] = t[4] + A >>> 0 } return [t[0] >> 24 & 255, t[0] >> 16 & 255, t[0] >> 8 & 255, 255 & t[0], t[1] >> 24 & 255, t[1] >> 16 & 255, t[1] >> 8 & 255, 255 & t[1], t[2] >> 24 & 255, t[2] >> 16 & 255, t[2] >> 8 & 255, 255 & t[2], t[3] >> 24 & 255, t[3] >> 16 & 255, t[3] >> 8 & 255, 255 & t[3], t[4] >> 24 & 255, t[4] >> 16 & 255, t[4] >> 8 & 255, 255 & t[4]] })) }));
+            window.UUID = {};
+            window.UUID.v5 = window.uuidv5;
         }
 
         //
@@ -247,27 +255,28 @@
                 this.platform,
                 this.channel
             );
-            message.username = sub.username;
+            message.username = sub.buyer;
             message.amount = sub.value * sub.count;
             message.currency = "USD";
 
             if (sub.gifted) {
                 if (sub.count > 1) {
-                    message.message = `${sub.username} subscribed for ${sub.count} months!`;
+                    message.message = `${message.username} gifted ${sub.count} subscriptions! 🎁`;
                 }
                 else {
-                    message.message = `${sub.username} subscribed for 1 month!`;
+                    message.message = `${message.username} gifted a subscription! 🎁`;
                 }
             }
             else {
                 if (sub.count > 1) {
-                    message.message = `${sub.username} gifted ${count} subscriptions! 🎁`;
+                    message.message = `${message.username} subscribed for ${sub.count} months!`;
                 }
                 else {
-                    message.message = `${sub.username} gifted a subscription! 🎁`;
+                    message.message = `${message.username} subscribed for 1 month!`;
                 }
             }
 
+            this.log("Sending subscription message.", message);
             this.sendChatMessages([message]);
         }
 
@@ -495,7 +504,13 @@
         onWebSocketMessage(ws, event) {
             const json = JSON.parse(event.data);
             if (json.event === undefined) {
-                this.log("WebSocket received data with no event.", data);
+                switch (json.type) {
+                    case "ping":
+                    case "pong":
+                        return;
+                    default:
+                        this.log("WebSocket received data with no event.", event);
+                }
             }
 
             const subValue = 5;
@@ -510,10 +525,11 @@
                 case "App\\Events\\GiftedSubscriptionsEvent":
                     const giftData = JSON.parse(json.data);
                     this.receiveSubscriptions({
+                        id: `${Date.now()}_${giftData.username}`, // Use current microtime timestamp as ID since Kick doesn't provide one.
                         gifted: true,
                         buyer: giftData.gifter_username,
                         count: giftData.gifted_usernames.length,
-                        value: subValue
+                        value: subValue,
                     });
                     break;
                 // {"event":"App\\Events\\GiftsLeaderboardUpdated","data":"{\"channel\":{\"id\":2515504,\"user_id\":2570626,\"slug\":\"bossmanjack\",\"is_banned\":false,\"playback_url\":\"https:\\/\\/fa723fc1b171.us-west-2.playback.live-video.net\\/api\\/video\\/v1\\/us-west-2.196233775518.channel.oliV5X2XFvWn.m3u8\",\"name_updated_at\":null,\"vod_enabled\":true,\"subscription_enabled\":true,\"can_host\":true,\"chatroom\":{\"id\":2507974,\"chatable_type\":\"App\\\\Models\\\\Channel\",\"channel_id\":2515504,\"created_at\":\"2023-03-31T21:25:27.000000Z\",\"updated_at\":\"2024-02-06T05:35:31.000000Z\",\"chat_mode_old\":\"public\",\"chat_mode\":\"public\",\"slow_mode\":false,\"chatable_id\":2515504,\"followers_mode\":true,\"subscribers_mode\":false,\"emotes_mode\":false,\"message_interval\":6,\"following_min_duration\":180}},\"leaderboard\":[{\"user_id\":21118649,\"username\":\"feepsyy\",\"quantity\":401},{\"user_id\":278737,\"username\":\"SIGNALBOOT\",\"quantity\":392},{\"user_id\":634058,\"username\":\"diddy11\",\"quantity\":266},{\"user_id\":22,\"username\":\"Eddie\",\"quantity\":180},{\"user_id\":17038949,\"username\":\"buttgrabbin\",\"quantity\":166},{\"user_id\":18409771,\"username\":\"RambleGamble\",\"quantity\":145},{\"user_id\":61177,\"username\":\"court\",\"quantity\":142},{\"user_id\":14059354,\"username\":\"Bshirley\",\"quantity\":122},{\"user_id\":2698,\"username\":\"Drake\",\"quantity\":100},{\"user_id\":10399,\"username\":\"TheManRand\",\"quantity\":72}],\"weekly_leaderboard\":[{\"user_id\":26382996,\"username\":\"doubledub2001\",\"quantity\":11},{\"user_id\":26491265,\"username\":\"dr0ptacular\",\"quantity\":11},{\"user_id\":27202375,\"username\":\"DreDre111\",\"quantity\":10},{\"user_id\":36056,\"username\":\"Scuffed\",\"quantity\":7},{\"user_id\":5556104,\"username\":\"SausageGravy\",\"quantity\":6},{\"user_id\":3685974,\"username\":\"Botaccount\",\"quantity\":5},{\"user_id\":27202627,\"username\":\"DopeSoap\",\"quantity\":5},{\"user_id\":4641706,\"username\":\"Sweetsfeature\",\"quantity\":4},{\"user_id\":803074,\"username\":\"livenationwide\",\"quantity\":3},{\"user_id\":14059354,\"username\":\"Bshirley\",\"quantity\":3}],\"monthly_leaderboard\":[{\"user_id\":61177,\"username\":\"court\",\"quantity\":73},{\"user_id\":26491265,\"username\":\"dr0ptacular\",\"quantity\":37},{\"user_id\":23522308,\"username\":\"s7eezyy\",\"quantity\":24},{\"user_id\":26878626,\"username\":\"JuiceWorld420\",\"quantity\":20},{\"user_id\":9759163,\"username\":\"KoopaTroopaZ\",\"quantity\":20},{\"user_id\":26379129,\"username\":\"Bramstammer\",\"quantity\":14},{\"user_id\":26382996,\"username\":\"doubledub2001\",\"quantity\":12},{\"user_id\":5556104,\"username\":\"SausageGravy\",\"quantity\":11},{\"user_id\":17038949,\"username\":\"buttgrabbin\",\"quantity\":10},{\"user_id\":25663663,\"username\":\"Chaissxn\",\"quantity\":10}],\"gifter_id\":61177,\"gifted_quantity\":1}","channel":"channel.2515504"}
@@ -527,10 +543,11 @@
                 case "App\\Events\\SubscriptionEvent":
                     const subData = JSON.parse(json.data);
                     this.receiveSubscriptions({
+                        id: `${Date.now()}_${subData.username}`, // Use current microtime timestamp as ID since Kick doesn't provide one.
                         gifted: false,
-                        buyer: giftData.username,
-                        count: giftData.months,
-                        value: subValue
+                        buyer: subData.username,
+                        count: subData.months,
+                        value: subValue,
                     });
                     break;
                 // {"event":"App\\Events\\ChannelSubscriptionEvent","data":"{\"user_ids\":[21118649],\"username\":\"feepsyy\",\"channel_id\":2515504}","channel":"channel.2515504"}
@@ -582,7 +599,13 @@
         onWebSocketSend(ws, data) {
             const json = JSON.parse(data);
             if (json.event === undefined) {
-                this.log("WebSocket sent data with no event.", data);
+                switch (json.type) {
+                    case "ping":
+                    case "pong":
+                        return;
+                    default:
+                        this.log("WebSocket sent data with no event.", json);
+                }
             }
 
             switch (json.event) {
@@ -1158,7 +1181,7 @@
     //
     // YouTube
     //
-    // ✔️ Capture new messages.{"event":"App\\Events\\UserBannedEvent","data":"{\"id\":\"0c50401f-adb4-4acf-929a-b04176900b99\",\"user\":{\"id\":27215345,\"username\":\"GoonAllday420\",\"slug\":\"goonallday420\"},\"banned_by\":{\"id\":0,\"username\":\"dispensary\",\"slug\":\"dispensary\"}}","channel":"chatrooms.2507974.v2"}
+    // ✔️ Capture new messages.
     // ✔️ Capture emotes.
     // ❌ Capture moderator actions.
     // ❌ Capture view counts.
@@ -1173,29 +1196,55 @@
 
         prepareChatMessages(actions) {
             return Promise.all(actions.map(async (action) => {
-                const message = new ChatMessage(
-                    UUID.v5(action.item.liveChatTextMessageRenderer.id, this.namespace),
-                    this.platform,
-                    this.channel
-                );
-                message.username = action.item.liveChatTextMessageRenderer.authorName.simpleText;
-                message.avatar = action.item.liveChatTextMessageRenderer.authorPhoto.thumbnails.at(-1).url;
-                message.sent_at = parseInt(action.item.liveChatTextMessageRenderer.timestampUsec / 1000);
+                if (action.item.liveChatTextMessageRenderer !== undefined) {
+                    const message = new ChatMessage(
+                        UUID.v5(action.item.liveChatTextMessageRenderer.id, this.namespace),
+                        this.platform,
+                        this.channel
+                    );
+                    message.username = action.item.liveChatTextMessageRenderer.authorName.simpleText;
+                    message.avatar = action.item.liveChatTextMessageRenderer.authorPhoto.thumbnails.at(-1).url;
+                    message.sent_at = parseInt(action.item.liveChatTextMessageRenderer.timestampUsec / 1000);
 
-                action.item.liveChatTextMessageRenderer.message.runs.forEach((run) => {
-                    if (run.text !== undefined) {
-                        message.message += run.text;
-                    }
-                    else if (run.emoji !== undefined) {
-                        message.message += `<img class="emoji" data-emote="${run.emoji.emojiId}" src="${run.emoji.image.thumbnails.at(-1).url}" alt="${run.emoji.emojiId}" /> `;
+                    action.item.liveChatTextMessageRenderer.message.runs.forEach((run) => {
+                        if (run.text !== undefined) {
+                            message.message += run.text;
+                        }
+                        else if (run.emoji !== undefined) {
+                            //message.message += `<img class="emoji" data-emote="${run.emoji.emojiId}" src="${run.emoji.image.thumbnails.at(-1).url}" alt="${run.emoji.emojiId}" /> `;
+                            message.message += `:${run.emoji.emojiId}: `
+                            message.emojis.push([`:${run.emoji.emojiId}:`, run.emoji.image.thumbnails.at(-1).url, `${run.emoji.emojiId}`]);
+                        }
+                        else {
+                            this.log("[SNEED::YouTube] Unknown run.", run);
+                        }
+                    });
+
+                    return message;
+                }
+                // We can send these placeholders as well.
+                else if (typeof action.item.liveChatPlaceholderItemRenderer !== undefined) {
+                    // I think this ID can be inserted after this is called, but not always.
+                    // It's not important enough to care.
+                    if (action.item.liveChatPlaceholderItemRenderer !== undefined) {
+                        const message = new ChatMessage(
+                            UUID.v5(action.item.liveChatPlaceholderItemRenderer.id, this.namespace),
+                            this.platform,
+                            this.channel
+                        );
+                        message.sent_at = parseInt(action.item.liveChatPlaceholderItemRenderer.timestampUsec / 1000);
+                        message.is_placeholder = true;
+                        return message;
                     }
                     else {
-                        this.log("[SNEED::YouTube] Unknown run.", run);
+                        return null;
                     }
-                });
-
-                return message;
-            }));
+                }
+                else {
+                    // Garbage YouTube click tracking junk.
+                    return null;
+                }
+            })).then((messages) => messages.filter((message) => message !== null));
         }
 
         receiveChatMessages(json) {
@@ -1206,11 +1255,27 @@
 
         async onDocumentReady(event) {
             this.log("Document ready, preparing to load channel information.");
+
+            // this contains a ton of information about the chat,in particular it has an emojis:[] array.
+            // yt.continuationContents.liveChatContinuation
+
             const yt = WINDOW.ytInitialData;
             let video_id = new URL(window.location.href).searchParams.get("v");
             if (video_id === null) {
                 if (yt.continuationContents !== undefined && yt.continuationContents.liveChatContinuation !== undefined) {
-                    video_id = yt.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.invalidationId.topic.split("~")[1];
+                    // there's a consistent tab to find that has the URL.
+                    for (const tab of yt.continuationContents.liveChatContinuation.header.liveChatHeaderRenderer.overflowMenu.menuRenderer.items) {
+                        if (tab.menuServiceItemRenderer !== undefined && tab.menuServiceItemRenderer.serviceEndpoint.popoutLiveChatEndpoint !== undefined) {
+                            const url = new URL(tab.menuServiceItemRenderer.serviceEndpoint.popoutLiveChatEndpoint.url);
+                            video_id = url.searchParams.get("v");
+                            break;
+                        }
+                    }
+
+                    // backup, this usually works.
+                    if (video_id === null) {
+                        video_id = yt.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.invalidationId.topic.split("~")[1];
+                    }
                 }
                 else if (yt.contents.liveChatRenderer !== undefined) {
                     video_id = yt.contents.liveChatRenderer.continuations[0].invalidationContinuationData.invalidationId.topic.split("~")[1];
@@ -1224,14 +1289,22 @@
             const author_url = await fetch(`https://www.youtube.com/oembed?url=http%3A//youtube.com/watch%3Fv%3D${video_id}&format=json`)
                 .then(response => response.json())
                 .then(json => json.author_url);
+
             this.log("Author URL:", author_url);
-            this.channel = await fetch(author_url)
-                .then(response => response.text())
-                .then(text => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(text, "text/html");
-                    return doc.querySelector('meta[itemprop="identifier"]').content;
-                });
+
+            // Extract the channel ID from the URL using a regular expression
+            const channel_match = author_url.match(/(?:\/channel\/|@)([^\/]+)/);
+
+
+            if (channel_match && channel_match[1]) {
+                this.channel = channel_match[1];
+            } else {
+                // Handle cases where the URL format is different
+                // For example, if it's a custom URL like /c/ChannelName
+                this.log("Could not find a channel ID in the URL. URL:", author_url);
+                // You might need a more complex solution for custom URLs
+            }
+
             this.log("Received channel info.", video_id, author_url, this.channel);
         }
 

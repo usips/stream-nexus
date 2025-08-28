@@ -19,6 +19,7 @@ pub struct Message {
     pub emojis: Vec<(String, String, String)>,
     pub sent_at: i64,     // Display timestamp
     pub received_at: i64, // Our system received timestamp
+    pub is_placeholder: bool,
     pub username: String,
     pub avatar: String, // URL
     // Superchat
@@ -68,6 +69,7 @@ impl Default for Message {
             emojis: Vec::new(),
             sent_at: time,
             received_at: time,
+            is_placeholder: false,
             username: "NO_USERNAME".to_string(),
             avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                 .to_string(),

@@ -231,6 +231,10 @@ function handle_feature_message(id) {
 }
 
 function handle_message(message) {
+    if (message.is_placeholder) {
+        return;
+    }
+
     // check if element already exists
     const existingEl = document.getElementById(message.id);
     if (existingEl !== null) {
