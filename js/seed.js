@@ -17,6 +17,10 @@
 // @match https://rumble.com/chat/popup/*
 // @match https://twitch.tv/*
 // @match https://twitch.tv/popout/*/chat
+// @match https://www.youtube.com/watch?v=*
+// @match https://youtube.com/watch?v=*
+// @match https://www.youtube.com/live/*
+// @match https://youtube.com/live/*
 // @match https://www.youtube.com/live_chat?*
 // @match https://youtube.com/live_chat?*
 // @match https://vk.com/video/lives?z=*
@@ -86,7 +90,7 @@
         /// UUID used for generating v5 UUIDs consistently to each platform.
         namespace = null;
         /// Current live viewers.
-        viewers = 0;
+        viewers = null;
 
         /// Messages waiting to be sent to the Rust backend.
         chatMessageQueue = [];
@@ -222,13 +226,18 @@
             const ws_open = this?.chatSocket?.readyState === WebSocket.OPEN;
             const seed_ready = this.channel !== null;
             if (ws_open && seed_ready) {
-                // Send message queue to Rust backend.
-                this.chatSocket.send(JSON.stringify({
+                let obj = {
                     platform: `${this.platform}`,
                     channel: `${this.channel}`,
                     messages: messages,
-                    viewers: this.viewers
-                }));
+                };
+
+                if (this.viewers !== null) {
+                    obj.viewers = this.viewers;
+                }
+
+                // Send message queue to Rust backend.
+                this.chatSocket.send(JSON.stringify(obj));
             }
             else {
                 // Add messages to queue.
@@ -241,6 +250,7 @@
         sendViewerCount(count) {
             this.log("Updating viewer count. Current viewers:", count);
             this.viewers = count;
+            this.sendChatMessages([]);
         }
 
         receiveSubscriptions(sub) {
@@ -1257,36 +1267,64 @@
         async onDocumentReady(event) {
             this.log("Document ready, preparing to load channel information.");
 
-            // this contains a ton of information about the chat,in particular it has an emojis:[] array.
-            // yt.continuationContents.liveChatContinuation
-
+            const url = new URL(window.location.href);
             const yt = WINDOW.ytInitialData;
-            let video_id = new URL(window.location.href).searchParams.get("v");
-            if (video_id === null) {
-                if (yt.continuationContents !== undefined && yt.continuationContents.liveChatContinuation !== undefined) {
-                    // there's a consistent tab to find that has the URL.
-                    for (const tab of yt.continuationContents.liveChatContinuation.header.liveChatHeaderRenderer.overflowMenu.menuRenderer.items) {
-                        if (tab.menuServiceItemRenderer !== undefined && tab.menuServiceItemRenderer.serviceEndpoint.popoutLiveChatEndpoint !== undefined) {
-                            const url = new URL(tab.menuServiceItemRenderer.serviceEndpoint.popoutLiveChatEndpoint.url);
-                            video_id = url.searchParams.get("v");
-                            break;
+            let video_id = null;
+            let is_chat_only = false;
+
+            // Check if this is a chat-only window
+            if (url.pathname.includes('/live_chat') || url.pathname.includes('/live_chat_replay')) {
+                is_chat_only = true;
+
+                // Try to get video ID from URL parameters first
+                video_id = url.searchParams.get("v");
+
+                // If not found, scan the initial data for video URL
+                if (!video_id && yt?.continuationContents?.liveChatContinuation) {
+                    const chatContinuation = yt.continuationContents.liveChatContinuation;
+
+                    // Look for popout chat endpoint in overflow menu
+                    const menuItems = chatContinuation.header?.liveChatHeaderRenderer?.overflowMenu?.menuRenderer?.items || [];
+                    for (const item of menuItems) {
+                        const endpoint = item.menuServiceItemRenderer?.serviceEndpoint?.popoutLiveChatEndpoint;
+                        if (endpoint?.url) {
+                            const popoutUrl = new URL(endpoint.url);
+                            video_id = popoutUrl.searchParams.get("v");
+                            if (video_id) break;
                         }
                     }
 
-                    // backup, this usually works.
-                    if (video_id === null) {
-                        video_id = yt.continuationContents.liveChatContinuation.continuations[0].invalidationContinuationData.invalidationId.topic.split("~")[1];
+                    // Fallback: extract from continuation data
+                    if (!video_id) {
+                        const topic = chatContinuation.continuations?.[0]?.invalidationContinuationData?.invalidationId?.topic;
+                        if (topic) {
+                            video_id = topic.split("~")[1];
+                        }
+                    }
+                } else if (!video_id && yt?.contents?.liveChatRenderer) {
+                    // Alternative path for live chat renderer
+                    const topic = yt.contents.liveChatRenderer.continuations?.[0]?.invalidationContinuationData?.invalidationId?.topic;
+                    if (topic) {
+                        video_id = topic.split("~")[1];
                     }
                 }
-                else if (yt.contents.liveChatRenderer !== undefined) {
-                    video_id = yt.contents.liveChatRenderer.continuations[0].invalidationContinuationData.invalidationId.topic.split("~")[1];
-                }
-                else {
-                    this.log("Cannot identify video ID.", JSON.parse(JSON.stringify(contents)));
+            } else {
+                // Regular watch or live page
+                if (url.pathname.startsWith('/watch')) {
+                    video_id = url.searchParams.get("v");
+                } else if (url.pathname.startsWith('/live/')) {
+                    video_id = url.pathname.split('/live/')[1];
                 }
             }
-            this.log("Video ID:", video_id);
 
+            if (!video_id) {
+                this.log("Cannot identify video ID.", { url: url.href, pathname: url.pathname });
+                return;
+            }
+
+            this.log("Video ID:", video_id, "Chat only:", is_chat_only);
+
+            // Fetch the channel URL using YouTube's oEmbed endpoint
             const author_url = await fetch(`https://www.youtube.com/oembed?url=http%3A//youtube.com/watch%3Fv%3D${video_id}&format=json`)
                 .then(response => response.json())
                 .then(json => json.author_url);
@@ -1295,7 +1333,6 @@
 
             // Extract the channel ID from the URL using a regular expression
             const channel_match = author_url.match(/(?:\/channel\/|@)([^\/]+)/);
-
 
             if (channel_match && channel_match[1]) {
                 this.channel = channel_match[1];
@@ -1307,6 +1344,70 @@
             }
 
             this.log("Received channel info.", video_id, author_url, this.channel);
+
+            if (!is_chat_only) {
+                // Check for view count element in a non-blocking loop
+                const checkForViewCount = () => {
+                    const viewCountElem = document.querySelector('#view-count');
+                    if (viewCountElem) {
+                        const observer = new MutationObserver(this.onViewCountChange.bind(this));
+                        observer.observe(viewCountElem, {
+                            attributes: true,
+                            attributeFilter: ['aria-label'],
+                            characterData: false,
+                            childList: false,
+                            subtree: false
+                        });
+                        // Element found and observer set up
+                        return true;
+                    }
+                    // Element not found yet
+                    return false;
+                };
+
+                // Try immediately, then poll if not found
+                if (!checkForViewCount()) {
+                    const intervalId = setInterval(() => {
+                        if (checkForViewCount()) {
+                            clearInterval(intervalId);
+                        }
+                    }, 1000);
+                }
+            }
+        }
+
+        // Called when the view count changes. This is a DOM observer.
+        onViewCountChange(mutationsList, observer) {
+            for (const mutation of mutationsList) {
+                if (mutation.type === 'childList' || mutation.type === 'characterData' || mutation.type === 'attributes') {
+                    const viewCountElem = document.querySelector('#view-count');
+                    if (viewCountElem) {
+                        // Try to get viewer count from aria-label first
+                        const ariaLabel = viewCountElem.getAttribute('aria-label');
+                        if (ariaLabel) {
+                            // Strip all non-numeric characters and parse
+                            const numericOnly = ariaLabel.replace(/[^\d]/g, '');
+                            if (numericOnly) {
+                                const viewers = parseInt(numericOnly, 10);
+                                if (!isNaN(viewers)) {
+                                    this.sendViewerCount(viewers);
+                                    continue;
+                                }
+                            }
+                        }
+
+                        // Fallback to text content parsing
+                        const text = viewCountElem.textContent || "";
+                        const match = text.replace(/,/g, '').match(/([\d,]+)\s+views/);
+                        if (match && match[1]) {
+                            const viewers = parseInt(match[1], 10);
+                            if (!isNaN(viewers)) {
+                                this.sendViewerCount(viewers);
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // Called when a fetch's promise is fulfilled.
@@ -1323,7 +1424,7 @@
                                 this.receiveChatMessages([action.addChatItemAction]);
                             }
                             else {
-                                this.log("Unknown action.", action);
+                                this.log("Unknown get_live_chat action.", action);
                             }
                         });
                     }
