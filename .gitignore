@@ -1,6 +1,9 @@
 .env
-target/
 exchange_rates.xml
+node_modules/*
+public/js/*
+!public/js/.gitkeep
 super_chats.json
 ssl/*
 !ssl/.gitkeep
+target/*

@@ -15,16 +15,20 @@ struct MessageTemplate<'a> {
 pub struct Message {
     pub id: Uuid,
     pub platform: String,
-    pub message: String,
-    pub emojis: Vec<(String, String, String)>,
     pub sent_at: i64,     // Display timestamp
     pub received_at: i64, // Our system received timestamp
     pub is_placeholder: bool,
+
+    pub message: String,
+    pub emojis: Vec<(String, String, String)>,
+
     pub username: String,
     pub avatar: String, // URL
+
     // Superchat
     pub amount: f64,
     pub currency: String,
+
     // Display
     pub is_verified: bool,
     pub is_sub: bool,
@@ -65,16 +69,21 @@ impl Default for Message {
         Message {
             id: Uuid::new_v4(),
             platform: "NONE".to_string(),
-            message: "DEFAULT_MESSAGE".to_string(),
-            emojis: Vec::new(),
+
             sent_at: time,
             received_at: time,
             is_placeholder: false,
+
+            message: "DEFAULT_MESSAGE".to_string(),
+            emojis: Vec::new(),
+
             username: "NO_USERNAME".to_string(),
             avatar: "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="
                 .to_string(),
+
             amount: 0.0,
             currency: "ZWL".to_string(),
+
             is_verified: false,
             is_sub: false,
             is_mod: false,

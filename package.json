@@ -1,0 +1,30 @@
+{
+  "name": "stream-nexus",
+  "version": "1.0.0",
+  "description": "In development. Not production ready. Many things hardcoded.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jaw-sh/stream-nexus.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/jaw-sh/stream-nexus/issues"
+  },
+  "homepage": "https://github.com/jaw-sh/stream-nexus#readme",
+  "devDependencies": {
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  },
+  "dependencies": {
+    "glob": "^11.0.3",
+    "matter-js": "^0.20.0"
+  }
+}

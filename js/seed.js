@@ -165,6 +165,10 @@
         bindEvents() {
             document.addEventListener("DOMContentLoaded", (event) => this.onDocumentReady(event));
             document.addEventListener("DOMContentLoaded", (event) => this.createChatSocket());
+            window.addEventListener("beforeunload", (event) => {
+                // Zero out the view count when the user leaves the page
+                this.sendViewerCount(0);
+            });
         }
 
         onDocumentReady() {
@@ -405,7 +409,6 @@
             newXhrSend.sneed_patched = true;
             WINDOW.XMLHttpRequest.prototype.send = Object.assign(newXhrSend, oldXhrSend);
 
-            console.log("XHR patching");
             return WINDOW.XMLHttpRequest;
         }
 
@@ -915,7 +918,6 @@
                             // name: "r+rumblecandy"
                             // pack_id: 1881816
                             // position: 0
-                            console.log("Adding emote", emote.name, emote.file);
                             this.emotes[emote.name] = emote.file;
                         });
                     }
@@ -1195,7 +1197,7 @@
     // ✔️ Capture new messages.
     // ✔️ Capture emotes.
     // ❌ Capture moderator actions.
-    // ❌ Capture view counts.
+    // ✔️ Capture view counts.
     //
     class YouTube extends Seed {
         constructor() {
@@ -1206,30 +1208,166 @@
         }
 
         prepareChatMessages(actions) {
+            function hasBadge(badges, iconType) {
+                return badges?.some(badge =>
+                    badge.liveChatAuthorBadgeRenderer?.icon?.iconType === iconType
+                ) ?? false;
+            }
+
+            function isMember(badges) {
+                return badges?.some(badge => {
+                    return badge.liveChatAuthorBadgeRenderer?.customThumbnail !== undefined
+                }) ?? false;
+            }
+
+            // Thank you, Google Gemini, for helping me bust Google's cryptic bullshit.
+            function paymentValue(paymentText) {
+                // A map of currency symbols and codes (in lowercase) to their corresponding ISO 4217 currency code.
+                // The keys are sorted by length in descending order before being added to the regex.
+                // This ensures that longer, more specific symbols (like 'US$') are matched before shorter, ambiguous ones (like '$').
+                const currencyData = {
+                    'us$': 'USD', 'a$': 'AUD', 'c$': 'CAD', 'clp$': 'CLP', 'cop$': 'COP',
+                    'hk$': 'HKD', 'mx$': 'MXN', 'nt$': 'TWD', 'nz$': 'NZD', 'r$': 'BRL',
+                    'rd$': 'DOP', 's$': 'SGD', 's/': 'PEN', 'b/.': 'PAB', 'bs.': 'BOB',
+                    'лв': 'BGN', 'ден': 'MKD', 'дин.': 'RSD', 'ر.س': 'SAR', 'د.إ': 'AED',
+                    'br': 'BYN', 'kn': 'HRK', 'kč': 'CZK', 'kr': 'SEK', 'ft': 'HUF',
+                    'zł': 'PLN', 'cfa': 'XOF', 'ush': 'UGX', 'lei': 'RON', 'chf': 'CHF',
+                    '€': 'EUR', '£': 'GBP', '¥': 'JPY', '₩': 'KRW', '₹': 'INR', '₪': 'ILS',
+                    '₱': 'PHP', '₽': 'RUB', '₺': 'TRY', '₦': 'NGN', '₲': 'PYG', '₡': 'CRC',
+                    'q': 'GTQ', 'l': 'HNL', '$': 'USD', 'r': 'ZAR',
+                    // ISO Codes
+                    'aed': 'AED', 'ars': 'ARS', 'aud': 'AUD', 'bgn': 'BGN', 'bob': 'BOB',
+                    'brl': 'BRL', 'byn': 'BYN', 'cad': 'CAD', 'chf': 'CHF', 'clp': 'CLP',
+                    'cop': 'COP', 'crc': 'CRC', 'czk': 'CZK', 'dkk': 'DKK', 'dop': 'DOP',
+                    'eur': 'EUR', 'gbp': 'GBP', 'gtq': 'GTQ', 'hkd': 'HKD', 'hnl': 'HNL',
+                    'hrk': 'HRK', 'huf': 'HUF', 'ils': 'ILS', 'inr': 'INR', 'isk': 'ISK',
+                    'jpy': 'JPY', 'krw': 'KRW', 'mkd': 'MKD', 'mxn': 'MXN', 'ngn': 'NGN',
+                    'nio': 'NIO', 'nok': 'NOK', 'nzd': 'NZD', 'pab': 'PAB', 'pen': 'PEN',
+                    'php': 'PHP', 'pln': 'PLN', 'pyg': 'PYG', 'ron': 'RON', 'rsd': 'RSD',
+                    'rub': 'RUB', 'sar': 'SAR', 'sek': 'SEK', 'sgd': 'SGD', 'twd': 'TWD',
+                    'try': 'TRY', 'ugx': 'UGX', 'usd': 'USD', 'xof': 'XOF', 'zar': 'ZAR'
+                };
+
+                // Dynamically create a single "super regex" from the keys of the currency map.
+                const symbols = Object.keys(currencyData)
+                    .sort((a, b) => b.length - a.length)
+                    .map(s => s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')) // Escape special regex characters
+                    .join('|');
+
+                // This regex captures the currency and the amount, regardless of their order in the string.
+                // It has two main parts joined by an OR (|):
+                // 1. (currency)(amount)
+                // 2. (amount)(currency)
+                // This results in 4 capture groups.
+                const paymentRegex = new RegExp(
+                    `^\\s*(?:(${symbols})\\s*([\\d,]+(?:\\.\\d{1,2})?)|([\\d,]+(?:\\.\\d{1,2})?)\\s*(${symbols}))\\s*$`,
+                    'i' // Case-insensitive
+                );
+
+                const match = paymentText.match(paymentRegex);
+
+                if (!match) {
+                    return [null, null];
+                }
+
+                // Extract the currency symbol and amount from the correct capture groups.
+                // If the first part of the regex matched, results are in groups 1 and 2.
+                // If the second part matched, results are in groups 3 and 4.
+                const currencySymbol = (match[1] || match[4] || '').toLowerCase();
+                const amountString = match[2] || match[3];
+
+                // Clean up the amount string (remove commas) and convert it to a float.
+                const amount = parseFloat(amountString.replace(/,/g, ''));
+
+                // Look up the matched symbol in our map to get the standard 3-letter code.
+                const currencyCode = currencyData[currencySymbol] || null;
+
+                return [currencyCode, amount];
+            }
+
             return Promise.all(actions.map(async (action) => {
-                if (action.item.liveChatTextMessageRenderer !== undefined) {
+                // Basic chat message or SuperChat
+                if (action.item.liveChatTextMessageRenderer !== undefined || action.item.liveChatPaidMessageRenderer !== undefined) {
+                    const renderer = action.item.liveChatTextMessageRenderer || action.item.liveChatPaidMessageRenderer;
                     const message = new ChatMessage(
-                        UUID.v5(action.item.liveChatTextMessageRenderer.id, this.namespace),
+                        UUID.v5(renderer.id, this.namespace),
                         this.platform,
                         this.channel
                     );
-                    message.username = action.item.liveChatTextMessageRenderer.authorName.simpleText;
-                    message.avatar = action.item.liveChatTextMessageRenderer.authorPhoto.thumbnails.at(-1).url;
-                    message.sent_at = parseInt(action.item.liveChatTextMessageRenderer.timestampUsec / 1000);
+                    message.username = renderer.authorName.simpleText;
+                    message.avatar = renderer.authorPhoto.thumbnails.at(-1).url;
+                    message.sent_at = parseInt(renderer.timestampUsec / 1000);
 
-                    action.item.liveChatTextMessageRenderer.message.runs.forEach((run) => {
-                        if (run.text !== undefined) {
-                            message.message += run.text;
+                    // Check for badges
+                    const badges = renderer.authorBadges;
+                    message.is_verified = hasBadge(badges, "VERIFIED");
+                    message.is_sub = isMember(badges);
+                    message.is_mod = hasBadge(badges, "MODERATOR");
+                    message.is_owner = hasBadge(badges, "OWNER");
+
+                    // Handle SuperChat amount and currency
+                    if (action.item.liveChatPaidMessageRenderer !== undefined) {
+                        const [currency, amount] = paymentValue(renderer.purchaseAmountText.simpleText);
+
+                        if (currency === null || amount === null) {
+                            this.warn("Could not parse SuperChat currency or amount.", renderer.purchaseAmountText.simpleText);
+                        } else {
+                            message.amount = amount;
+                            message.currency = currency;
                         }
-                        else if (run.emoji !== undefined) {
-                            //message.message += `<img class="emoji" data-emote="${run.emoji.emojiId}" src="${run.emoji.image.thumbnails.at(-1).url}" alt="${run.emoji.emojiId}" /> `;
-                            message.message += `:${run.emoji.emojiId}: `
-                            message.emojis.push([`:${run.emoji.emojiId}:`, run.emoji.image.thumbnails.at(-1).url, `${run.emoji.emojiId}`]);
-                        }
-                        else {
-                            this.log("[SNEED::YouTube] Unknown run.", run);
-                        }
-                    });
+                    }
+
+                    // Process message content (both regular messages and SuperChat messages use the same structure)
+                    if (renderer.message && renderer.message.runs) {
+                        renderer.message.runs.forEach((run) => {
+                            if (run.text !== undefined) {
+                                message.message += run.text;
+                            }
+                            else if (run.emoji !== undefined) {
+                                message.message += `:${run.emoji.emojiId}: `
+                                message.emojis.push([`:${run.emoji.emojiId}:`, run.emoji.image.thumbnails.at(-1).url, `${run.emoji.emojiId}`]);
+                            }
+                            else {
+                                this.log("[SNEED::YouTube] Unknown run.", run);
+                            }
+                        });
+                    }
+
+                    return message;
+                }
+                // Membership alerts.
+                else if (action.item.liveChatMembershipGiftingEventRenderer !== undefined) {
+                    const giftingEvent = action.item.liveChatMembershipGiftingEventRenderer;
+                    const message = new ChatMessage(
+                        UUID.v5(giftingEvent.id, this.namespace),
+                        this.platform,
+                        this.channel
+                    );
+                    message.username = giftingEvent.authorName.simpleText;
+                    message.avatar = giftingEvent.authorPhoto.thumbnails.at(-1).url;
+                    message.sent_at = parseInt(giftingEvent.timestampUsec / 1000);
+                    message.message = `${giftingEvent.authorName.simpleText} gifted ${giftingEvent.numGiftedMembers} memberships!`;
+
+                    message.currency = "USD";
+                    message.amount = 5.00; // $5 USD (approx) x 70% (creator share)
+
+                    return message;
+                }
+                // Gifted membership alerts.
+                else if (action.item.liveChatGiftMembershipReceivedEventRenderer !== undefined) {
+                    const giftReceivedEvent = action.item.liveChatGiftMembershipReceivedEventRenderer;
+                    const message = new ChatMessage(
+                        UUID.v5(giftReceivedEvent.id, this.namespace),
+                        this.platform,
+                        this.channel
+                    );
+                    message.username = giftReceivedEvent.authorName.simpleText;
+                    message.avatar = giftReceivedEvent.authorPhoto.thumbnails.at(-1).url;
+                    message.sent_at = parseInt(giftReceivedEvent.timestampUsec / 1000);
+                    message.message = `${giftReceivedEvent.authorName.simpleText} received a gifted membership!`;
+
+                    message.currency = "USD";
+                    message.amount = giftReceivedEvent.numGiftedMembers * 5.00; // (number of gifted subs) x ($5 USD) x 70%
 
                     return message;
                 }
@@ -1376,6 +1514,44 @@
             }
         }
 
+        // Called when a fetch's promise is fulfilled.
+        async onFetchResponse(response) {
+            if (!response.url.includes("/get_live_chat")) {
+                return;
+            }
+
+            try {
+                const json = await response.json();
+                const actions = json?.continuationContents?.liveChatContinuation?.actions;
+
+                if (!actions) {
+                    return;
+                }
+
+                const messagesToAdd = actions
+                    .map(action => {
+                        if (action.addChatItemAction) {
+                            return action.addChatItemAction;
+                        }
+                        if (action.addLiveChatMembershipItemAction) {
+                            return action.addLiveChatMembershipItemAction;
+                        }
+                        if (action.updateLiveChatPollAction) {
+                            return null;
+                        }
+                        this.log("Unknown get_live_chat action.", action);
+                        return null;
+                    })
+                    .filter(Boolean);
+
+                if (messagesToAdd.length > 0) {
+                    this.receiveChatMessages(messagesToAdd);
+                }
+            } catch (error) {
+                this.warn("Failed to process live chat response:", error);
+            }
+        }
+
         // Called when the view count changes. This is a DOM observer.
         onViewCountChange(mutationsList, observer) {
             for (const mutation of mutationsList) {
@@ -1407,28 +1583,6 @@
                         }
                     }
                 }
-            }
-        }
-
-        // Called when a fetch's promise is fulfilled.
-        async onFetchResponse(response) {
-            if (response.url.indexOf("/get_live_chat") >= 0) {
-                await response.json().then((json) => {
-                    if (
-                        json.continuationContents !== undefined &&
-                        json.continuationContents.liveChatContinuation !== undefined &&
-                        json.continuationContents.liveChatContinuation.actions !== undefined
-                    ) {
-                        json.continuationContents.liveChatContinuation.actions.forEach((action) => {
-                            if (action.addChatItemAction !== undefined) {
-                                this.receiveChatMessages([action.addChatItemAction]);
-                            }
-                            else {
-                                this.log("Unknown get_live_chat action.", action);
-                            }
-                        });
-                    }
-                });
             }
         }
     }
@@ -1653,7 +1807,6 @@
         //}
 
         prepareChatMessage(tip) {
-            WINDOW.console.log(tip);
             const message = new ChatMessage(
                 UUID.v5(`XMRCHAT-${tip.id}`, this.namespace),
                 this.platform,

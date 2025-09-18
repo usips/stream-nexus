@@ -19,6 +19,11 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(1);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Template)]
+#[template(path = "background.html")]
+struct BackgroundTemplate {
+    super_chats: Vec<crate::message::Message>,
+}
+#[derive(Template)]
 #[template(path = "chat.html")]
 struct ChatTemplate {}
 
@@ -32,6 +37,17 @@ struct DashboardTemplate {
 #[template(path = "overlay.html")]
 struct OverlayTemplate {
     super_chats: Vec<crate::message::Message>,
+}
+
+#[actix_web::get("/background")]
+pub async fn background(req: HttpRequest) -> impl Responder {
+    let chat_server = req
+        .app_data::<Addr<ChatServer>>()
+        .expect("ChatServer missing in app data!")
+        .clone();
+    BackgroundTemplate {
+        super_chats: chat_server.send(PaidMessages).await.unwrap(),
+    }
 }
 
 #[actix_web::get("/chat")]
@@ -66,56 +82,41 @@ pub async fn overlay(req: HttpRequest) -> impl Responder {
     }
 }
 
-#[actix_web::get("/dashboard.js")]
-pub async fn dashboard_javascript() -> impl Responder {
-    HttpResponse::Ok()
-        .append_header((header::CONTENT_TYPE, "text/javascript"))
-        .body(std::fs::read_to_string("public/dashboard.js").unwrap())
-}
+#[actix_web::get("/static/{filename:.*}")]
+pub async fn static_files(path: web::Path<String>) -> impl Responder {
+    let filename = path.into_inner();
 
-#[actix_web::get("/script.js")]
-pub async fn javascript() -> impl Responder {
-    HttpResponse::Ok()
-        .append_header((header::CONTENT_TYPE, "text/javascript"))
-        .body(std::fs::read_to_string("public/script.js").unwrap())
-}
+    // Prevent directory traversal
+    if filename.contains("..") || filename.starts_with('/') {
+        return HttpResponse::BadRequest().body("Invalid path");
+    }
 
-#[actix_web::get("/style.css")]
-pub async fn stylesheet() -> impl Responder {
-    HttpResponse::Ok()
-        .append_header((header::CONTENT_TYPE, "text/css"))
-        .body(std::fs::read_to_string("public/style.css").unwrap())
-}
+    let file_path = format!("public/{}", filename);
 
-#[actix_web::get("/dashboard.css")]
-pub async fn dashboard_stylesheet() -> impl Responder {
-    HttpResponse::Ok()
-        .append_header((header::CONTENT_TYPE, "text/css"))
-        .body(std::fs::read_to_string("public/dashboard.css").unwrap())
-}
+    match std::fs::read(&file_path) {
+        Ok(contents) => {
+            let content_type = match std::path::Path::new(&filename)
+                .extension()
+                .and_then(|ext| ext.to_str())
+            {
+                Some("js") => "text/javascript",
+                Some("css") => "text/css",
+                Some("html") => "text/html",
+                Some("png") => "image/png",
+                Some("jpg") | Some("jpeg") => "image/jpeg",
+                Some("svg") => "image/svg+xml",
+                Some("gif") => "image/gif",
+                Some("ico") => "image/x-icon",
+                Some("json") => "application/json",
+                Some("txt") => "text/plain",
+                _ => "application/octet-stream",
+            };
 
-#[actix_web::get("/user-colors.css")]
-pub async fn colors() -> impl Responder {
-    HttpResponse::Ok()
-        .append_header((header::CONTENT_TYPE, "text/css"))
-        .body(std::fs::read_to_string("public/user-colors.css").unwrap())
-}
-
-#[actix_web::get("/logo/{platform}.{ext}")]
-pub async fn logo(info: web::Path<(String, String)>) -> impl Responder {
-    let (platform, ext) = info.into_inner();
-    let path = format!("public/logo/{}.{}", platform, ext);
-    match std::fs::read(&path) {
-        Ok(body) => match ext.as_str() {
-            "svg" => HttpResponse::Ok()
-                .append_header((header::CONTENT_TYPE, "image/svg+xml"))
-                .body(body),
-            "png" => HttpResponse::Ok()
-                .append_header((header::CONTENT_TYPE, "image/png"))
-                .body(body),
-            _ => HttpResponse::UnsupportedMediaType().body("Invalid extension"),
-        },
-        Err(e) => HttpResponse::NotFound().body(e.to_string()),
+            HttpResponse::Ok()
+                .append_header((header::CONTENT_TYPE, content_type))
+                .body(contents)
+        }
+        Err(_) => HttpResponse::NotFound().body("File not found"),
     }
 }
 

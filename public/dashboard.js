@@ -18,6 +18,7 @@ class ChatMessage {
         this.amount = 0;
         this.currency = "ZWL";
 
+        this.is_placeholder = false;
         this.is_verified = false;
         this.is_sub = false;
         this.is_mod = false;
@@ -202,7 +203,7 @@ function send_paid_message() {
     switch (msg.platform) {
         case "mail":
         case "usps":
-            msg.avatar = "/logo/usps.png";
+            msg.avatar = "/static/logo/usps.png";
             break;
     }
 

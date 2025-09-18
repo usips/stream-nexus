@@ -145,10 +145,22 @@ section#chat {
     font-size: 90%;
     font-weight: bold;
     margin-top: -4px;
+    margin-left: 2px;
+    margin-right: 2px;
 
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    text-shadow: 
+        -1px -1px 0 rgba(0, 0, 0, 0.1),
+        1px -1px 0 rgba(0, 0, 0, 0.1),
+        -1px 1px 0 rgba(0, 0, 0, 0.1),
+        1px 1px 0 rgba(0, 0, 0, 0.1),
+        0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(0, 0, 0, 0.1),
+        -1px 0 0 rgba(0, 0, 0, 0.1),
+        1px 0 0 rgba(0, 0, 0, 0.1);
 }
 
 .msg--b-sub .msg-user {

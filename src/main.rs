@@ -25,16 +25,12 @@ async fn main() -> Result<(), std::io::Error> {
     HttpServer::new(move || {
         App::new()
             .app_data(chat_for_server.clone())
-            .service(web::javascript)
-            .service(web::dashboard_javascript)
-            .service(web::stylesheet)
-            .service(web::dashboard_stylesheet)
-            .service(web::colors)
+            .service(web::background)
             .service(web::chat)
             .service(web::dashboard)
             .service(web::overlay)
+            .service(web::static_files)
             .service(web::websocket)
-            .service(web::logo)
     })
     //.workers(1)
     .bind(format!(
