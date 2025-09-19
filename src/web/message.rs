@@ -52,6 +52,13 @@ impl Message for FeatureMessage {
     type Result = ();
 }
 
+/// Request for paid messages.
+pub struct PaidMessages;
+
+impl Message for PaidMessages {
+    type Result = Vec<ChatMessage>;
+}
+
 /// Request for recent chat messages.
 pub struct RecentMessages;
 
@@ -59,11 +66,13 @@ impl Message for RecentMessages {
     type Result = Vec<ChatMessage>;
 }
 
-/// Request for paid messages.
-pub struct PaidMessages;
+/// Remove message
+pub struct RemoveMessage {
+    pub id: uuid::Uuid,
+}
 
-impl Message for PaidMessages {
-    type Result = Vec<ChatMessage>;
+impl Message for RemoveMessage {
+    type Result = ();
 }
 
 /// Request for view counts.

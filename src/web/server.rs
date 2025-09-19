@@ -257,6 +257,29 @@ impl<'a> Handler<message::RecentMessages> for ChatServer {
     }
 }
 
+/// Handler for remove a message.
+impl Handler<message::RemoveMessage> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: message::RemoveMessage, _: &mut Context<Self>) -> Self::Result {
+        log::debug!("[ChatServer] Removing message with ID {}", msg.id);
+        self.chat_messages.remove(&msg.id);
+        self.paid_messages.retain(|&id| id != msg.id);
+
+        // Notify all clients to remove the message.
+        for (_, conn) in &self.clients {
+            conn.recipient.do_send(message::Reply(
+                serde_json::to_string(&message::ReplyInner {
+                    tag: "remove_message".to_owned(),
+                    message: serde_json::to_string(&msg.id)
+                        .expect("Failed to serialize remove string."),
+                })
+                .expect("Failed to serialize remove ReplyInner"),
+            ));
+        }
+    }
+}
+
 /// Handler for all stored Superchats.
 impl<'a> Handler<message::PaidMessages> for ChatServer {
     type Result = MessageResult<message::PaidMessages>;

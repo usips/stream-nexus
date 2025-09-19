@@ -136,6 +136,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
             ws::Message::Text(text) => {
                 match serde_json::from_str::<LivestreamUpdate>(&text) {
                     Ok(update) => {
+                        // Send Chat Messages
+                        if let Some(messages) = update.messages {
+                            for message in messages {
+                                self.send_or_reply(
+                                    ctx,
+                                    ChatMessage {
+                                        chat_message: message,
+                                    },
+                                );
+                            }
+                        }
+                        // Send Removals
+                        if let Some(removals) = update.removals {
+                            for id in removals {
+                                self.send_or_reply(ctx, message::RemoveMessage { id });
+                            }
+                        }
                         // Send Viewer Counts
                         if let Some(viewers) = update.viewers {
                             self.send_or_reply(
@@ -146,17 +163,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                     viewers,
                                 },
                             );
-                        }
-                        // Send Messages
-                        if let Some(messages) = update.messages {
-                            for message in messages {
-                                self.send_or_reply(
-                                    ctx,
-                                    ChatMessage {
-                                        chat_message: message,
-                                    },
-                                );
-                            }
                         }
                     }
                     Err(_) => {

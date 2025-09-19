@@ -8,11 +8,9 @@ pub use message::PaidMessages;
 pub use server::ChatServer;
 
 use actix::Addr;
-use actix_web::HttpResponseBuilder;
 use actix_web::{http::header, web, Error, HttpRequest, HttpResponse, Responder};
 use actix_web_actors::ws;
 use askama_actix::Template;
-use askama_actix::TemplateToResponse;
 use std::time::{Duration, Instant};
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(1);

@@ -49,7 +49,20 @@
     const WINDOW = unsafeWindow ?? window;
 
     //
-    // Chat Message
+    // Livestream Update Data
+    //
+    class LivestreamUpdate {
+        constructor(platform, channel) {
+            this.platform = platform;
+            this.channel = channel;
+            this.messages = undefined;
+            this.removals = undefined;
+            this.viewers = undefined;
+        }
+    }
+
+    //
+    // Chat Message Data
     //
     class ChatMessage {
         constructor(id, platform, channel) {
@@ -92,12 +105,12 @@
         /// Current live viewers.
         viewers = null;
 
-        /// Messages waiting to be sent to the Rust backend.
-        chatMessageQueue = [];
         /// Current connection to the Rust backend.
         chatSocket = null;
         /// Timeout for re-attempting socket.
         chatSocketTimeout = null;
+        /// Messages waiting to be sent to the Rust backend.
+        updateQueue = [];
 
         constructor(namespace, platform, channel) {
             this.namespace = namespace;
@@ -165,14 +178,16 @@
         bindEvents() {
             document.addEventListener("DOMContentLoaded", (event) => this.onDocumentReady(event));
             document.addEventListener("DOMContentLoaded", (event) => this.createChatSocket());
-            window.addEventListener("beforeunload", (event) => {
-                // Zero out the view count when the user leaves the page
-                this.sendViewerCount(0);
-            });
+            window.addEventListener("beforeunload", (event) => this.onBeforeUnload(event));
         }
 
-        onDocumentReady() {
+        onDocumentReady(event) {
             this.debug("Document ready.");
+        }
+
+        onBeforeUnload(event) {
+            this.debug("Window is about to unload.");
+            this.sendViewerCount(0);
         }
 
         //
@@ -224,37 +239,53 @@
             this.chatSocketTimeout = setTimeout(() => this.createChatSocket(), 3000);
         }
 
-        /// Sends messages to the Rust backend, or adds them to the queue.
-        sendChatMessages(messages) {
+        queueLivestreamUpdate(update) {
             // Check if the chat socket is open.
             const ws_open = this?.chatSocket?.readyState === WebSocket.OPEN;
             const seed_ready = this.channel !== null;
             if (ws_open && seed_ready) {
-                let obj = {
-                    platform: `${this.platform}`,
-                    channel: `${this.channel}`,
-                    messages: messages,
-                };
-
-                if (this.viewers !== null) {
-                    obj.viewers = this.viewers;
-                }
-
                 // Send message queue to Rust backend.
-                this.chatSocket.send(JSON.stringify(obj));
+                this.chatSocket.send(JSON.stringify(update));
             }
             else {
                 // Add messages to queue.
                 this.warn("Forcing messages to queue. Socket open:", ws_open, "Seed ready:", seed_ready);
-                this.chatMessageQueue.push(...messages);
+                this.updateQueue.push(update);
             }
+        }
+
+        /// Sends messages to the Rust backend, or adds them to the queue.
+        sendChatMessages(messages) {
+            this.debug("Sending chat messages.", messages);
+            const update = new LivestreamUpdate(this.platform, this.channel);
+
+            if (Array.isArray(messages)) {
+                update.messages = messages;
+            } else if (messages instanceof ChatMessage) {
+                update.messages = [messages];
+            } else {
+                this.warn("Invalid messages parameter. Expected ChatMessage or Array of ChatMessage.", messages);
+                return;
+            }
+
+            this.queueLivestreamUpdate(update);
+        }
+
+        sendRemoveMessages(ids) {
+            this.debug("Sending remove message for IDs:", ids);
+            const update = new LivestreamUpdate(this.platform, this.channel);
+            update.removals = ids;
+            this.queueLivestreamUpdate(update);
         }
 
         /// Sends live viewer counts to the Rust backend.
         sendViewerCount(count) {
-            this.log("Updating viewer count. Current viewers:", count);
+            this.debug("Updating viewer count. Current viewers:", count);
             this.viewers = count;
-            this.sendChatMessages([]);
+
+            let update = new LivestreamUpdate(this.platform, this.channel);
+            update.viewers = count;
+            this.queueLivestreamUpdate(update);
         }
 
         receiveSubscriptions(sub) {
@@ -535,6 +566,12 @@
                     this.receiveChatMessage(JSON.parse(json.data));
                     break;
 
+                // "KICKs" are a premium currency on Kick that allow you to buy "gifts". The currency exchange is 100 KICK per 1.09 USD.
+                //{ "event": "KicksGifted", "data": "{\"message\":\"\",\"sender\":{\"id\":57598142,\"username\":\"Reds_cat\",\"username_color\":\"#E9113C\"},\"gift\":{\"gift_id\":\"hell_yeah\",\"name\":\"Hell Yeah\",\"amount\":1,\"type\":\"BASIC\",\"tier\":\"BASIC\",\"character_limit\":0,\"pinned_time\":0}}", "channel": "channel_57035257" }
+                case "KicksGifted":
+                    // TODO: YouTube has similar SuperStickers, maybe a new system for that? Idk.
+                    break;
+
                 // {"event":"App\\Events\\GiftedSubscriptionsEvent","data":"{\"chatroom_id\":2507974,\"gifted_usernames\":[\"bigboss_23\"],\"gifter_username\":\"court\"}","channel":"chatrooms.2507974.v2"}
                 case "App\\Events\\GiftedSubscriptionsEvent":
                     const giftData = JSON.parse(json.data);
@@ -545,6 +582,10 @@
                         count: giftData.gifted_usernames.length,
                         value: subValue,
                     });
+                    break;
+
+                // {"event":"KicksLeaderboardUpdated","data":"{\"gifts_lifetime\":[{\"user_id\":72058463,\"username\":\"pesoru\",\"quantity\":100},{\"user_id\":74387606,\"username\":\"jfuylgkgk\",\"quantity\":60},{\"user_id\":58924937,\"username\":\"HUGOROCK\",\"quantity\":10},{\"user_id\":57598142,\"username\":\"Reds_cat\",\"quantity\":1}],\"gifts_lifetime_enabled\":true,\"gifts_week\":[{\"user_id\":72058463,\"username\":\"pesoru\",\"quantity\":100},{\"user_id\":74387606,\"username\":\"jfuylgkgk\",\"quantity\":60},{\"user_id\":58924937,\"username\":\"HUGOROCK\",\"quantity\":10},{\"user_id\":57598142,\"username\":\"Reds_cat\",\"quantity\":1}],\"gifts_week_enabled\":true,\"gifts_month\":[{\"user_id\":72058463,\"username\":\"pesoru\",\"quantity\":100},{\"user_id\":74387606,\"username\":\"jfuylgkgk\",\"quantity\":60},{\"user_id\":58924937,\"username\":\"HUGOROCK\",\"quantity\":10},{\"user_id\":57598142,\"username\":\"Reds_cat\",\"quantity\":1}],\"gifts_month_enabled\":true}","channel":"channel_57035257"}	
+                case "KicksLeaderboardUpdated":
                     break;
                 // {"event":"App\\Events\\GiftsLeaderboardUpdated","data":"{\"channel\":{\"id\":2515504,\"user_id\":2570626,\"slug\":\"bossmanjack\",\"is_banned\":false,\"playback_url\":\"https:\\/\\/fa723fc1b171.us-west-2.playback.live-video.net\\/api\\/video\\/v1\\/us-west-2.196233775518.channel.oliV5X2XFvWn.m3u8\",\"name_updated_at\":null,\"vod_enabled\":true,\"subscription_enabled\":true,\"can_host\":true,\"chatroom\":{\"id\":2507974,\"chatable_type\":\"App\\\\Models\\\\Channel\",\"channel_id\":2515504,\"created_at\":\"2023-03-31T21:25:27.000000Z\",\"updated_at\":\"2024-02-06T05:35:31.000000Z\",\"chat_mode_old\":\"public\",\"chat_mode\":\"public\",\"slow_mode\":false,\"chatable_id\":2515504,\"followers_mode\":true,\"subscribers_mode\":false,\"emotes_mode\":false,\"message_interval\":6,\"following_min_duration\":180}},\"leaderboard\":[{\"user_id\":21118649,\"username\":\"feepsyy\",\"quantity\":401},{\"user_id\":278737,\"username\":\"SIGNALBOOT\",\"quantity\":392},{\"user_id\":634058,\"username\":\"diddy11\",\"quantity\":266},{\"user_id\":22,\"username\":\"Eddie\",\"quantity\":180},{\"user_id\":17038949,\"username\":\"buttgrabbin\",\"quantity\":166},{\"user_id\":18409771,\"username\":\"RambleGamble\",\"quantity\":145},{\"user_id\":61177,\"username\":\"court\",\"quantity\":142},{\"user_id\":14059354,\"username\":\"Bshirley\",\"quantity\":122},{\"user_id\":2698,\"username\":\"Drake\",\"quantity\":100},{\"user_id\":10399,\"username\":\"TheManRand\",\"quantity\":72}],\"weekly_leaderboard\":[{\"user_id\":26382996,\"username\":\"doubledub2001\",\"quantity\":11},{\"user_id\":26491265,\"username\":\"dr0ptacular\",\"quantity\":11},{\"user_id\":27202375,\"username\":\"DreDre111\",\"quantity\":10},{\"user_id\":36056,\"username\":\"Scuffed\",\"quantity\":7},{\"user_id\":5556104,\"username\":\"SausageGravy\",\"quantity\":6},{\"user_id\":3685974,\"username\":\"Botaccount\",\"quantity\":5},{\"user_id\":27202627,\"username\":\"DopeSoap\",\"quantity\":5},{\"user_id\":4641706,\"username\":\"Sweetsfeature\",\"quantity\":4},{\"user_id\":803074,\"username\":\"livenationwide\",\"quantity\":3},{\"user_id\":14059354,\"username\":\"Bshirley\",\"quantity\":3}],\"monthly_leaderboard\":[{\"user_id\":61177,\"username\":\"court\",\"quantity\":73},{\"user_id\":26491265,\"username\":\"dr0ptacular\",\"quantity\":37},{\"user_id\":23522308,\"username\":\"s7eezyy\",\"quantity\":24},{\"user_id\":26878626,\"username\":\"JuiceWorld420\",\"quantity\":20},{\"user_id\":9759163,\"username\":\"KoopaTroopaZ\",\"quantity\":20},{\"user_id\":26379129,\"username\":\"Bramstammer\",\"quantity\":14},{\"user_id\":26382996,\"username\":\"doubledub2001\",\"quantity\":12},{\"user_id\":5556104,\"username\":\"SausageGravy\",\"quantity\":11},{\"user_id\":17038949,\"username\":\"buttgrabbin\",\"quantity\":10},{\"user_id\":25663663,\"username\":\"Chaissxn\",\"quantity\":10}],\"gifter_id\":61177,\"gifted_quantity\":1}","channel":"channel.2515504"}
                 case "App\\Events\\GiftsLeaderboardUpdated":
@@ -566,6 +607,19 @@
                     break;
                 // {"event":"App\\Events\\ChannelSubscriptionEvent","data":"{\"user_ids\":[21118649],\"username\":\"feepsyy\",\"channel_id\":2515504}","channel":"channel.2515504"}
                 case "App\\Events\\ChannelSubscriptionEvent":
+                    break;
+
+                //{"event":"App\\Events\\MessageDeletedEvent","data":"{\"id\":\"d7fd6f26-2ede-407a-bcb0-8a9984eb578d\",\"message\":{\"id\":\"16da752a-1b5a-4b28-9391-4b5c6e8dc405\"},\"aiModerated\":true,\"violatedRules\":[\"hate\"]}","channel":"chatrooms.56746877.v2"}	
+                //{"event":"App\\Events\\MessageDeletedEvent","data":"{\"id\":\"58ec0443-1d6f-4c5a-8a90-9f59dda05f02\",\"message\":{\"id\":\"45719aa8-8b77-4cc9-876d-78801c657293\"},\"aiModerated\":true,\"violatedRules\":[\"hate\"]}","channel":"chatrooms.56746877.v2"}	
+                case "App\\Events\\MessageDeletedEvent":
+                    const delData = JSON.parse(json.data);
+                    if (delData.aiModerated) {
+                        this.log("AI Moderated message ID:", delData.message.id, "Rules:", delData.violatedRules);
+                        // I don't care what robots think.
+                    } else {
+                        this.log("Deleting message ID:", delData.message.id);
+                        this.sendRemoveMessages([delData.message.id]);
+                    }
                     break;
 
                 // {"event":"App\\Events\\UserBannedEvent","data":"{\"id\":\"a3aadb10-22ae-4081-ba8f-46bb9a6c89ff\",\"user\":{\"id\":25556531,\"username\":\"JohnsonAndJohnson1\",\"slug\":\"johnsonandjohnson1\"},\"banned_by\":{\"id\":0,\"username\":\"covid1942\",\"slug\":\"covid1942\"}}","channel":"chatrooms.2507974.v2"}
@@ -591,17 +645,28 @@
                         this.sendViewerCount(viewers);
                     }
                     break;
+
                 // {"event":"App\\Events\\FollowersUpdated","data":"{\"followersCount\":20947,\"channel_id\":2515504,\"username\":null,\"created_at\":1707251975,\"followed\":true}","channel":"channel.2515504"}
                 case "App\\Events\\FollowersUpdated":
+                    break;
+
+                //{"event":"GoalProgressUpdateEvent","data":"{\"id\":\"chgoal_01JSP4V1AFCMF0PFS93C6KP8MY\",\"channel_id\":\"channel_01JPM733EGW4MHA5S5BWFATP3Q\",\"type\":\"followers\",\"target_value\":100000,\"current_value\":89269,\"progress_bar_emoji_id\":\"emotes/3511981\",\"status\":\"active\",\"created_at\":\"2025-04-25T09:35:41.90304Z\",\"updated_at\":\"2025-09-19T14:57:17.011658831Z\",\"achieved_at\":null,\"end_date\":null,\"count_from_creation\":true}","channel":"channel_57035257"}
+                case "GoalProgressUpdateEvent":
+                    break;
+
+                //{"event":"PointsUpdated","data":"{\"reason\":\"EARNED\",\"points\":10,\"balance\":110,\"user_id\":15671413,\"channel_id\":57035257}","channel":"private-channelpoints-15671413"}	
+                case "PointsUpdated":
+                    break;
+
+                //{"event":"RewardRedeemedEvent","data":"{\"reward_title\":\"ポケカメンがガチで虫を食う企画\",\"user_id\":65581447,\"channel_id\":57035257,\"username\":\"ririchan000\",\"user_input\":\"\",\"reward_background_color\":\"#1475E1\"}","channel":"chatroom_56746877"}
+                case "RewardRedeemedEvent":
                     break;
 
                 //{"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"chatrooms.14693568.v2"}
                 //{"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"private-userfeed.15671413"}
                 //{"event":"pusher_internal:subscription_succeeded","data":"{}","channel":"private-App.User.15671413"}
                 case "pusher_internal:subscription_succeeded":
-                    break;
                 case "pusher:connection_established":
-                    break;
                 case "pusher:pong":
                     break;
                 default:
@@ -614,6 +679,12 @@
             const json = JSON.parse(data);
             if (json.event === undefined) {
                 switch (json.type) {
+                    //{"type":"user_event","data":{"message":{"name":"tracking.user.watch.livestream","channel_id":57035257,"livestream_id":75010788}}}
+                    case "user_event":
+                    //{"type":"channel_handshake","data":{"message":{"channelId":"57035257"}}}
+                    case "channel_handshake":
+                    // {"type":"channel_disconnect","data":{"message":{"channelId":"57035257"}}}
+                    case "channel_disconnect":
                     case "ping":
                     case "pong":
                         return;
@@ -1195,6 +1266,8 @@
     // YouTube
     //
     // ✔️ Capture new messages.
+    // ✔️ Capture sent messages.
+    // ❌ Capture existing messages.
     // ✔️ Capture emotes.
     // ❌ Capture moderator actions.
     // ✔️ Capture view counts.
@@ -1535,6 +1608,17 @@
                         }
                         if (action.addLiveChatMembershipItemAction) {
                             return action.addLiveChatMembershipItemAction;
+                        }
+                        if (action.removeChatItemAction) {
+                            this.sendRemoveMessages([UUID.v5(
+                                action.removeChatItemAction.targetItemId,
+                                this.namespace
+                            )]);
+                            return null;
+                        }
+                        if (action.addLiveChatTickerItemAction) {
+                            // These appear to be the little hearts and other stickers that appear bottom-right.
+                            return null;
                         }
                         if (action.updateLiveChatPollAction) {
                             return null;

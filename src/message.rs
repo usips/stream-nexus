@@ -43,6 +43,7 @@ pub struct LivestreamUpdate {
     pub platform: String,
     pub channel: Option<String>,
     pub messages: Option<Vec<Message>>,
+    pub removals: Option<Vec<Uuid>>,
     pub viewers: Option<usize>,
 }
 
