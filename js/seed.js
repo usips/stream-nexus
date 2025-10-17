@@ -152,6 +152,16 @@
             }
         }
 
+        error(message, ...args) {
+            const f = console.error ?? console.log;
+            if (args.length > 0) {
+                f(`[SNEED::${this.platform}] ${message}`, ...args);
+            }
+            else {
+                f(`[SNEED::${this.platform}] ${message}`);
+            }
+        }
+
         async fetchDependencies() {
             /**
             // Need import for  UUIDv5 for deterministic UUIDs.
@@ -885,26 +895,32 @@
 
         /// Accepts chat histories and outbound messages.
         async onFetchResponse(response) {
-            const url = new URL(response.url);
-            switch (url.searchParams.get('m')) {
-                case "comment.List":
-                case "comment.SuperChatList":
-                    await response.json().then(async (data) => {
-                        if (data.result !== undefined && data.result.items !== undefined) {
-                            this.receiveChatMessages(data.result.items);
-                        }
-                    });
-                    break;
-                case "comment.Create":
-                    await response.json().then(async (data) => {
-                        if (data.result !== undefined && data.result.comment_id !== undefined) {
-                            this.receiveChatMessages([data.result]);
-                        }
-                        return data;
-                    });
-                    break;
-                default:
-                    break;
+            try {
+                const url = new URL(response.url);
+                switch (url.searchParams.get('m')) {
+                    case "comment.List":
+                    case "comment.SuperChatList":
+                        await response.json().then(async (data) => {
+                            if (data.result !== undefined && data.result.items !== undefined) {
+                                this.receiveChatMessages(data.result.items);
+                            }
+                        });
+                        break;
+                    case "comment.Create":
+                        await response.json().then(async (data) => {
+                            if (data.result !== undefined && data.result.comment_id !== undefined) {
+                                this.receiveChatMessages([data.result]);
+                            }
+                            return data;
+                        });
+                        break;
+                    default:
+                        break;
+                }
+            }
+            catch (e) {
+                // Sometimes, this is called on a response which has no URL.
+                this.error("Fetch response error.", e);
             }
         }
 
@@ -1124,25 +1140,30 @@
         }
 
         async onFetchResponse(response) {
-            const url = new URL(response.url);
-            if (url.searchParams.get('name') == "emote.list") {
-                await response.json().then((json) => {
-                    json.data.items.forEach((channel) => {
-                        if (channel.emotes !== undefined && channel.emotes.length > 0) {
-                            channel.emotes.forEach((emote) => {
-                                // emotes_pack_id: 1881816
-                                // file: "https://ak2.rmbl.ws/z12/F/3/4/s/F34si.aaa.png"
-                                // id: 139169247
-                                // is_subs_only: false
-                                // moderation_status: "NOT_MODERATED"
-                                // name: "r+rumblecandy"
-                                // pack_id: 1881816
-                                // position: 0
-                                this.emotes[emote.name] = emote.file;
-                            });
-                        }
+            try {
+                const url = new URL(response.url);
+                if (url.searchParams.get('name') == "emote.list") {
+                    await response.json().then((json) => {
+                        json.data.items.forEach((channel) => {
+                            if (channel.emotes !== undefined && channel.emotes.length > 0) {
+                                channel.emotes.forEach((emote) => {
+                                    // emotes_pack_id: 1881816
+                                    // file: "https://ak2.rmbl.ws/z12/F/3/4/s/F34si.aaa.png"
+                                    // id: 139169247
+                                    // is_subs_only: false
+                                    // moderation_status: "NOT_MODERATED"
+                                    // name: "r+rumblecandy"
+                                    // pack_id: 1881816
+                                    // position: 0
+                                    this.emotes[emote.name] = emote.file;
+                                });
+                            }
+                        });
                     });
-                });
+                }
+            } catch (e) {
+                // Sometimes, this is called on a response which has no URL.
+                this.log("Fetch response error.", e);
             }
         }
 

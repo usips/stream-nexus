@@ -1,8 +1,25 @@
 use actix::prelude::Message as ActixMessage;
 use askama::Template;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::time::SystemTime;
 use uuid::Uuid;
+
+// Custom deserializer to handle both string and number channel values
+fn deserialize_channel<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    use serde::de::Error;
+    use serde_json::Value;
+    
+    let value: Option<Value> = Option::deserialize(deserializer)?;
+    match value {
+        Some(Value::String(s)) => Ok(Some(s)),
+        Some(Value::Number(n)) => Ok(Some(n.to_string())),
+        Some(_) => Err(D::Error::custom("channel must be a string or number")),
+        None => Ok(None),
+    }
+}
 
 #[derive(Template)]
 #[template(path = "message.html")]
@@ -41,6 +58,7 @@ pub struct Message {
 #[rtype(result = "()")]
 pub struct LivestreamUpdate {
     pub platform: String,
+    #[serde(deserialize_with = "deserialize_channel")]
     pub channel: Option<String>,
     pub messages: Option<Vec<Message>>,
     pub removals: Option<Vec<Uuid>>,
