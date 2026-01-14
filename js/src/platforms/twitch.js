@@ -5,7 +5,7 @@
  * Note: Twitch implementation is incomplete - IRC parsing needs work
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class Twitch extends Seed {
     static hostname = 'twitch.tv';
@@ -48,10 +48,14 @@ export class Twitch extends Seed {
 
     onWebSocketMessage(ws, event) {
         this.parseWebSocketMessage(event.data);
+        // Record as unhandled since IRC parsing is incomplete
+        this.recordWebSocketUnhandled(ws, 'in', event.data, 'IRC_MESSAGE');
     }
 
     onWebSocketSend(ws, message) {
         this.parseWebSocketMessage(message);
+        // Record outgoing messages
+        this.recordWebSocketIgnored(ws, 'out', message, 'IRC_SEND', 'Outgoing IRC command');
     }
 }
 

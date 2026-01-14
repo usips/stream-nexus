@@ -11,7 +11,7 @@
  * but userscript requires a CSP-modifying extension.
  */
 
-import { Seed, ChatMessage } from '../core/index.js';
+import { Seed, ChatMessage, EventStatus } from '../core/index.js';
 
 export class X extends Seed {
     static hostname = 'x.com';
@@ -50,13 +50,14 @@ export class X extends Seed {
         }));
     }
 
-    parseWebSocketMessage(data) {
+    parseWebSocketMessage(data, ws, rawData, direction) {
         switch (data.kind) {
             case 1:
                 const payload = JSON.parse(data.payload);
                 if (payload.sender !== undefined && payload.body !== undefined) {
                     const body = JSON.parse(payload.body);
                     if (body.body !== undefined) {
+                        this.recordWebSocketHandled(ws, direction, rawData, { sender: payload.sender, body }, 'chat_message');
                         return this.prepareChatMessages([{
                             sender: payload.sender,
                             body: body
@@ -66,32 +67,39 @@ export class X extends Seed {
                     }
                 }
                 this._debug('Unknown message type:', data);
+                this.recordWebSocketUnhandled(ws, direction, rawData, `kind_${data.kind}`);
                 break;
             case 2:
                 const payload2 = JSON.parse(data.payload);
                 if (payload2.kind == 4) {
-                    this.parseWebSocketMessage(payload2);
+                    this.parseWebSocketMessage(payload2, ws, rawData, direction);
+                } else {
+                    this.recordWebSocketIgnored(ws, direction, rawData, `kind_${data.kind}`, 'Wrapper message');
                 }
                 break;
             case 4:
                 const payload4 = JSON.parse(data.body);
                 if (payload4.occupancy !== undefined) {
                     this.sendViewerCount(payload4.occupancy);
+                    this.recordWebSocketHandled(ws, direction, rawData, { occupancy: payload4.occupancy }, 'occupancy');
+                } else {
+                    this.recordWebSocketUnhandled(ws, direction, rawData, `kind_${data.kind}`);
                 }
                 break;
             default:
+                this.recordWebSocketUnhandled(ws, direction, rawData, `kind_${data.kind}`);
                 break;
         }
     }
 
     onWebSocketMessage(ws, event) {
         const data = JSON.parse(event.data);
-        this.parseWebSocketMessage(data);
+        this.parseWebSocketMessage(data, ws, event.data, 'in');
     }
 
     onWebSocketSend(ws, message) {
         const data = JSON.parse(message);
-        this.parseWebSocketMessage(data);
+        this.parseWebSocketMessage(data, ws, message, 'out');
     }
 }
 

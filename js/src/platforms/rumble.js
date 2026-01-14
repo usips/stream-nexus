@@ -11,7 +11,7 @@
  * - Capture rants (paid messages)
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class Rumble extends Seed {
     static hostname = 'rumble.com';
@@ -171,13 +171,20 @@ export class Rumble extends Seed {
                 case 'init':
                 case 'messages':
                     this.receiveChatPairs(json.data.messages, json.data.users);
+                    this.recorder.recordEventSource(es.url, event.data, EventStatus.HANDLED, {
+                        type: json.type,
+                        messageCount: json.data.messages?.length || 0,
+                        userCount: json.data.users?.length || 0
+                    }, json.type);
                     break;
                 default:
                     this._debug('EventSource received data with unknown type.', json);
+                    this.recorder.recordEventSource(es.url, event.data, EventStatus.UNHANDLED, null, json.type);
                     break;
             }
         } catch (e) {
             this.log('EventSource received data with invalid JSON.', e, event.data);
+            this.recorder.recordEventSource(es.url, event.data, EventStatus.ERROR, null, null, e.message);
         }
     }
 
@@ -185,18 +192,30 @@ export class Rumble extends Seed {
         try {
             const url = new URL(response.url);
             if (url.searchParams.get('name') == 'emote.list') {
-                await response.json().then((json) => {
+                const cloned = response.clone();
+                await cloned.json().then((json) => {
+                    let emoteCount = 0;
                     json.data.items.forEach((channel) => {
                         if (channel.emotes !== undefined && channel.emotes.length > 0) {
                             channel.emotes.forEach((emote) => {
                                 this.emotes[emote.name] = emote.file;
+                                emoteCount++;
                             });
                         }
                     });
+                    this.recordFetchHandled(response.url, 'GET', response.status, json, { emoteCount });
                 });
+            } else {
+                this.recordFetchIgnored(response.url, 'GET', response.status, 'Not emote list');
             }
         } catch (e) {
             this.log('Fetch response error.', e);
+            this.recorder.record('fetch_response', {
+                url: response.url,
+                method: 'GET',
+                statusCode: response.status,
+                payload: e.message
+            }, EventStatus.ERROR, null, e.message);
         }
     }
 

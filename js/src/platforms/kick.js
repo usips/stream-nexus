@@ -11,7 +11,7 @@
  * - Capture KicksGifted (premium gifts)
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class Kick extends Seed {
     static hostname = 'kick.com';
@@ -97,9 +97,11 @@ export class Kick extends Seed {
             switch (json.type) {
                 case 'ping':
                 case 'pong':
+                    this.recordWebSocketIgnored(ws, 'in', event.data, json.type, 'Heartbeat');
                     return;
                 default:
                     this.log('WebSocket received data with no event.', event);
+                    this.recordWebSocketUnhandled(ws, 'in', event.data, json.type);
             }
         }
 
@@ -107,12 +109,15 @@ export class Kick extends Seed {
 
         switch (json.event) {
             case 'App\\Events\\ChatMessageEvent':
-                this.receiveChatMessage(JSON.parse(json.data));
+                const chatData = JSON.parse(json.data);
+                this.receiveChatMessage(chatData);
+                this.recordWebSocketHandled(ws, 'in', event.data, chatData, json.event);
                 break;
 
             case 'KicksGifted':
-                console.log('KicksGifted', JSON.parse(json.data));
-                this.receiveChatMessage(JSON.parse(json.data));
+                const kicksData = JSON.parse(json.data);
+                this.receiveChatMessage(kicksData);
+                this.recordWebSocketHandled(ws, 'in', event.data, kicksData, json.event);
                 break;
 
             case 'App\\Events\\GiftedSubscriptionsEvent':
@@ -124,6 +129,7 @@ export class Kick extends Seed {
                     count: giftData.gifted_usernames.length,
                     value: subValue,
                 });
+                this.recordWebSocketHandled(ws, 'in', event.data, giftData, json.event);
                 break;
 
             case 'App\\Events\\SubscriptionEvent':
@@ -135,15 +141,18 @@ export class Kick extends Seed {
                     count: subData.months,
                     value: subValue,
                 });
+                this.recordWebSocketHandled(ws, 'in', event.data, subData, json.event);
                 break;
 
             case 'App\\Events\\MessageDeletedEvent':
                 const delData = JSON.parse(json.data);
                 if (delData.aiModerated) {
                     this.log('AI Moderated message ID:', delData.message.id, 'Rules:', delData.violatedRules);
+                    this.recordWebSocketIgnored(ws, 'in', event.data, json.event, 'AI moderated - not user deletion');
                 } else {
                     this.log('Deleting message ID:', delData.message.id);
                     this.sendRemoveMessages([delData.message.id]);
+                    this.recordWebSocketHandled(ws, 'in', event.data, delData, json.event);
                 }
                 break;
 
@@ -152,10 +161,11 @@ export class Kick extends Seed {
                 let viewers = parseInt(json.data.viewers, 10);
                 if (!isNaN(viewers)) {
                     this.sendViewerCount(viewers);
+                    this.recordWebSocketHandled(ws, 'in', event.data, { viewers }, json.event);
                 }
                 break;
 
-            // Ignored events
+            // Ignored events - recorded but intentionally not processed
             case 'KicksLeaderboardUpdated':
             case 'App\\Events\\GiftsLeaderboardUpdated':
             case 'App\\Events\\LuckyUsersWhoGotGiftSubscriptionsEvent':
@@ -171,10 +181,12 @@ export class Kick extends Seed {
             case 'pusher_internal:subscription_succeeded':
             case 'pusher:connection_established':
             case 'pusher:pong':
+                this.recordWebSocketIgnored(ws, 'in', event.data, json.event, 'Known event - intentionally ignored');
                 break;
 
             default:
                 this.log('WebSocket received data with unknown event.', json.event);
+                this.recordWebSocketUnhandled(ws, 'in', event.data, json.event);
                 break;
         }
     }
@@ -188,29 +200,37 @@ export class Kick extends Seed {
                 case 'channel_disconnect':
                 case 'ping':
                 case 'pong':
+                    this.recordWebSocketIgnored(ws, 'out', data, json.type, 'Protocol message');
                     return;
                 default:
                     this.log('WebSocket sent data with no event.', json);
+                    this.recordWebSocketUnhandled(ws, 'out', data, json.type);
             }
         }
 
         switch (json.event) {
             case 'pusher:subscribe':
             case 'pusher:ping':
+                this.recordWebSocketIgnored(ws, 'out', data, json.event, 'Pusher protocol');
                 break;
             default:
                 this.log('WebSocket sent data with unknown event.', data);
+                this.recordWebSocketUnhandled(ws, 'out', data, json.event);
                 break;
         }
     }
 
     async onFetchResponse(response) {
         if (response.url.indexOf('/current-viewers') >= 0) {
-            await response.json().then((json) => {
+            const cloned = response.clone();
+            await cloned.json().then((json) => {
                 for (const channel of json) {
                     this.sendViewerCount(channel.viewers);
                 }
+                this.recordFetchHandled(response.url, 'GET', response.status, json, { viewers: json });
             });
+        } else {
+            this.recordFetchIgnored(response.url, 'GET', response.status, 'Not monitored endpoint');
         }
     }
 

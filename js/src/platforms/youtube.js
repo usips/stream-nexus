@@ -11,7 +11,7 @@
  * - Capture membership gifts
  */
 
-import { Seed, ChatMessage, uuidv5, WINDOW } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, WINDOW, EventStatus } from '../core/index.js';
 
 export class YouTube extends Seed {
     static hostname = 'youtube.com';
@@ -265,14 +265,21 @@ export class YouTube extends Seed {
     }
 
     async onFetchResponse(response) {
-        if (!response.url.includes('/get_live_chat')) return;
+        if (!response.url.includes('/get_live_chat')) {
+            this.recordFetchIgnored(response.url, 'GET', response.status, 'Not live chat endpoint');
+            return;
+        }
 
         try {
             const json = await response.json();
             const actions = json?.continuationContents?.liveChatContinuation?.actions;
 
-            if (!actions) return;
+            if (!actions) {
+                this.recordFetchIgnored(response.url, 'GET', response.status, 'No actions in response');
+                return;
+            }
 
+            const unhandledActions = [];
             const messagesToAdd = actions
                 .map(action => {
                     if (action.addChatItemAction) return action.addChatItemAction;
@@ -284,6 +291,7 @@ export class YouTube extends Seed {
                     if (action.addLiveChatTickerItemAction) return null;
                     if (action.updateLiveChatPollAction) return null;
                     this.log('Unknown get_live_chat action.', action);
+                    unhandledActions.push(action);
                     return null;
                 })
                 .filter(Boolean);
@@ -291,8 +299,22 @@ export class YouTube extends Seed {
             if (messagesToAdd.length > 0) {
                 this.receiveChatMessages(messagesToAdd);
             }
+
+            // Record the fetch with parsed data
+            this.recordFetchHandled(response.url, 'GET', response.status, json, {
+                actionCount: actions.length,
+                messagesAdded: messagesToAdd.length,
+                unhandledCount: unhandledActions.length,
+                unhandledActions: unhandledActions
+            });
         } catch (error) {
             this.warn('Failed to process live chat response:', error);
+            this.recorder.record('fetch_response', {
+                url: response.url,
+                method: 'GET',
+                statusCode: response.status,
+                payload: error.message
+            }, EventStatus.ERROR, null, error.message);
         }
     }
 

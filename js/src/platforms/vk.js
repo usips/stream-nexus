@@ -6,7 +6,7 @@
  * - Capture sent messages (partial implementation)
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class VK extends Seed {
     static hostname = 'vk.com';
@@ -39,6 +39,9 @@ export class VK extends Seed {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.response?.url?.indexOf('act=post_comment') > 0) {
                 // TODO: Parse VK chat messages from DOM
+                this.recorder.recordXhr(xhr.responseURL, 'POST', xhr.status, xhr.response, EventStatus.UNHANDLED, null, 'VK parsing not implemented');
+            } else {
+                this.recorder.recordXhr(xhr.responseURL, 'GET', xhr.status, null, EventStatus.IGNORED, null, 'Not monitored endpoint');
             }
         }
     }

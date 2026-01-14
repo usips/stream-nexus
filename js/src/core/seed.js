@@ -6,6 +6,7 @@
 import { Config, DEFAULTS } from './config.js';
 import { uuidv5 } from './uuid.js';
 import { ChatMessage, LivestreamUpdate } from './message.js';
+import { Recorder, EventStatus, EventType } from './recorder.js';
 
 // Get the window object (handles userscript's unsafeWindow)
 const WINDOW = (typeof unsafeWindow !== 'undefined' ? unsafeWindow : window);
@@ -31,10 +32,16 @@ export class Seed {
     serverUrl = DEFAULTS.serverUrl;
     debug = DEFAULTS.debug;
 
+    // Debug recorder
+    recorder = null;
+
     constructor(namespace, platform, channel) {
         this.namespace = namespace;
         this.platform = platform;
         this.channel = channel;
+
+        // Initialize recorder
+        this.recorder = new Recorder(platform);
 
         this.log('Initializing.');
 
@@ -186,8 +193,11 @@ export class Seed {
 
         if (Array.isArray(messages)) {
             update.messages = messages;
+            // Record each message sent to backend
+            messages.forEach(msg => this.recorder.recordChatMessage(msg));
         } else if (messages instanceof ChatMessage) {
             update.messages = [messages];
+            this.recorder.recordChatMessage(messages);
         } else {
             this.warn('Invalid messages parameter. Expected ChatMessage or Array of ChatMessage.', messages);
             return;
@@ -289,6 +299,22 @@ export class Seed {
 
     onFetchResponse(response) {
         this._debug('Fetch received data.', response);
+        // Record raw fetch - subclasses should call recordFetchHandled for handled responses
+        this.recorder.recordFetch(response.url, 'GET', response.status, '[Response object - clone to read body]', EventStatus.UNHANDLED);
+    }
+
+    /**
+     * Record a Fetch response as handled
+     */
+    recordFetchHandled(url, method, statusCode, payload, parsed) {
+        this.recorder.recordFetch(url, method, statusCode, payload, EventStatus.HANDLED, parsed);
+    }
+
+    /**
+     * Record a Fetch response as ignored
+     */
+    recordFetchIgnored(url, method, statusCode, reason = null) {
+        this.recorder.recordFetch(url, method, statusCode, null, EventStatus.IGNORED, null, reason);
     }
 
     //
@@ -299,6 +325,7 @@ export class Seed {
         const oldWebSocket = WINDOW.WebSocket;
         const newWebSocket = function(url, protocols) {
             const ws = new oldWebSocket(url, protocols);
+            ws._chuck_url = url; // Store URL for recording
             const oldWsSend = ws.send;
             ws.send = function(data) {
                 self.onWebSocketSend(ws, data);
@@ -316,10 +343,46 @@ export class Seed {
 
     onWebSocketMessage(ws, event) {
         this._debug('WebSocket received data.', event);
+        // Record raw WebSocket message - subclasses should call recordWebSocketHandled/Ignored/Unhandled
+        this._recordWebSocketRaw(ws, 'in', event.data);
     }
 
     onWebSocketSend(ws, data) {
         this._debug('WebSocket sent data.', data);
+        this._recordWebSocketRaw(ws, 'out', data);
+    }
+
+    /**
+     * Internal: Record raw WebSocket message
+     */
+    _recordWebSocketRaw(ws, direction, data) {
+        // Skip our own CHUCK socket
+        if (ws.chuck_socket) return;
+        this.recorder.recordWebSocket(direction, ws._chuck_url, data, EventStatus.UNHANDLED);
+    }
+
+    /**
+     * Record a WebSocket message as handled (successfully parsed)
+     */
+    recordWebSocketHandled(ws, direction, data, parsed, eventName = null) {
+        if (ws.chuck_socket) return;
+        this.recorder.recordWebSocket(direction, ws._chuck_url, data, EventStatus.HANDLED, parsed, eventName);
+    }
+
+    /**
+     * Record a WebSocket message as ignored (recognized but skipped)
+     */
+    recordWebSocketIgnored(ws, direction, data, eventName = null, reason = null) {
+        if (ws.chuck_socket) return;
+        this.recorder.recordWebSocket(direction, ws._chuck_url, data, EventStatus.IGNORED, null, eventName, reason);
+    }
+
+    /**
+     * Record a WebSocket message as unhandled (unknown event type)
+     */
+    recordWebSocketUnhandled(ws, direction, data, eventName = null) {
+        if (ws.chuck_socket) return;
+        this.recorder.recordWebSocket(direction, ws._chuck_url, data, EventStatus.UNHANDLED, null, eventName);
     }
 
     //
@@ -359,7 +422,56 @@ export class Seed {
     onXhrSend(xhr, body) {
         this._debug('XHR sent data.', body);
     }
+
+    //
+    // Recording Controls
+    //
+    /**
+     * Start recording all intercepted traffic
+     */
+    startRecording() {
+        this.recorder.start();
+        return this;
+    }
+
+    /**
+     * Stop recording
+     */
+    stopRecording() {
+        this.recorder.stop();
+        return this;
+    }
+
+    /**
+     * Download recorded data as JSON file
+     */
+    downloadRecording(filename = null) {
+        this.recorder.download(filename);
+        return this;
+    }
+
+    /**
+     * Get recording statistics
+     */
+    getRecordingStats() {
+        return this.recorder.getStats();
+    }
+
+    /**
+     * Get all unhandled events (for finding missing handlers)
+     */
+    getUnhandledEvents() {
+        return this.recorder.getUnhandled();
+    }
+
+    /**
+     * Clear recorded data
+     */
+    clearRecording() {
+        this.recorder.clear();
+        return this;
+    }
 }
 
 // Export helpers for platform classes
-export { WINDOW, uuidv5, ChatMessage, LivestreamUpdate };
+export { WINDOW, uuidv5, ChatMessage, LivestreamUpdate, EventStatus, EventType };

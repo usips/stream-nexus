@@ -10,7 +10,7 @@
  * - Capture fiat superchats
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class Odysee extends Seed {
     static hostname = 'odysee.com';
@@ -70,28 +70,46 @@ export class Odysee extends Seed {
     async onFetchResponse(response) {
         try {
             const url = new URL(response.url);
-            switch (url.searchParams.get('m')) {
+            const method = url.searchParams.get('m');
+            switch (method) {
                 case 'comment.List':
                 case 'comment.SuperChatList':
-                    await response.json().then(async (data) => {
+                    const cloned1 = response.clone();
+                    await cloned1.json().then(async (data) => {
                         if (data.result !== undefined && data.result.items !== undefined) {
                             this.receiveChatMessages(data.result.items);
+                            this.recordFetchHandled(response.url, 'GET', response.status, data, {
+                                method: method,
+                                itemCount: data.result.items.length
+                            });
                         }
                     });
                     break;
                 case 'comment.Create':
-                    await response.json().then(async (data) => {
+                    const cloned2 = response.clone();
+                    await cloned2.json().then(async (data) => {
                         if (data.result !== undefined && data.result.comment_id !== undefined) {
                             this.receiveChatMessages([data.result]);
+                            this.recordFetchHandled(response.url, 'POST', response.status, data, {
+                                method: method,
+                                commentId: data.result.comment_id
+                            });
                         }
                         return data;
                     });
                     break;
                 default:
+                    this.recordFetchIgnored(response.url, 'GET', response.status, 'Unknown method');
                     break;
             }
         } catch (e) {
             this.error('Fetch response error.', e);
+            this.recorder.record('fetch_response', {
+                url: response.url,
+                method: 'GET',
+                statusCode: response.status,
+                payload: e.message
+            }, EventStatus.ERROR, null, e.message);
         }
     }
 
@@ -100,14 +118,18 @@ export class Odysee extends Seed {
         switch (json.type) {
             case 'delta':
                 this.receiveChatMessages([json.data.comment]);
+                this.recordWebSocketHandled(ws, 'in', event.data, json.data.comment, json.type);
                 break;
             case 'removed':
+                this.recordWebSocketIgnored(ws, 'in', event.data, json.type, 'Message removal not forwarded');
                 break;
             case 'viewers':
                 this.sendViewerCount(json.data.connected);
+                this.recordWebSocketHandled(ws, 'in', event.data, { viewers: json.data.connected }, json.type);
                 break;
             default:
                 this.log(`Unknown update type.`, json);
+                this.recordWebSocketUnhandled(ws, 'in', event.data, json.type);
                 break;
         }
     }

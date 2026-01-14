@@ -17,4 +17,5 @@ import { registerAllPlatforms, detectPlatform } from './platforms/index.js';
 
     // Store reference in window for debugging
     WINDOW.CHUCK = platform;
+    WINDOW.chuck = platform; // Lowercase alias for console convenience
 })();

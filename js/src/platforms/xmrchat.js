@@ -7,7 +7,7 @@
  * - Convert XMR amounts to USD
  */
 
-import { Seed, ChatMessage, uuidv5 } from '../core/index.js';
+import { Seed, ChatMessage, uuidv5, EventStatus } from '../core/index.js';
 
 export class XMRChat extends Seed {
     static hostname = 'xmrchat.com';
@@ -52,9 +52,17 @@ export class XMRChat extends Seed {
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.responseURL.indexOf('/tips/page/') > 0) {
                 const json = JSON.parse(xhr.response);
+                let processedCount = 0;
+                let skippedOld = 0;
+                let skippedPrivate = 0;
+                let skippedDuplicate = 0;
+
                 json.forEach((tip) => {
                     // Deduplicate
-                    if (this.messagesRead.indexOf(tip.id) > -1) return;
+                    if (this.messagesRead.indexOf(tip.id) > -1) {
+                        skippedDuplicate++;
+                        return;
+                    }
                     this.messagesRead.push(tip.id);
 
                     // Last 6 days only
@@ -64,18 +72,31 @@ export class XMRChat extends Seed {
 
                     if (createdAt < sixDaysAgo) {
                         this.warn('Skipping message older than 6 days.');
+                        skippedOld++;
                         return;
                     }
 
                     // Skip private messages
                     if (tip.private === true) {
                         this.warn('Skipping private message.');
+                        skippedPrivate++;
                         return;
                     }
 
                     const message = this.prepareChatMessage(tip);
                     this.sendChatMessages([message]);
+                    processedCount++;
                 });
+
+                this.recorder.recordXhr(xhr.responseURL, 'GET', xhr.status, json, EventStatus.HANDLED, {
+                    totalTips: json.length,
+                    processed: processedCount,
+                    skippedOld,
+                    skippedPrivate,
+                    skippedDuplicate
+                });
+            } else {
+                this.recorder.recordXhr(xhr.responseURL, 'GET', xhr.status, null, EventStatus.IGNORED, null, 'Not tips endpoint');
             }
         }
     }
