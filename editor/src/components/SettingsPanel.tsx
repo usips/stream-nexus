@@ -42,6 +42,7 @@ function getDefaultDisplayName(elementId: string): string {
         chat: 'Chat Panel',
         live: 'Live Badge',
         text: 'Text',
+        attribution: 'Text', // Backward compatibility
         featured: 'Featured Message',
         poll: 'Poll Display',
         superchat: 'Superchat Display',
@@ -151,6 +152,14 @@ export function SettingsPanel({
             <div className="settings-content">
                 <div className="settings-header">
                     <h3>Element Settings</h3>
+                    <button
+                        className="btn btn-danger btn-sm"
+                        onClick={onDeleteElement}
+                        disabled={!canDelete}
+                        title={canDelete ? 'Delete this element (Del)' : 'Cannot delete the last element'}
+                    >
+                        🗑 Delete
+                    </button>
                 </div>
 
                 {/* Element Selection */}
@@ -194,16 +203,6 @@ export function SettingsPanel({
                             } as Partial<ElementConfig>)}
                         />
                     </div>
-
-                    <button
-                        className="btn btn-danger"
-                        onClick={onDeleteElement}
-                        disabled={!canDelete}
-                        style={{ marginTop: '8px', width: '100%' }}
-                        title={canDelete ? 'Delete this element (Del)' : 'Cannot delete the last element'}
-                    >
-                        🗑 Delete Element
-                    </button>
                 </div>
 
                 {/* Element-specific Options Section - at top for quick access */}
@@ -473,7 +472,7 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
     if (elementType === 'live') {
         const platformMode = (options.platformMode as string) || 'all';
         const platforms = (options.platforms as string[]) || [];
-        const showIcon = options.showIcon !== false;
+        const showIcon = options.showIcon === true;
         const showLabel = options.showLabel !== false;
         const showCount = options.showCount !== false;
 
@@ -547,8 +546,8 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
         );
     }
 
-    // Text element options
-    if (elementType === 'text') {
+    // Text element options (including backward compatibility for 'attribution')
+    if (elementType === 'text' || elementType === 'attribution') {
         const content = (options.content as string) || '';
         const tokens = getAvailableTokens();
 

@@ -45,28 +45,36 @@ interface MockData {
     currentTime: Date;
 }
 
-const MOCK_USERNAMES = ['Viewer123', 'ChatFan', 'StreamLover', 'CoolGuy99', 'NightOwl', 'GameMaster', 'TechWiz', 'MusicFan', 'LoyalSub', 'BigDonator'];
+const MOCK_USERNAMES = ['Viewer123', 'ChatFan', 'StreamLover', 'CoolGuy99', 'NightOwl', 'GameMaster', 'TechWiz', 'MusicFan', 'LoyalSub', 'BigDonator', 'xX_Pro_Xx', 'ChillVibes', 'HypeTrain', 'FirstTimer'];
 const MOCK_MESSAGES = [
+    // Very short messages
+    'W', 'L', 'F', 'GG', 'lol', 'no', 'yes', 'hi', 'bye', 'rip', 'gg', 'ez', 'wow',
+    'POG', 'kek', 'lmao', 'nice', 'true', 'real', 'based', 'cope', 'ratio',
+    // Short messages
+    'Hello!', 'Let\'s go!', 'Hype!', 'So good', 'W stream', 'Love this',
+    'First time here', 'Just subbed!', 'GG well played', 'This is fire',
+    // Medium messages
+    'Great stream as always!', 'Can\'t wait for the next segment',
+    'Anyone else watching from work?', 'Chat is moving so fast',
+    'Been following for over a year now', 'This is why I always tune in',
     'Hello everyone! So excited to be here today!',
-    'Great stream as always, keep up the amazing work!',
-    'LET\'S GOOOOO! This is gonna be epic!',
-    'This is absolutely amazing, I can\'t believe what I\'m seeing!',
-    'First time catching the stream live, usually watch the VODs',
-    'Love the content, been following for over a year now',
-    'POG POG POG',
-    'The hype is real! Can\'t wait to see what happens next!',
-    'GG well played, that was insane',
-    'Can\'t wait for the next segment, this stream is fire!',
-    'So good! This is why I always tune in',
-    'W stream, W chat, W everything',
-    'Based take, I completely agree with that',
-    'True, that\'s exactly what I was thinking',
-    'Anyone else watching from work? Don\'t tell my boss lol',
-    'Just subbed! Been meaning to for months',
-    'Chat is moving so fast nobody will see this',
-    'Sending love from across the pond!'
+    // Spam/numbers
+    '111111111111111111111111', '7777777777777777777777777777',
+    'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW', 'LLLLLLLLLLLLLLLLLLLLL',
+    'POGPOGPOGPOGPOGPOGPOGPOGPOG', '!!!!!!!!!!!!!!!!!!!!',
+    // Long messages
+    'This is absolutely amazing, I can\'t believe what I\'m seeing right now!',
+    'The hype is real! Can\'t wait to see what happens next in this stream!',
+    'Anyone else watching from work? Don\'t tell my boss lol, I should be doing spreadsheets',
+    'Chat is moving so fast nobody will see this message but I love you all',
+    'I\'ve been watching this channel for years and it just keeps getting better and better, thanks for everything!',
+    'Sending love from across the pond! It\'s 3am here but totally worth staying up for this content!',
+    'This stream is absolutely incredible, I can\'t believe how much effort goes into making this content for us every single day',
 ];
 const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44aaaa', '#ff44aa', '#aaff44'];
+
+// Maximum messages to keep in chat history
+const MAX_CHAT_MESSAGES = 100;
 
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
@@ -135,20 +143,23 @@ export function EditorCanvas({
                 const viewerDelta = Math.floor(Math.random() * 21) - 10;
                 const newViewerCount = Math.max(100, prev.viewerCount + viewerDelta);
 
-                // Add a new chat message occasionally
+                // Add new chat messages (sometimes multiple at once for realism)
                 const newMessages = [...prev.chatMessages];
-                if (Math.random() > 0.3) {
-                    const newMessage = {
-                        id: messageIdRef.current++,
-                        user: MOCK_USERNAMES[Math.floor(Math.random() * MOCK_USERNAMES.length)],
-                        message: MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)],
-                        color: MOCK_COLORS[Math.floor(Math.random() * MOCK_COLORS.length)],
-                    };
-                    newMessages.push(newMessage);
-                    // Keep only the last 5 messages
-                    if (newMessages.length > 5) {
-                        newMessages.shift();
+                const messagesToAdd = Math.random() > 0.7 ? Math.floor(Math.random() * 3) + 1 : 1;
+                for (let i = 0; i < messagesToAdd; i++) {
+                    if (Math.random() > 0.2) {
+                        const newMessage = {
+                            id: messageIdRef.current++,
+                            user: MOCK_USERNAMES[Math.floor(Math.random() * MOCK_USERNAMES.length)],
+                            message: MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)],
+                            color: MOCK_COLORS[Math.floor(Math.random() * MOCK_COLORS.length)],
+                        };
+                        newMessages.push(newMessage);
                     }
+                }
+                // Keep message history limited
+                while (newMessages.length > MAX_CHAT_MESSAGES) {
+                    newMessages.shift();
                 }
 
                 // Random poll vote changes
@@ -387,6 +398,7 @@ export function EditorCanvas({
         chat: { width: 300, height: '100%' },
         live: { width: 150, height: 40 },
         text: { width: 400, height: 60 },
+        attribution: { width: 400, height: 60 }, // Backward compatibility
         featured: { width: 600, height: 100 },
         poll: { width: 300, height: 150 },
         superchat: { width: 300, height: 100 },
@@ -432,6 +444,7 @@ export function EditorCanvas({
             chat: 'Chat',
             live: 'Live',
             text: 'Text',
+            attribution: 'Text', // Backward compatibility
             featured: 'Featured',
             poll: 'Poll',
             superchat: 'Superchat',
@@ -491,7 +504,7 @@ export function EditorCanvas({
             }
             case 'live': {
                 const options = config.options || {};
-                const showIcon = options.showIcon !== false;
+                const showIcon = options.showIcon === true;
                 const showLabel = options.showLabel !== false;
                 const showCount = options.showCount !== false;
                 content = (
@@ -506,7 +519,8 @@ export function EditorCanvas({
                 );
                 break;
             }
-            case 'text': {
+            case 'text':
+            case 'attribution': { // Backward compatibility
                 const options = config.options || {};
                 const textContent = (options.content as string) || 'Text Element';
                 // Resolve any tokens in the content

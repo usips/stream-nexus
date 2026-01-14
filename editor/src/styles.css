@@ -402,16 +402,26 @@
 .settings-content {
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .settings-header {
-    padding: 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
 }
 
 .settings-header h3 {
     font-size: 14px;
     margin: 0;
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 12px;
 }
 
 .settings-section {
@@ -447,6 +457,9 @@
     background: #1a1a2e;
     color: #eee;
     font-size: 13px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .settings-row input:focus,
