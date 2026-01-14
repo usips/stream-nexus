@@ -17,6 +17,33 @@ html {
     --chat-width: 300px;
 }
 
+/*
+ * Halloween
+ */
+@font-face {
+    font-family: 'veteran-typewriter';
+    font-weight: normal;
+    font-style: normal;
+    src: url('/static/font/veteran_typewriter/veteran typewriter.ttf') format('truetype');
+}
+
+
+body {
+    filter: sepia(0.75);
+}
+
+body * {
+    font-family: 'veteran-typewriter', monospace !important;
+}
+
+body section#attribution * {
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+body section#attribution {
+    font-size: 2.75vw;
+}
 
 /**
  * Live Viewers
@@ -152,7 +179,7 @@ section#chat {
     overflow: hidden;
     text-overflow: ellipsis;
 
-    text-shadow: 
+    text-shadow:
         -1px -1px 0 rgba(0, 0, 0, 0.1),
         1px -1px 0 rgba(0, 0, 0, 0.1),
         -1px 1px 0 rgba(0, 0, 0, 0.1),

@@ -519,6 +519,11 @@
             message.username = json.sender.username;
             message.message = json.content;
 
+            if ((json.gift?.amount ?? 0) > 0) {
+                message.amount = json.gift.amount / 100;
+                message.currency = "USD";
+            }
+
             // Emotes are supplied as bbcode: [emote:37221:EZ]
             // Image file found at: https://files.kick.com/emotes/37221/fullsize
             // <img data-v-31c262c8="" data-emote-name="EZ" data-emote-id="37221" src="https://files.kick.com/emotes/37221/fullsize" alt="EZ" class="chat-emote">
@@ -579,7 +584,8 @@
                 // "KICKs" are a premium currency on Kick that allow you to buy "gifts". The currency exchange is 100 KICK per 1.09 USD.
                 //{ "event": "KicksGifted", "data": "{\"message\":\"\",\"sender\":{\"id\":57598142,\"username\":\"Reds_cat\",\"username_color\":\"#E9113C\"},\"gift\":{\"gift_id\":\"hell_yeah\",\"name\":\"Hell Yeah\",\"amount\":1,\"type\":\"BASIC\",\"tier\":\"BASIC\",\"character_limit\":0,\"pinned_time\":0}}", "channel": "channel_57035257" }
                 case "KicksGifted":
-                    // TODO: YouTube has similar SuperStickers, maybe a new system for that? Idk.
+                    console.log("KicksGifted", JSON.parse(json.data));
+                    this.receiveChatMessage(JSON.parse(json.data));
                     break;
 
                 // {"event":"App\\Events\\GiftedSubscriptionsEvent","data":"{\"chatroom_id\":2507974,\"gifted_usernames\":[\"bigboss_23\"],\"gifter_username\":\"court\"}","channel":"chatrooms.2507974.v2"}
