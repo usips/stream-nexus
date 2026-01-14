@@ -29,7 +29,10 @@ function App() {
     } = useWebSocket();
 
     const [localLayout, setLocalLayout] = useState<Layout>(defaultLayout());
+    const [autoSave, setAutoSave] = useState(true);
+    const [selectedElement, setSelectedElement] = useState<string>('chat');
     const debounceRef = useRef<NodeJS.Timeout | null>(null);
+    const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
     // Sync local layout with server layout
     useEffect(() => {
@@ -38,15 +41,28 @@ function App() {
         }
     }, [currentLayout]);
 
-    // Debounced layout broadcast
+    // Debounced layout broadcast (always broadcasts for live preview)
+    // Also saves to disk if autoSave is enabled
     const broadcastLayout = useCallback((layout: Layout) => {
+        // Always broadcast immediately for live preview
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
         }
         debounceRef.current = setTimeout(() => {
             sendLayoutUpdate(layout);
-        }, 100); // 100ms debounce
-    }, [sendLayoutUpdate]);
+        }, 100); // 100ms debounce for broadcast
+
+        // Auto-save to disk with longer debounce
+        if (autoSave) {
+            if (saveDebounceRef.current) {
+                clearTimeout(saveDebounceRef.current);
+            }
+            saveDebounceRef.current = setTimeout(() => {
+                const name = layout.name || 'default';
+                saveLayout(name, layout);
+            }, 500); // 500ms debounce for save
+        }
+    }, [sendLayoutUpdate, saveLayout, autoSave]);
 
     const handleSave = useCallback(() => {
         const name = localLayout.name || 'default';
@@ -86,6 +102,8 @@ function App() {
                     onLayoutChange={handleLayoutChange}
                     onSave={handleSave}
                     onSaveAs={handleSaveAs}
+                    autoSave={autoSave}
+                    onAutoSaveChange={setAutoSave}
                 />
                 <div className="editor-main">
                     <Toolbox />
@@ -95,6 +113,8 @@ function App() {
                             setLocalLayout(newLayout);
                             broadcastLayout(newLayout);
                         }}
+                        selectedElement={selectedElement}
+                        onSelectElement={setSelectedElement}
                     />
                     <SettingsPanel
                         layout={localLayout}
@@ -102,6 +122,8 @@ function App() {
                             setLocalLayout(newLayout);
                             broadcastLayout(newLayout);
                         }}
+                        selectedElement={selectedElement}
+                        onSelectElement={setSelectedElement}
                     />
                 </div>
             </Editor>

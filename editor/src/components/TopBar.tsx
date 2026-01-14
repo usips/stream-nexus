@@ -8,6 +8,8 @@ interface TopBarProps {
     onLayoutChange: (name: string) => void;
     onSave: () => void;
     onSaveAs: (name: string) => void;
+    autoSave: boolean;
+    onAutoSaveChange: (enabled: boolean) => void;
 }
 
 export function TopBar({
@@ -17,6 +19,8 @@ export function TopBar({
     onLayoutChange,
     onSave,
     onSaveAs,
+    autoSave,
+    onAutoSaveChange,
 }: TopBarProps) {
     const [showSaveAs, setShowSaveAs] = useState(false);
     const [newLayoutName, setNewLayoutName] = useState('');
@@ -57,6 +61,15 @@ export function TopBar({
                             ))}
                         </select>
                     </div>
+
+                    <label className="auto-save-toggle">
+                        <input
+                            type="checkbox"
+                            checked={autoSave}
+                            onChange={(e) => onAutoSaveChange(e.target.checked)}
+                        />
+                        Auto-save
+                    </label>
 
                     <button className="btn btn-secondary" onClick={() => setShowSaveAs(true)}>
                         Save As...

@@ -67,6 +67,29 @@
     font-size: 14px;
 }
 
+.auto-save-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #aaa;
+    cursor: pointer;
+    padding: 6px 12px;
+    border-radius: 4px;
+    background: #1a1a2e;
+    border: 1px solid #0f3460;
+    transition: background 0.2s;
+}
+
+.auto-save-toggle:hover {
+    background: #0f3460;
+}
+
+.auto-save-toggle input {
+    width: auto;
+    margin: 0;
+}
+
 .btn {
     padding: 8px 16px;
     border-radius: 4px;
@@ -217,11 +240,116 @@
     opacity: 1;
 }
 
+/* Element Resize Handles */
+.element-wrapper .resize-handle {
+    position: absolute;
+    background: #e94560;
+    border: 1px solid #fff;
+    z-index: 10;
+    box-sizing: border-box;
+}
+
+/* Corner handles */
+.resize-handle.resize-nw,
+.resize-handle.resize-ne,
+.resize-handle.resize-sw,
+.resize-handle.resize-se {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+.resize-handle.resize-nw {
+    top: -5px;
+    left: -5px;
+    cursor: nw-resize;
+}
+
+.resize-handle.resize-ne {
+    top: -5px;
+    left: calc(100% - 5px);
+    cursor: ne-resize;
+}
+
+.resize-handle.resize-sw {
+    top: calc(100% - 5px);
+    left: -5px;
+    cursor: sw-resize;
+}
+
+.resize-handle.resize-se {
+    top: calc(100% - 5px);
+    left: calc(100% - 5px);
+    cursor: se-resize;
+}
+
+/* Edge handles */
+.resize-handle.resize-n {
+    height: 6px;
+    width: 30px;
+    top: -3px;
+    left: calc(50% - 15px);
+    cursor: n-resize;
+}
+
+.resize-handle.resize-s {
+    height: 6px;
+    width: 30px;
+    top: calc(100% - 3px);
+    left: calc(50% - 15px);
+    cursor: s-resize;
+}
+
+.resize-handle.resize-e {
+    width: 6px;
+    height: 30px;
+    top: calc(50% - 15px);
+    left: calc(100% - 3px);
+    cursor: e-resize;
+}
+
+.resize-handle.resize-w {
+    width: 6px;
+    height: 30px;
+    top: calc(50% - 15px);
+    left: -3px;
+    cursor: w-resize;
+}
+
 /* Settings Panel */
 .settings-panel {
-    width: 280px;
+    position: relative;
     background: #16213e;
     border-left: 1px solid #0f3460;
+    display: flex;
+    flex-direction: row;
+    flex-shrink: 0;
+}
+
+.settings-panel.resizing {
+    user-select: none;
+}
+
+/* Resize Handle */
+.resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background 0.2s;
+    z-index: 10;
+}
+
+.resize-handle:hover,
+.settings-panel.resizing .resize-handle {
+    background: #e94560;
+}
+
+.settings-content {
+    flex: 1;
     overflow-y: auto;
 }
 
@@ -290,10 +418,108 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 12px;
 }
 
 .settings-checkbox input {
     width: auto;
+}
+
+/* Collapsible Sections */
+.collapsible-section {
+    border-bottom: 1px solid #0f3460;
+}
+
+.collapsible-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #aaa;
+    letter-spacing: 1px;
+    transition: background 0.2s;
+}
+
+.collapsible-section .section-header:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.collapsible-section .collapse-icon {
+    font-size: 10px;
+    color: #666;
+    width: 12px;
+}
+
+.collapsible-section.open .section-header {
+    color: #eee;
+}
+
+.collapsible-section .section-content {
+    padding: 0 16px 16px 16px;
+}
+
+/* Element Selector */
+.element-selector {
+    padding: 16px;
+    border-bottom: 1px solid #0f3460;
+}
+
+/* Platform Checkboxes for Live Badge Options */
+.platform-list {
+    margin-top: 8px;
+}
+
+.platform-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.platform-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #ccc;
+    cursor: pointer;
+    padding: 4px 8px;
+    background: #1a1a2e;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.platform-checkbox:hover {
+    background: #0f3460;
+}
+
+.platform-checkbox input {
+    width: auto;
+    margin: 0;
+}
+
+/* Settings Checkbox Group */
+.settings-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.settings-checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.settings-checkbox-inline input {
+    width: auto;
+    margin: 0;
 }
 
 /* Preview Elements (in canvas) */
@@ -325,7 +551,13 @@
 
 .preview-live {
     display: flex;
+    align-items: center;
     gap: 4px;
+}
+
+.preview-live-icon {
+    font-size: 16px;
+    margin-right: 4px;
 }
 
 .preview-live-badge {

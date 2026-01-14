@@ -6,6 +6,7 @@ module.exports = {
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, '../public/editor'),
+        publicPath: '/editor/',
         clean: true,
     },
     resolve: {

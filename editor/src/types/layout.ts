@@ -29,9 +29,20 @@ export interface Style {
 
 export interface ElementConfig {
     enabled: boolean;
+    displayName?: string;
     position: Position;
     size: Size;
     style: Style;
+    options?: Record<string, unknown>;
+}
+
+// Live Badge specific options
+export interface LiveBadgeOptions {
+    platformMode?: 'all' | 'include' | 'exclude';
+    platforms?: string[];
+    showIcon?: boolean;
+    showLabel?: boolean;
+    showCount?: boolean;
 }
 
 export interface MessageStyle {
