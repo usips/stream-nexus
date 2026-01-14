@@ -7,6 +7,8 @@ interface SettingsPanelProps {
     onLayoutChange: (layout: Layout) => void;
     selectedElement: string;
     onSelectElement: (elementId: string) => void;
+    onDeleteElement: () => void;
+    canDelete: boolean;
 }
 
 // Collapsible section component
@@ -49,7 +51,14 @@ function getDefaultDisplayName(elementId: string): string {
     return suffix ? `${baseName} ${suffix}` : baseName;
 }
 
-export function SettingsPanel({ layout, onLayoutChange, selectedElement, onSelectElement }: SettingsPanelProps) {
+export function SettingsPanel({
+    layout,
+    onLayoutChange,
+    selectedElement,
+    onSelectElement,
+    onDeleteElement,
+    canDelete,
+}: SettingsPanelProps) {
     const [panelWidth, setPanelWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
 
@@ -185,6 +194,16 @@ export function SettingsPanel({ layout, onLayoutChange, selectedElement, onSelec
                             } as Partial<ElementConfig>)}
                         />
                     </div>
+
+                    <button
+                        className="btn btn-danger"
+                        onClick={onDeleteElement}
+                        disabled={!canDelete}
+                        style={{ marginTop: '8px', width: '100%' }}
+                        title={canDelete ? 'Delete this element (Del)' : 'Cannot delete the last element'}
+                    >
+                        🗑 Delete Element
+                    </button>
                 </div>
 
                 {/* Element-specific Options Section - at top for quick access */}

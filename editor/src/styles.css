@@ -117,6 +117,21 @@
     background: #1a4a7a;
 }
 
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #c82333;
+}
+
+.btn-danger:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* Toolbox */
 .toolbox {
     width: 200px;
@@ -182,6 +197,42 @@
     padding: 8px 16px;
     background: #0f3460;
     border-bottom: 1px solid #16213e;
+}
+
+.toolbar-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #16213e;
+    background: #1a1a2e;
+    color: #eee;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+    background: #0f3460;
+    border-color: #e94560;
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.toolbar-btn-danger:hover:not(:disabled) {
+    background: #dc3545;
+    border-color: #dc3545;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: #16213e;
+    margin: 0 8px;
 }
 
 .canvas-container {

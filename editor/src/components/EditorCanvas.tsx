@@ -7,6 +7,11 @@ interface EditorCanvasProps {
     onLayoutChange: (layout: Layout) => void;
     selectedElement: string;
     onSelectElement: (elementId: string) => void;
+    onDeleteElement: () => void;
+    onUndo: () => void;
+    onRedo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
 }
 
 interface DragState {
@@ -66,7 +71,17 @@ const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
 
-export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelectElement }: EditorCanvasProps) {
+export function EditorCanvas({
+    layout,
+    onLayoutChange,
+    selectedElement,
+    onSelectElement,
+    onDeleteElement,
+    onUndo,
+    onRedo,
+    canUndo,
+    canRedo,
+}: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
     const [autoScale, setAutoScale] = useState(true);
     const [dragState, setDragState] = useState<DragState | null>(null);
@@ -566,9 +581,44 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
         );
     };
 
+    const canDelete = Object.keys(layout.elements).length > 1;
+
     return (
         <div className="editor-canvas">
             <div className="canvas-toolbar">
+                {/* Undo/Redo buttons */}
+                <button
+                    className="toolbar-btn"
+                    onClick={onUndo}
+                    disabled={!canUndo}
+                    title="Undo (Ctrl+Z)"
+                >
+                    ↶ Undo
+                </button>
+                <button
+                    className="toolbar-btn"
+                    onClick={onRedo}
+                    disabled={!canRedo}
+                    title="Redo (Ctrl+Y)"
+                >
+                    ↷ Redo
+                </button>
+
+                <div className="toolbar-separator" />
+
+                {/* Delete button */}
+                <button
+                    className="toolbar-btn toolbar-btn-danger"
+                    onClick={onDeleteElement}
+                    disabled={!canDelete}
+                    title="Delete selected element (Del)"
+                >
+                    🗑 Delete
+                </button>
+
+                <div className="toolbar-separator" />
+
+                {/* Zoom controls */}
                 <label className="auto-scale-toggle" style={{ marginRight: '16px' }}>
                     <input
                         type="checkbox"
