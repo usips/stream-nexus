@@ -1,0 +1,113 @@
+/**
+ * SNEED - Shared CSS Variables
+ * 
+ * This file defines the common design tokens used across all views.
+ * Import this in overlay, dashboard, and other stylesheets for consistency.
+ */
+
+:root {
+    /* ===== Color Palette ===== */
+
+    /* Base colors */
+    --color-black: #000000;
+    --color-white: #ffffff;
+
+    /* Grays */
+    --color-gray-900: #1a1a1a;
+    --color-gray-800: #2d2d2d;
+    --color-gray-700: #383838;
+    --color-gray-600: #4f4f4f;
+    --color-gray-500: #6b6b6b;
+    --color-gray-400: #747474;
+    --color-gray-300: #9e9e9e;
+    --color-gray-200: #d1d1d1;
+    --color-gray-100: #e5e5e5;
+
+    /* Platform colors */
+    --color-kick: #53fc18;
+    --color-youtube: #ff0000;
+    --color-twitch: #9146ff;
+    --color-rumble: #85c742;
+    --color-odysee: #a60a43;
+    --color-x: #000000;
+    --color-vk: #0077ff;
+
+    /* Semantic colors */
+    --color-success: #4caf50;
+    --color-warning: #ff9800;
+    --color-error: #f44336;
+    --color-info: #2196f3;
+
+    /* ===== Typography ===== */
+    --font-family-sans: 'Open Sans', Arial, Helvetica, sans-serif;
+    --font-family-mono: 'Courier New', Courier, monospace;
+    --font-family-display: 'Verlag Black', sans-serif;
+
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+
+    /* ===== Spacing ===== */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* ===== Border Radius ===== */
+    --radius-sm: 3px;
+    --radius-md: 5px;
+    --radius-lg: 10px;
+    --radius-full: 9999px;
+
+    /* ===== Shadows ===== */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.3);
+
+    /* ===== Transitions ===== */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+    --transition-slow: 400ms ease;
+
+    /* ===== Z-Index Scale ===== */
+    --z-base: 0;
+    --z-dropdown: 100;
+    --z-overlay: 200;
+    --z-modal: 300;
+    --z-tooltip: 400;
+}
+
+/* ===== Platform Avatar Accent Colors ===== */
+:root {
+    --kick-avatar: rgba(83, 252, 24, 0.33);
+    --youtube-avatar: rgba(255, 0, 0, 0.33);
+    --twitch-avatar: rgba(145, 70, 255, 0.33);
+    --rumble-avatar: rgba(133, 199, 66, 0.33);
+    --odysee-avatar: rgba(166, 10, 67, 0.33);
+    --x-avatar: rgba(0, 0, 0, 0.33);
+    --vk-avatar: rgba(0, 119, 255, 0.33);
+}
+
+/* ===== Common Reset ===== */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+/* ===== Utility Classes ===== */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

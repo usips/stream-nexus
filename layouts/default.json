@@ -1,0 +1,89 @@
+{
+  "name": "default",
+  "version": 1,
+  "elements": {
+    "chat": {
+      "enabled": true,
+      "position": {
+        "y": 0.0,
+        "right": 0.0
+      },
+      "size": {
+        "width": 269.0,
+        "height": 1080.0
+      },
+      "style": {
+        "backgroundColor": "transparent"
+      }
+    },
+    "live": {
+      "enabled": true,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "size": {},
+      "style": {},
+      "options": {
+        "platformMode": "exclude",
+        "platforms": [
+          "YouTube"
+        ],
+        "showCount": true,
+        "showIcon": true,
+        "showLabel": true
+      }
+    },
+    "attribution": {
+      "enabled": true,
+      "displayName": "hjkhjkjhkjhkhj",
+      "position": {
+        "x": 0.0,
+        "bottom": 1.1764705882352942
+      },
+      "size": {},
+      "style": {
+        "fontSize": "3.5vw",
+        "fontWeight": "bold",
+        "fontStyle": "italic"
+      }
+    },
+    "superchat": {
+      "enabled": true,
+      "position": {
+        "x": 416.0,
+        "y": 222.0
+      },
+      "size": {},
+      "style": {}
+    },
+    "featured": {
+      "enabled": true,
+      "position": {
+        "x": 266.0,
+        "bottom": 524.0
+      },
+      "size": {
+        "maxWidth": "calc(100% - 315px)"
+      },
+      "style": {
+        "fontSize": "32px"
+      }
+    },
+    "poll": {
+      "enabled": true,
+      "position": {
+        "x": 302.0,
+        "y": 172.0
+      },
+      "size": {},
+      "style": {}
+    }
+  },
+  "messageStyle": {
+    "avatarSize": "2em",
+    "maxHeight": "10em",
+    "borderRadius": "2em 0 0 2em",
+    "fontSize": "16px"
+  }
+}

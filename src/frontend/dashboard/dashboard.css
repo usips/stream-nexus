@@ -64,11 +64,13 @@ body {
     flex-direction: column;
     max-width: 100%;
 }
+
 .dashboard-form-row {
     display: flex;
     flex-direction: row;
     max-width: 100%;
 }
+
 .dashboard-form-row textarea,
 .dashboard-form-row button {
     width: 100%;

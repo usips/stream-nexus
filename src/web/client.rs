@@ -161,8 +161,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
             ws::Message::Text(text) => {
                 // Try parsing as LivestreamUpdate first
                 if let Ok(update) = serde_json::from_str::<LivestreamUpdate>(&text) {
+                    let mut handled = false;
                     // Send Chat Messages
                     if let Some(messages) = update.messages {
+                        handled = true;
                         for message in messages {
                             self.send_or_reply(
                                 ctx,
@@ -174,12 +176,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                     }
                     // Send Removals
                     if let Some(removals) = update.removals {
+                        handled = true;
                         for id in removals {
                             self.send_or_reply(ctx, message::RemoveMessage { id });
                         }
                     }
                     // Send Viewer Counts
                     if let Some(viewers) = update.viewers {
+                        handled = true;
                         self.send_or_reply(
                             ctx,
                             message::ViewCount {
@@ -188,24 +192,31 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                             },
                         );
                     }
-                    return;
+                    if handled {
+                        return;
+                    }
                 }
 
-                // Try parsing as FeatureMessage
+                // Try parsing as FeatureMessage (only if it actually has a feature_message field)
                 if let Ok(cmd) = serde_json::from_str::<CommandFeatureMessage>(&text) {
-                    self.send_or_reply(
-                        ctx,
-                        message::FeatureMessage {
-                            id: cmd.feature_message,
-                        },
-                    );
-                    return;
+                    if cmd.feature_message.is_some() || text.contains("feature_message") {
+                        self.send_or_reply(
+                            ctx,
+                            message::FeatureMessage {
+                                id: cmd.feature_message,
+                            },
+                        );
+                        return;
+                    }
                 }
 
                 // Try parsing as LayoutCommand
                 if let Ok(cmd) = serde_json::from_str::<LayoutCommand>(&text) {
+                    log::debug!("[ChatClient] Parsed LayoutCommand: {:?}", cmd);
+
                     // Handle layout update broadcast
                     if let Some(layout) = cmd.layout_update {
+                        log::info!("[ChatClient] Broadcasting layout update: {}", layout.name);
                         self.send_or_reply(ctx, message::LayoutUpdate { layout });
                         return;
                     }
@@ -218,8 +229,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle save layout
                     if let Some(save_cmd) = cmd.save_layout {
+                        log::info!("[ChatClient] Saving layout: {}", save_cmd.name);
                         let mut layout = save_cmd.layout;
-                        layout.name = save_cmd.name;
+                        layout.name = save_cmd.name.clone();
                         self.send_or_reply(ctx, message::SaveLayout { layout });
                         return;
                     }
@@ -232,6 +244,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle request layout
                     if cmd.request_layout.unwrap_or(false) {
+                        log::info!("[ChatClient] Client requesting current layout");
                         self.server
                             .send(message::RequestLayout)
                             .into_actor(self)

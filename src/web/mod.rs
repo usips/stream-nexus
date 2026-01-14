@@ -10,7 +10,7 @@ pub use server::ChatServer;
 use actix::Addr;
 use actix_web::{http::header, web, Error, HttpRequest, HttpResponse, Responder};
 use actix_web_actors::ws;
-use askama_actix::Template;
+use askama::Template;
 use std::time::{Duration, Instant};
 
 use crate::layout::Layout;
@@ -175,7 +175,8 @@ pub async fn get_layout(req: HttpRequest, name: web::Path<String>) -> impl Respo
             if layout.name == name.into_inner() {
                 HttpResponse::Ok().json(layout)
             } else {
-                HttpResponse::NotFound().body("Layout not found (use WebSocket for non-active layouts)")
+                HttpResponse::NotFound()
+                    .body("Layout not found (use WebSocket for non-active layouts)")
             }
         }
         Err(e) => HttpResponse::InternalServerError().body(format!("Error: {}", e)),
@@ -252,8 +253,43 @@ pub async fn editor() -> impl Responder {
         Ok(content) => HttpResponse::Ok()
             .content_type("text/html; charset=utf-8")
             .body(content),
-        Err(_) => HttpResponse::NotFound().body(
-            "Editor not built. Run 'npm run build:editor' to build the editor.",
-        ),
+        Err(_) => HttpResponse::NotFound()
+            .body("Editor not built. Run 'npm run build:editor' to build the editor."),
+    }
+}
+
+/// GET /editor/{filename} - Serve editor static files
+#[actix_web::get("/editor/{filename:.*}")]
+pub async fn editor_static(path: web::Path<String>) -> impl Responder {
+    let filename = path.into_inner();
+
+    // Prevent directory traversal
+    if filename.contains("..") || filename.starts_with('/') {
+        return HttpResponse::BadRequest().body("Invalid path");
+    }
+
+    let file_path = format!("public/editor/{}", filename);
+
+    match std::fs::read(&file_path) {
+        Ok(contents) => {
+            let content_type = match std::path::Path::new(&filename)
+                .extension()
+                .and_then(|ext| ext.to_str())
+            {
+                Some("js") => "text/javascript",
+                Some("css") => "text/css",
+                Some("html") => "text/html",
+                Some("png") => "image/png",
+                Some("jpg") | Some("jpeg") => "image/jpeg",
+                Some("svg") => "image/svg+xml",
+                Some("map") => "application/json",
+                _ => "application/octet-stream",
+            };
+
+            HttpResponse::Ok()
+                .append_header((header::CONTENT_TYPE, content_type))
+                .body(contents)
+        }
+        Err(_) => HttpResponse::NotFound().body("File not found"),
     }
 }

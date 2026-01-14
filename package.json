@@ -7,8 +7,12 @@
     "webpack": "webpack --config webpack.config.js",
     "build": "webpack --config webpack.config.js",
     "build:editor": "cd editor && npm run build",
-    "build:all": "npm run build && npm run build:editor",
-    "dev:editor": "cd editor && npm run dev"
+    "build:frontend": "cp src/frontend/overlay/script.js src/frontend/overlay/style.css public/ && cp src/frontend/dashboard/dashboard.js src/frontend/dashboard/dashboard.css public/ && cp src/frontend/shared/variables.css public/",
+    "build:static": "cp -r static/* public/",
+    "build:all": "npm run build && npm run build:frontend && npm run build:static && npm run build:editor",
+    "watch:frontend": "while true; do inotifywait -e modify src/frontend/overlay/* src/frontend/dashboard/* src/frontend/shared/* 2>/dev/null && npm run build:frontend; done",
+    "dev:editor": "cd editor && npm run dev",
+    "clean": "rm -rf public/script.js public/style.css public/dashboard.js public/dashboard.css public/variables.css public/editor public/js/*.js"
   },
   "repository": {
     "type": "git",

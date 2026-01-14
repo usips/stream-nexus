@@ -1,13 +1,38 @@
+# IDE and tools
 .claude/
 .vscode/
-js/dist/*
-node_modules/*
-public/js/*
+*.code-workspace
+
+# Dependencies
+node_modules/
+editor/node_modules/
+
+# Build outputs
+dist/
+target/
+
+# Generated frontend files (source in src/frontend/)
+public/script.js
+public/style.css
+public/dashboard.js
+public/dashboard.css
+public/variables.css
+public/editor/
+public/js/*.js
 !public/js/.gitkeep
+
+# Static assets copied from static/ directory
+public/font/
+public/img/
+public/logo/
+public/user-colors.css
+
+# SSL certificates
 ssl/*
 !ssl/.gitkeep
-target/*
+
+# Runtime/cached data
 .env
 exchange_rates.xml
 super_chats.json
-editor/node_modules/
+*.log

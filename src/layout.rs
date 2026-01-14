@@ -19,6 +19,7 @@ pub struct Position {
 
 /// Size configuration for an element
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Size {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub width: Option<SizeValue>,
@@ -70,23 +71,31 @@ pub struct Style {
 
 /// Configuration for an individual overlay element
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ElementConfig {
     pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
     #[serde(default)]
     pub position: Position,
     #[serde(default)]
     pub size: Size,
     #[serde(default)]
     pub style: Style,
+    /// Element-specific options (e.g., Live Badge platform filtering)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub options: Option<serde_json::Value>,
 }
 
 impl Default for ElementConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            display_name: None,
             position: Position::default(),
             size: Size::default(),
             style: Style::default(),
+            options: None,
         }
     }
 }
@@ -162,6 +171,7 @@ impl Layout {
             "chat".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: None,
                     y: Some(0.0),
@@ -178,6 +188,7 @@ impl Layout {
                     background_color: Some("transparent".to_string()),
                     ..Default::default()
                 },
+                options: None,
             },
         );
 
@@ -186,6 +197,7 @@ impl Layout {
             "live".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: Some(0.0),
                     y: Some(0.0),
@@ -194,6 +206,7 @@ impl Layout {
                 },
                 size: Size::default(),
                 style: Style::default(),
+                options: None,
             },
         );
 
@@ -202,6 +215,7 @@ impl Layout {
             "attribution".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: Some(15.0),
                     y: None,
@@ -215,6 +229,7 @@ impl Layout {
                     font_weight: Some("bold".to_string()),
                     ..Default::default()
                 },
+                options: None,
             },
         );
 
@@ -223,6 +238,7 @@ impl Layout {
             "featured".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: Some(0.0),
                     y: None,
@@ -239,6 +255,7 @@ impl Layout {
                     font_size: Some("32px".to_string()),
                     ..Default::default()
                 },
+                options: None,
             },
         );
 
@@ -247,6 +264,7 @@ impl Layout {
             "poll".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: None,
                     y: Some(0.0),
@@ -255,6 +273,7 @@ impl Layout {
                 },
                 size: Size::default(),
                 style: Style::default(),
+                options: None,
             },
         );
 
@@ -263,6 +282,7 @@ impl Layout {
             "superchat".to_string(),
             ElementConfig {
                 enabled: true,
+                display_name: None,
                 position: Position {
                     x: None,
                     y: Some(0.0),
@@ -271,6 +291,7 @@ impl Layout {
                 },
                 size: Size::default(),
                 style: Style::default(),
+                options: None,
             },
         );
 

@@ -17,6 +17,18 @@ cargo run
 
 # Build frontend JS (Matter.js physics background)
 npm run build
+
+# Build overlay/dashboard frontend (copies src/frontend/* to public/)
+npm run build:frontend
+
+# Build React layout editor
+npm run build:editor
+
+# Build everything
+npm run build:all
+
+# Watch frontend for changes (auto-rebuild)
+npm run watch:frontend
 ```
 
 ## Architecture
@@ -36,14 +48,23 @@ The backend uses Actix's actor model for real-time chat:
 Platform Chat → CHUCK (separate repo) → WebSocket → ChatClient → ChatServer → All Dashboard/Overlay Clients
 ```
 
+### Key Directories
+- `src/` - Rust backend source
+- `src/frontend/` - Frontend source files (JS/CSS) - **edit these, not public/**
+  - `src/frontend/overlay/` - Overlay script.js and style.css
+  - `src/frontend/dashboard/` - Dashboard dashboard.js
+- `public/` - Generated/static assets served by backend (don't edit JS/CSS here)
+- `editor/` - React/Craft.js layout editor app
+- `templates/` - Askama HTML templates
+- `layouts/` - Layout JSON files for overlay customization
+
 ### Key Files
 - `src/main.rs` - Server startup, route configuration
 - `src/web/server.rs` - ChatServer actor with message broadcasting logic
 - `src/web/client.rs` - WebSocket client handling and heartbeat
+- `src/layout.rs` - Layout system for overlay customization
 - `src/message.rs` - Message struct with HTML rendering via Askama
 - `src/exchange.rs` - ECB currency exchange rate fetching
-- `public/` - Static assets (dashboard.js, script.js, styles)
-- `templates/` - Askama HTML templates
 
 ### WebSocket Protocol
 Clients send `LivestreamUpdate` JSON with:
@@ -75,5 +96,7 @@ Environment variables (`.env.example`):
 - `/dashboard` - Administrative dashboard
 - `/overlay` - Alternative overlay view
 - `/background` - Physics background overlay
+- `/editor` - Layout editor (React/Craft.js)
 - `/chat.ws` - WebSocket endpoint for real-time chat
+- `/api/layouts` - REST API for layout management
 - `/static/*` - Static file serving

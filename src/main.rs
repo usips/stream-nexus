@@ -40,6 +40,7 @@ async fn main() -> Result<(), std::io::Error> {
             .service(web::dashboard)
             .service(web::overlay)
             .service(web::editor)
+            .service(web::editor_static)
             // Static files
             .service(web::static_files)
             // WebSocket
