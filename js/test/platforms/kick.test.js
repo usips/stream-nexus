@@ -186,6 +186,37 @@ describe('Kick Platform', () => {
             expect(data.gift.type).toBe('BASIC');
             expect(data.gift.tier).toBe('BASIC');
         });
+
+        it('should parse LEVEL_UP tier KicksGifted with all fields', () => {
+            const event = kickEvents.KicksGiftedLevelUp;
+            const data = JSON.parse(event.data);
+
+            const message = kick.prepareKicksGiftedMessage(data);
+
+            expect(message).toBeInstanceOf(ChatMessage);
+            expect(message.id).toBe('c3aad5e3-688d-413a-9f93-4834413f750c'); // Uses gift_transaction_id
+            expect(message.username).toBe('alalisa11');
+            expect(message.message).toBe('لازم يكون فقرة تنظيف الغرفة شطف ومسح');
+            expect(message.amount).toBe(1000);
+            expect(message.currency).toBe('KICKS');
+            expect(message.avatar).toBe('https://kick.com/img/default-profile-pictures/default-avatar-4.webp');
+            // Verify timestamp was parsed from created_at
+            expect(message.sent_at).toBe(Date.parse('2026-01-14T17:58:57.996338008Z'));
+        });
+
+        it('should handle LEVEL_UP tier gift data', () => {
+            const event = kickEvents.KicksGiftedLevelUp;
+            const data = JSON.parse(event.data);
+
+            expect(data.gift.gift_id).toBe('pack_it_up');
+            expect(data.gift.name).toBe('Pack It Up');
+            expect(data.gift.amount).toBe(1000);
+            expect(data.gift.type).toBe('LEVEL_UP');
+            expect(data.gift.tier).toBe('MID');
+            expect(data.created_at).toBeDefined();
+            expect(data.expires_at).toBeDefined();
+            expect(data.gift_transaction_id).toBeDefined();
+        });
     });
 
     describe('Fuzzing: prepareChatMessage robustness', () => {

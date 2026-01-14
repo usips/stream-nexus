@@ -96,20 +96,28 @@ export class Kick extends Seed {
     /**
      * Prepare a KicksGifted message (platform currency gift)
      * KicksGifted has a different structure than regular chat messages
+     *
+     * Two known formats:
+     * - BASIC tier: No created_at, no gift_transaction_id
+     * - LEVEL_UP tier: Has created_at, expires_at, gift_transaction_id, profile_picture
      */
     prepareKicksGiftedMessage(json) {
-        // Generate a unique ID based on sender and timestamp since KicksGifted has no ID
-        const generatedId = `kicks_${json.sender?.id ?? 'unknown'}_${Date.now()}`;
-        const message = new ChatMessage(generatedId, this.platform, this.channel);
+        // Use gift_transaction_id if available, otherwise generate from sender + timestamp
+        const messageId = json.gift_transaction_id ?? `kicks_${json.sender?.id ?? 'unknown'}_${Date.now()}`;
+        const message = new ChatMessage(messageId, this.platform, this.channel);
 
-        message.sent_at = Date.now();
+        // Use created_at if available (newer LEVEL_UP format), otherwise use current time
+        message.sent_at = json.created_at ? Date.parse(json.created_at) : Date.now();
         message.username = json.sender?.username ?? 'Unknown';
+        message.avatar = json.sender?.profile_picture ?? message.avatar;
+
+        // Use the message if provided, otherwise generate one from gift name
         message.message = json.message || `Sent a ${json.gift?.name ?? 'Kick'}!`;
 
-        // KicksGifted has gift data with amount representing quantity
+        // KicksGifted has gift data with amount representing Kicks value
         if (json.gift) {
-            // Kicks are platform currency - we mark as paid message
-            // Amount represents number of Kicks sent, approximate value varies
+            // Kicks are platform currency - amount varies by tier
+            // BASIC: 1 Kick, LEVEL_UP/MID: 1000 Kicks, etc.
             message.amount = json.gift.amount ?? 0;
             message.currency = 'KICKS'; // Platform currency, not real money
         }
