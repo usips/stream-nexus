@@ -4,10 +4,10 @@
 // @description Chat Harvesting Universal Connection Kit - Multi-platform livestream chat aggregator
 // @license BSD-3-Clause
 // @author Joshua Moon <josh@josh.rs>
-// @downloadURL https://raw.githubusercontent.com/jaw-sh/stream-nexus/master/js/dist/chuck.user.js
-// @updateURL https://raw.githubusercontent.com/jaw-sh/stream-nexus/master/js/dist/chuck.user.js
-// @homepageURL https://github.com/jaw-sh/stream-nexus
-// @supportURL https://github.com/jaw-sh/stream-nexus/issues
+// @downloadURL https://raw.githubusercontent.com/usips/stream-nexus/master/js/dist/chuck.user.js
+// @updateURL https://raw.githubusercontent.com/usips/stream-nexus/master/js/dist/chuck.user.js
+// @homepageURL https://github.com/usips/stream-nexus
+// @supportURL https://github.com/usips/stream-nexus/issues
 // @match https://kick.com/*
 // @match https://kick.com/*/chatroom
 // @match https://odysee.com/*
