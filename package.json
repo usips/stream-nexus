@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "webpack": "webpack --config webpack.config.js",
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --config webpack.config.js",
+    "build:editor": "cd editor && npm run build",
+    "build:all": "npm run build && npm run build:editor",
+    "dev:editor": "cd editor && npm run dev"
   },
   "repository": {
     "type": "git",

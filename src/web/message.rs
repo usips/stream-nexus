@@ -1,3 +1,4 @@
+use crate::layout::Layout;
 use crate::message::Message as ChatMessage;
 use actix::{Message, Recipient};
 use serde::{Deserialize, Serialize};
@@ -85,4 +86,65 @@ pub struct ViewCount {
 
 impl Message for ViewCount {
     type Result = ();
+}
+
+// ============================================================================
+// Layout Messages
+// ============================================================================
+
+/// Broadcast a layout update to all connected clients
+pub struct LayoutUpdate {
+    pub layout: Layout,
+}
+
+impl Message for LayoutUpdate {
+    type Result = ();
+}
+
+/// Switch the active layout (broadcasts to all clients)
+pub struct SwitchLayout {
+    pub name: String,
+}
+
+impl Message for SwitchLayout {
+    type Result = Result<(), String>;
+}
+
+/// Save a layout to disk
+pub struct SaveLayout {
+    pub layout: Layout,
+}
+
+impl Message for SaveLayout {
+    type Result = Result<(), String>;
+}
+
+/// Delete a layout from disk
+pub struct DeleteLayout {
+    pub name: String,
+}
+
+impl Message for DeleteLayout {
+    type Result = Result<(), String>;
+}
+
+/// Request the current active layout
+pub struct RequestLayout;
+
+impl Message for RequestLayout {
+    type Result = Layout;
+}
+
+/// Request list of all available layouts
+pub struct RequestLayoutList;
+
+/// Response for layout list request
+#[derive(Serialize, Clone)]
+pub struct LayoutListResponse {
+    pub layouts: Vec<String>,
+    pub active: String,
+}
+
+impl Message for RequestLayoutList {
+    type Result = LayoutListResponse;
 }

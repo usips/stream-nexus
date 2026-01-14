@@ -1,5 +1,6 @@
 use actix::*;
 use actix_web_actors::ws;
+use serde::Deserialize;
 use std::time::Instant;
 
 use super::message;
@@ -7,7 +8,31 @@ use super::ChatMessage;
 use super::ChatServer;
 use super::CLIENT_TIMEOUT;
 use super::HEARTBEAT_INTERVAL;
+use crate::layout::Layout;
 use crate::message::{CommandFeatureMessage, LivestreamUpdate};
+
+/// Layout-related commands from WebSocket clients
+#[derive(Deserialize, Debug)]
+struct LayoutCommand {
+    #[serde(default)]
+    layout_update: Option<Layout>,
+    #[serde(default)]
+    switch_layout: Option<String>,
+    #[serde(default)]
+    save_layout: Option<SaveLayoutCommand>,
+    #[serde(default)]
+    delete_layout: Option<String>,
+    #[serde(default)]
+    request_layout: Option<bool>,
+    #[serde(default)]
+    request_layouts: Option<bool>,
+}
+
+#[derive(Deserialize, Debug)]
+struct SaveLayoutCommand {
+    name: String,
+    layout: Layout,
+}
 
 pub struct ChatClient {
     /// Connection ID
@@ -134,53 +159,119 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                 self.last_heartbeat_at = Instant::now();
             }
             ws::Message::Text(text) => {
-                match serde_json::from_str::<LivestreamUpdate>(&text) {
-                    Ok(update) => {
-                        // Send Chat Messages
-                        if let Some(messages) = update.messages {
-                            for message in messages {
-                                self.send_or_reply(
-                                    ctx,
-                                    ChatMessage {
-                                        chat_message: message,
-                                    },
-                                );
-                            }
-                        }
-                        // Send Removals
-                        if let Some(removals) = update.removals {
-                            for id in removals {
-                                self.send_or_reply(ctx, message::RemoveMessage { id });
-                            }
-                        }
-                        // Send Viewer Counts
-                        if let Some(viewers) = update.viewers {
+                // Try parsing as LivestreamUpdate first
+                if let Ok(update) = serde_json::from_str::<LivestreamUpdate>(&text) {
+                    // Send Chat Messages
+                    if let Some(messages) = update.messages {
+                        for message in messages {
                             self.send_or_reply(
                                 ctx,
-                                message::ViewCount {
-                                    platform: update.platform,
-                                    //channel: update.channel.unwrap_or_default(),
-                                    viewers,
+                                ChatMessage {
+                                    chat_message: message,
                                 },
                             );
                         }
                     }
-                    Err(_) => {
-                        match serde_json::from_str::<CommandFeatureMessage>(&text) {
-                            Ok(message) => {
-                                self.send_or_reply(
-                                    ctx,
-                                    message::FeatureMessage {
-                                        id: message.feature_message,
-                                    },
-                                );
-                            }
-                            Err(err) => {
-                                log::warn!("Error parsing client message: {:?}", err);
-                            }
-                        };
+                    // Send Removals
+                    if let Some(removals) = update.removals {
+                        for id in removals {
+                            self.send_or_reply(ctx, message::RemoveMessage { id });
+                        }
                     }
-                };
+                    // Send Viewer Counts
+                    if let Some(viewers) = update.viewers {
+                        self.send_or_reply(
+                            ctx,
+                            message::ViewCount {
+                                platform: update.platform,
+                                viewers,
+                            },
+                        );
+                    }
+                    return;
+                }
+
+                // Try parsing as FeatureMessage
+                if let Ok(cmd) = serde_json::from_str::<CommandFeatureMessage>(&text) {
+                    self.send_or_reply(
+                        ctx,
+                        message::FeatureMessage {
+                            id: cmd.feature_message,
+                        },
+                    );
+                    return;
+                }
+
+                // Try parsing as LayoutCommand
+                if let Ok(cmd) = serde_json::from_str::<LayoutCommand>(&text) {
+                    // Handle layout update broadcast
+                    if let Some(layout) = cmd.layout_update {
+                        self.send_or_reply(ctx, message::LayoutUpdate { layout });
+                        return;
+                    }
+
+                    // Handle switch layout
+                    if let Some(name) = cmd.switch_layout {
+                        self.send_or_reply(ctx, message::SwitchLayout { name });
+                        return;
+                    }
+
+                    // Handle save layout
+                    if let Some(save_cmd) = cmd.save_layout {
+                        let mut layout = save_cmd.layout;
+                        layout.name = save_cmd.name;
+                        self.send_or_reply(ctx, message::SaveLayout { layout });
+                        return;
+                    }
+
+                    // Handle delete layout
+                    if let Some(name) = cmd.delete_layout {
+                        self.send_or_reply(ctx, message::DeleteLayout { name });
+                        return;
+                    }
+
+                    // Handle request layout
+                    if cmd.request_layout.unwrap_or(false) {
+                        self.server
+                            .send(message::RequestLayout)
+                            .into_actor(self)
+                            .then(|res, _, ctx| {
+                                if let Ok(layout) = res {
+                                    let reply = serde_json::to_string(&message::ReplyInner {
+                                        tag: "layout_update".to_owned(),
+                                        message: serde_json::to_string(&layout).unwrap(),
+                                    })
+                                    .unwrap();
+                                    ctx.text(reply);
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+                        return;
+                    }
+
+                    // Handle request layouts list
+                    if cmd.request_layouts.unwrap_or(false) {
+                        self.server
+                            .send(message::RequestLayoutList)
+                            .into_actor(self)
+                            .then(|res, _, ctx| {
+                                if let Ok(list) = res {
+                                    let reply = serde_json::to_string(&message::ReplyInner {
+                                        tag: "layout_list".to_owned(),
+                                        message: serde_json::to_string(&list).unwrap(),
+                                    })
+                                    .unwrap();
+                                    ctx.text(reply);
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+                        return;
+                    }
+                }
+
+                log::warn!("Unrecognized WebSocket message: {}", text);
             }
             ws::Message::Binary(_) => log::warn!("Unexpected ChatClient binary."),
             ws::Message::Close(reason) => {

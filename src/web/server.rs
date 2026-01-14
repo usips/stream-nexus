@@ -1,9 +1,11 @@
 use actix::{Actor, Context, Handler, MessageResult, Recipient};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 use super::message;
 use crate::exchange::ExchangeRates;
+use crate::layout::{Layout, LayoutManager};
 use crate::message::Message as ChatMessage;
 
 pub struct Connection {
@@ -18,11 +20,23 @@ pub struct ChatServer {
     pub paid_messages: Vec<Uuid>,
     pub exchange_rates: ExchangeRates,
     pub viewer_counts: HashMap<String, usize>,
+    pub layout_manager: Arc<Mutex<LayoutManager>>,
+    pub active_layout: String,
 }
 
 impl ChatServer {
-    pub fn new(exchange_rates: ExchangeRates) -> Self {
+    pub fn new(exchange_rates: ExchangeRates, layout_manager: Arc<Mutex<LayoutManager>>) -> Self {
         log::info!("Chat actor starting up.");
+
+        // Determine active layout (use "default" if it exists)
+        let active_layout = {
+            let lm = layout_manager.lock().unwrap();
+            if lm.exists("default") {
+                "default".to_string()
+            } else {
+                lm.list().unwrap_or_default().first().cloned().unwrap_or_else(|| "default".to_string())
+            }
+        };
 
         // get last modified time of superchats.json
         let super_chats_last_modified = std::fs::metadata("super_chats.json")
@@ -53,6 +67,8 @@ impl ChatServer {
                         paid_messages,
                         exchange_rates,
                         viewer_counts: Default::default(),
+                        layout_manager,
+                        active_layout,
                     };
                 }
             }
@@ -64,6 +80,21 @@ impl ChatServer {
             paid_messages: Vec::with_capacity(100),
             exchange_rates,
             viewer_counts: HashMap::with_capacity(100),
+            layout_manager,
+            active_layout,
+        }
+    }
+
+    /// Broadcast the current layout to all connected clients
+    fn broadcast_layout(&self, layout: &Layout) {
+        let reply = serde_json::to_string(&message::ReplyInner {
+            tag: "layout_update".to_owned(),
+            message: serde_json::to_string(layout).expect("Failed to serialize layout"),
+        })
+        .expect("Failed to serialize layout ReplyInner");
+
+        for (_, conn) in &self.clients {
+            conn.recipient.do_send(message::Reply(reply.clone()));
         }
     }
 }
@@ -318,5 +349,101 @@ impl Handler<message::ViewCount> for ChatServer {
                 .expect("Failed to serialize viewers replyinner"),
             ));
         }
+    }
+}
+
+// ============================================================================
+// Layout Handlers
+// ============================================================================
+
+/// Handler for layout update broadcast
+impl Handler<message::LayoutUpdate> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: message::LayoutUpdate, _: &mut Context<Self>) -> Self::Result {
+        log::debug!("[ChatServer] Broadcasting layout update: {}", msg.layout.name);
+        self.broadcast_layout(&msg.layout);
+    }
+}
+
+/// Handler for switching active layout
+impl Handler<message::SwitchLayout> for ChatServer {
+    type Result = Result<(), String>;
+
+    fn handle(&mut self, msg: message::SwitchLayout, _: &mut Context<Self>) -> Self::Result {
+        log::info!("[ChatServer] Switching to layout: {}", msg.name);
+
+        let layout = {
+            let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
+            lm.load(&msg.name).map_err(|e| e.to_string())?
+        };
+
+        self.active_layout = msg.name;
+        self.broadcast_layout(&layout);
+        Ok(())
+    }
+}
+
+/// Handler for saving a layout
+impl Handler<message::SaveLayout> for ChatServer {
+    type Result = Result<(), String>;
+
+    fn handle(&mut self, msg: message::SaveLayout, _: &mut Context<Self>) -> Self::Result {
+        log::info!("[ChatServer] Saving layout: {}", msg.layout.name);
+
+        let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
+        lm.save(&msg.layout).map_err(|e| e.to_string())?;
+
+        // If this is the active layout, broadcast the update
+        if msg.layout.name == self.active_layout {
+            self.broadcast_layout(&msg.layout);
+        }
+
+        Ok(())
+    }
+}
+
+/// Handler for deleting a layout
+impl Handler<message::DeleteLayout> for ChatServer {
+    type Result = Result<(), String>;
+
+    fn handle(&mut self, msg: message::DeleteLayout, _: &mut Context<Self>) -> Self::Result {
+        log::info!("[ChatServer] Deleting layout: {}", msg.name);
+
+        // Don't allow deleting the active layout
+        if msg.name == self.active_layout {
+            return Err("Cannot delete the active layout".to_string());
+        }
+
+        let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
+        lm.delete(&msg.name).map_err(|e| e.to_string())?;
+        Ok(())
+    }
+}
+
+/// Handler for requesting current layout
+impl Handler<message::RequestLayout> for ChatServer {
+    type Result = MessageResult<message::RequestLayout>;
+
+    fn handle(&mut self, _: message::RequestLayout, _: &mut Context<Self>) -> Self::Result {
+        let lm = self.layout_manager.lock().unwrap();
+        match lm.load(&self.active_layout) {
+            Ok(layout) => MessageResult(layout),
+            Err(_) => MessageResult(Layout::default_layout()),
+        }
+    }
+}
+
+/// Handler for requesting layout list
+impl Handler<message::RequestLayoutList> for ChatServer {
+    type Result = MessageResult<message::RequestLayoutList>;
+
+    fn handle(&mut self, _: message::RequestLayoutList, _: &mut Context<Self>) -> Self::Result {
+        let lm = self.layout_manager.lock().unwrap();
+        let layouts = lm.list().unwrap_or_default();
+        MessageResult(message::LayoutListResponse {
+            layouts,
+            active: self.active_layout.clone(),
+        })
     }
 }

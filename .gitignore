@@ -10,3 +10,4 @@ target/*
 .env
 exchange_rates.xml
 super_chats.json
+editor/node_modules/

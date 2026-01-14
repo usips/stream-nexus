@@ -4,32 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Stream Nexus is a multi-platform livestream chat aggregator that unifies chat from Twitch, YouTube, Kick, Rumble, Odysee, X/Twitter, VK, and XMRchat into a single dashboard and overlay.
+Stream Nexus is a multi-platform livestream chat aggregator backend that receives chat messages from various platforms (Twitch, YouTube, Kick, Rumble, etc.) and unifies them into a single dashboard and overlay for streamers.
 
-**CHUCK** (Chat Harvesting Universal Connection Kit) is the client-side chat scraper component, available as:
-- Userscript for Violentmonkey/Greasemonkey
-- Browser extension for Chrome and Firefox
+The client-side chat scraper (CHUCK) lives in a separate repository: `chat-harvester`.
 
 ## Build Commands
 
 ```bash
-# Build Rust backend
+# Build and run Rust backend
 cargo build
-cargo build --release
 cargo run
 
-# Build CHUCK userscript
-npm run build:userscript    # Output: js/dist/chuck.user.js
-
-# Build browser extensions
-npm run build:extension:chrome   # Output: js/dist/chrome/
-npm run build:extension:firefox  # Output: js/dist/firefox/
-
-# Build all
+# Build frontend JS (Matter.js physics background)
 npm run build
-
-# Watch mode for development
-npm run watch:userscript
 ```
 
 ## Architecture
@@ -37,39 +24,39 @@ npm run watch:userscript
 ### Technology Stack
 - **Backend**: Rust with Actix-web 4.3 and Actix actors
 - **Templates**: Askama for server-side HTML rendering
-- **Frontend**: Vanilla JavaScript, Matter.js for physics background
-- **CHUCK**: Modular ES6 JavaScript, bundled with Webpack 5
+- **Frontend**: Vanilla JavaScript, Matter.js for physics background (bundled with Webpack 5)
 
 ### Actor-Based Message System
 The backend uses Actix's actor model for real-time chat:
-- `ChatServer` (`src/web/server.rs`) - Central message hub that broadcasts to all connected clients
+- `ChatServer` (`src/web/server.rs`) - Central hub maintaining client connections, chat history, paid message persistence, and viewer counts. Broadcasts messages to all connected dashboard/overlay clients.
 - `ChatClient` (`src/web/client.rs`) - Handles individual WebSocket connections with heartbeat (1s interval, 5s timeout)
 
 ### Message Flow
 ```
-Platform Chat → CHUCK (userscript/extension) → WebSocket → ChatClient → ChatServer → All Clients
+Platform Chat → CHUCK (separate repo) → WebSocket → ChatClient → ChatServer → All Dashboard/Overlay Clients
 ```
 
-### Key Directories
-- `src/` - Rust backend (server, WebSocket handling, currency exchange)
-- `js/src/core/` - CHUCK core classes (Seed base, message types, config, UUID)
-- `js/src/platforms/` - Platform-specific scrapers (kick.js, youtube.js, etc.)
-- `js/extension/` - Browser extension files (manifest, popup, background)
-- `js/dist/` - Build output (gitignored)
-- `public/` - Static assets and frontend JavaScript
+### Key Files
+- `src/main.rs` - Server startup, route configuration
+- `src/web/server.rs` - ChatServer actor with message broadcasting logic
+- `src/web/client.rs` - WebSocket client handling and heartbeat
+- `src/message.rs` - Message struct with HTML rendering via Askama
+- `src/exchange.rs` - ECB currency exchange rate fetching
+- `public/` - Static assets (dashboard.js, script.js, styles)
 - `templates/` - Askama HTML templates
 
-### CHUCK Architecture
-The `Seed` base class (`js/src/core/seed.js`) provides:
-- WebSocket/Fetch/XHR/EventSource patching to intercept platform traffic
-- Connection to backend server with auto-reconnect
-- Standardized message format (`ChatMessage` class)
+### WebSocket Protocol
+Clients send `LivestreamUpdate` JSON with:
+- `platform`: Source platform name
+- `messages`: Array of chat messages
+- `removals`: Array of message UUIDs to remove
+- `viewers`: Optional viewer count
 
-Each platform extends `Seed` and overrides hooks like `onWebSocketMessage()` to parse platform-specific data. Platforms are registered in `js/src/platforms/index.js`
+Server broadcasts `ReplyInner` with tags: `chat_message`, `feature_message`, `remove_message`, `viewers`
 
 ## Configuration
 
-Environment variables (see `.env.example`):
+Environment variables (`.env.example`):
 - `SERVER_IP` (default: 127.0.0.1)
 - `SERVER_PORT` (default: 1350)
 - `RUST_LOG` (debug/info)
@@ -77,14 +64,14 @@ Environment variables (see `.env.example`):
 
 ## Key Implementation Details
 
-- **Currency Exchange**: Fetches rates from ECB daily, caches to `exchange_rates.xml` as fallback
-- **HTML Sanitization**: Uses `ammonia` crate to prevent XSS
-- **Paid Messages**: Persisted to `super_chats.json` for crash recovery
-- **Emoji Replacement**: Uses token-based approach to avoid double-replacement issues
+- **Currency Exchange**: Fetches rates from ECB daily, caches to `exchange_rates.xml`
+- **Paid Messages**: Persisted to `super_chats.json` (loaded on restart if <15 min old)
+- **Emoji Replacement**: Token-based approach in server.rs to avoid double-replacement
+- **HTML Escaping**: Manual escaping in ChatServer before broadcast (not ammonia)
 
 ## Routes
 
-- `/chat` - Chat overlay view
+- `/chat` - Chat overlay view (for OBS)
 - `/dashboard` - Administrative dashboard
 - `/overlay` - Alternative overlay view
 - `/background` - Physics background overlay

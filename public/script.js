@@ -1,6 +1,9 @@
 const chat_history = document.querySelector("#chat-messages");
 const feature_message = document.querySelector("#show-message");
 
+// Current layout state
+let current_layout = null;
+
 // Create WebSocket connection.
 let socket = new WebSocket("ws://127.0.0.2:1350/chat.ws");
 const reconnect = () => {
@@ -17,6 +20,8 @@ const reconnect = () => {
 const bindWebsocketEvents = () => {
     socket.addEventListener("open", (event) => {
         console.log("[SNEED] Connection established.");
+        // Request current layout on connection
+        socket.send(JSON.stringify({ request_layout: true }));
     });
 
     // Listen for messages
@@ -33,8 +38,14 @@ const bindWebsocketEvents = () => {
             case "viewers":
                 handle_viewers(message);
                 break;
+            case "layout_update":
+                apply_layout(message);
+                break;
+            case "layout_list":
+                console.log("[SNEED] Available layouts:", message);
+                break;
             default:
-                console.log("Unknown tag:", message.tag);
+                console.log("Unknown tag:", data.tag);
                 break;
 
         }
@@ -52,6 +63,119 @@ const bindWebsocketEvents = () => {
 };
 
 bindWebsocketEvents(socket);
+
+// ============================================================================
+// Layout Application
+// ============================================================================
+
+function apply_layout(layout) {
+    console.log("[SNEED] Applying layout:", layout.name);
+    current_layout = layout;
+
+    const elements = layout.elements || {};
+
+    // Apply each element's configuration
+    apply_element_config(document.getElementById("chat"), elements.chat);
+    apply_element_config(document.getElementById("live"), elements.live);
+    apply_element_config(document.getElementById("attribution"), elements.attribution);
+    apply_element_config(document.getElementById("show-message"), elements.featured);
+    apply_element_config(document.getElementById("poll-ui"), elements.poll);
+    apply_element_config(document.getElementById("superchat-ui"), elements.superchat);
+
+    // Apply message styling via CSS custom properties
+    if (layout.messageStyle) {
+        const ms = layout.messageStyle;
+        const root = document.documentElement;
+
+        if (ms.avatarSize) root.style.setProperty('--avatar-size', ms.avatarSize);
+        if (ms.maxHeight) root.style.setProperty('--message-max-height', ms.maxHeight);
+        if (ms.borderRadius) root.style.setProperty('--message-border-radius', ms.borderRadius);
+        if (ms.fontSize) root.style.setProperty('--message-font-size', ms.fontSize);
+        if (ms.backgroundColor) root.style.setProperty('--message-bg', ms.backgroundColor);
+        if (ms.textColor) root.style.setProperty('--message-color', ms.textColor);
+    }
+
+    // Update chat width CSS variable from chat element config
+    if (elements.chat && elements.chat.size && elements.chat.size.width) {
+        const width = elements.chat.size.width;
+        const widthStr = typeof width === 'number' ? `${width}px` : width;
+        document.documentElement.style.setProperty('--chat-width', widthStr);
+    }
+}
+
+function apply_element_config(el, config) {
+    if (!el || !config) return;
+
+    // Handle visibility
+    if (config.enabled === false) {
+        el.style.display = 'none';
+        return;
+    } else {
+        el.style.display = '';
+    }
+
+    // Handle positioning
+    if (config.position) {
+        const pos = config.position;
+
+        // Reset positioning first
+        el.style.left = '';
+        el.style.right = '';
+        el.style.top = '';
+        el.style.bottom = '';
+
+        if (pos.x !== null && pos.x !== undefined) {
+            el.style.left = `${pos.x}px`;
+        }
+        if (pos.y !== null && pos.y !== undefined) {
+            el.style.top = `${pos.y}px`;
+        }
+        if (pos.right !== null && pos.right !== undefined) {
+            el.style.right = `${pos.right}px`;
+            el.style.left = 'auto';
+        }
+        if (pos.bottom !== null && pos.bottom !== undefined) {
+            el.style.bottom = `${pos.bottom}px`;
+            el.style.top = 'auto';
+        }
+    }
+
+    // Handle sizing
+    if (config.size) {
+        const size = config.size;
+
+        if (size.width !== null && size.width !== undefined) {
+            el.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width;
+        }
+        if (size.height !== null && size.height !== undefined) {
+            el.style.height = typeof size.height === 'number' ? `${size.height}px` : size.height;
+        }
+        if (size.maxWidth) {
+            el.style.maxWidth = size.maxWidth;
+        }
+        if (size.maxHeight) {
+            el.style.maxHeight = size.maxHeight;
+        }
+    }
+
+    // Handle custom styles
+    if (config.style) {
+        const style = config.style;
+
+        if (style.backgroundColor) el.style.backgroundColor = style.backgroundColor;
+        if (style.fontSize) el.style.fontSize = style.fontSize;
+        if (style.fontFamily) el.style.fontFamily = style.fontFamily;
+        if (style.fontWeight) el.style.fontWeight = style.fontWeight;
+        if (style.fontStyle) el.style.fontStyle = style.fontStyle;
+        if (style.color) el.style.color = style.color;
+        if (style.padding) el.style.padding = style.padding;
+        if (style.margin) el.style.margin = style.margin;
+        if (style.borderRadius) el.style.borderRadius = style.borderRadius;
+        if (style.opacity !== null && style.opacity !== undefined) el.style.opacity = style.opacity;
+        if (style.transform) el.style.transform = style.transform;
+        if (style.zIndex !== null && style.zIndex !== undefined) el.style.zIndex = style.zIndex;
+    }
+}
 
 function handle_emote(node, message) {
     const innerEl = node.getElementsByClassName("msg-text")[0];

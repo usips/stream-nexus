@@ -13,8 +13,21 @@ body {
     overflow: hidden;
 }
 
-html {
+/* Layout-controlled CSS custom properties */
+:root {
+    /* Chat panel */
     --chat-width: 300px;
+
+    /* Message styling (can be overridden by layout) */
+    --message-font-size: 16px;
+    --message-line-height: calc(var(--message-font-size) * 1.125);
+    --message-bg: rgba(0, 0, 0, 0.9);
+    --message-color: #ccc;
+    --message-max-height: 10em;
+    --message-border-radius: 2em 0 0 2em;
+
+    /* Avatar */
+    --avatar-size: 2em;
 }
 
 /*
@@ -119,21 +132,21 @@ section#chat {
     overflow: hidden;
     z-index: 1;
 
-    background: var(--message-bg-color, rgba(0, 0, 0, 0.9));
-    border-radius: 2em 0 0 2em;
+    background: var(--message-bg-color, var(--message-bg));
+    border-radius: var(--message-border-radius);
     border: 1px solid transparent;
     border-right: none;
     box-sizing: border-box;
     margin: 0.2em 0;
     padding: 0.5em;
 
-    max-height: 10em;
+    max-height: var(--message-max-height);
     overflow: hidden;
 
     font-family: "Open Sans";
-    font-size: var(--message-text-size, 16px);
-    line-height: var(--message-line-height, calc(var(--message-text-size) * 1.125));
-    color: var(--message-text-color, #ccc);
+    font-size: var(--message-text-size, var(--message-font-size));
+    line-height: var(--message-line-height);
+    color: var(--message-text-color, var(--message-color));
 }
 
 .msg.msg--t {
@@ -213,8 +226,8 @@ section#chat {
 
 .msg-avatar-border {
     position: relative;
-    height: 2em;
-    width: 2em;
+    height: var(--avatar-size);
+    width: var(--avatar-size);
     margin-right: 0.5em;
     overflow: hidden;
     flex-shrink: 0;
@@ -357,8 +370,8 @@ section#chat {
 }
 
 .msg-avatar {
-    height: 2em;
-    width: 2em;
+    height: var(--avatar-size);
+    width: var(--avatar-size);
     margin: -2px 0 0 -2px;
     position: absolute;
     top: 0;
