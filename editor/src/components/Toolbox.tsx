@@ -39,9 +39,9 @@ export function Toolbox() {
             />
 
             <ToolboxItem
-                label="Attribution"
+                label="Text"
                 icon="📝"
-                elementId="attribution"
+                elementId="text"
             />
 
             <ToolboxItem

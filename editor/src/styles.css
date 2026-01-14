@@ -571,12 +571,14 @@
     background: rgba(255, 0, 0, 0.6);
 }
 
-.preview-attribution {
+.preview-text {
     font-size: 24px;
     font-weight: bold;
     font-style: italic;
     color: white;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .preview-featured {

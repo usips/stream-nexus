@@ -210,9 +210,9 @@ impl Layout {
             },
         );
 
-        // Attribution - bottom left
+        // Text element - bottom left (replaces attribution)
         elements.insert(
-            "attribution".to_string(),
+            "text".to_string(),
             ElementConfig {
                 enabled: true,
                 display_name: None,
@@ -229,7 +229,9 @@ impl Layout {
                     font_weight: Some("bold".to_string()),
                     ..Default::default()
                 },
-                options: None,
+                options: Some(serde_json::json!({
+                    "content": "Mad at the Internet"
+                })),
             },
         );
 

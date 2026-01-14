@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Layout, ElementConfig } from '../types/layout';
+import { resolveTokens } from '../utils/tokens';
 
 interface EditorCanvasProps {
     layout: Layout;
@@ -36,35 +37,80 @@ interface MockData {
     featuredMessage: string | null;
     pollVotes: number[];
     superchatAmount: number;
+    currentTime: Date;
 }
 
-const MOCK_USERNAMES = ['Viewer123', 'ChatFan', 'StreamLover', 'CoolGuy99', 'NightOwl', 'GameMaster', 'TechWiz', 'MusicFan'];
+const MOCK_USERNAMES = ['Viewer123', 'ChatFan', 'StreamLover', 'CoolGuy99', 'NightOwl', 'GameMaster', 'TechWiz', 'MusicFan', 'LoyalSub', 'BigDonator'];
 const MOCK_MESSAGES = [
-    'Hello everyone!', 'Great stream!', 'LET\'S GO!', 'This is amazing',
-    'First time here', 'Love the content', 'POG', 'Hype!', 'GG',
-    'Can\'t wait!', 'So good', 'W stream', 'Based', 'True'
+    'Hello everyone! So excited to be here today!',
+    'Great stream as always, keep up the amazing work!',
+    'LET\'S GOOOOO! This is gonna be epic!',
+    'This is absolutely amazing, I can\'t believe what I\'m seeing!',
+    'First time catching the stream live, usually watch the VODs',
+    'Love the content, been following for over a year now',
+    'POG POG POG',
+    'The hype is real! Can\'t wait to see what happens next!',
+    'GG well played, that was insane',
+    'Can\'t wait for the next segment, this stream is fire!',
+    'So good! This is why I always tune in',
+    'W stream, W chat, W everything',
+    'Based take, I completely agree with that',
+    'True, that\'s exactly what I was thinking',
+    'Anyone else watching from work? Don\'t tell my boss lol',
+    'Just subbed! Been meaning to for months',
+    'Chat is moving so fast nobody will see this',
+    'Sending love from across the pond!'
 ];
-const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44aaaa'];
+const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44aaaa', '#ff44aa', '#aaff44'];
 
 const CANVAS_WIDTH = 1920;
 const CANVAS_HEIGHT = 1080;
 
 export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelectElement }: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
+    const [autoScale, setAutoScale] = useState(true);
     const [dragState, setDragState] = useState<DragState | null>(null);
     const [resizeState, setResizeState] = useState<ResizeState | null>(null);
     const [mockData, setMockData] = useState<MockData>({
         viewerCount: 1234,
         chatMessages: [
-            { id: 1, user: 'User123', message: 'Hello world!', color: '#e94560' },
-            { id: 2, user: 'Viewer', message: 'Great stream!', color: '#44aa44' },
+            { id: 1, user: 'User123', message: 'Hello everyone! So excited to be here today!', color: '#e94560' },
+            { id: 2, user: 'Viewer', message: 'Great stream as always, keep up the amazing work!', color: '#44aa44' },
+            { id: 3, user: 'ChatFan', message: 'LET\'S GOOOOO! This is gonna be epic!', color: '#4488ff' },
         ],
         featuredMessage: null,
         pollVotes: [50, 50],
         superchatAmount: 10,
+        currentTime: new Date(),
     });
+    const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
-    const messageIdRef = useRef(3);
+    const messageIdRef = useRef(4);
+
+    // Auto-scale to fit container
+    useEffect(() => {
+        if (!autoScale || !containerRef.current) return;
+
+        const calculateScale = () => {
+            if (!containerRef.current) return;
+            const container = containerRef.current;
+            const containerWidth = container.clientWidth - 40; // padding
+            const containerHeight = container.clientHeight - 40;
+
+            const scaleX = containerWidth / CANVAS_WIDTH;
+            const scaleY = containerHeight / CANVAS_HEIGHT;
+            const newScale = Math.min(scaleX, scaleY, 1); // Don't scale above 100%
+
+            setScale(Math.max(0.1, newScale));
+        };
+
+        calculateScale();
+
+        const resizeObserver = new ResizeObserver(calculateScale);
+        resizeObserver.observe(containerRef.current);
+
+        return () => resizeObserver.disconnect();
+    }, [autoScale]);
 
     // Simulate live data updates
     useEffect(() => {
@@ -109,9 +155,10 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
                     featuredMessage,
                     pollVotes,
                     superchatAmount: prev.superchatAmount,
+                    currentTime: new Date(),
                 };
             });
-        }, 1500); // Update every 1.5 seconds
+        }, 1000); // Update every second for smooth token updates
 
         return () => clearInterval(interval);
     }, []);
@@ -324,7 +371,7 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
     const defaultSizes: Record<string, { width: number | string; height: number | string }> = {
         chat: { width: 300, height: '100%' },
         live: { width: 150, height: 40 },
-        attribution: { width: 400, height: 60 },
+        text: { width: 400, height: 60 },
         featured: { width: 600, height: 100 },
         poll: { width: 300, height: 150 },
         superchat: { width: 300, height: 100 },
@@ -369,7 +416,7 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
         const names: Record<string, string> = {
             chat: 'Chat',
             live: 'Live',
-            attribution: 'Attribution',
+            text: 'Text',
             featured: 'Featured',
             poll: 'Poll',
             superchat: 'Superchat',
@@ -386,20 +433,47 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
         const style = getElementStyle(elementId, config);
         const baseElementType = elementId.replace(/-\d+$/, '');
 
+        // Get actual computed dimensions for the element
+        const elementWidth = typeof style.width === 'number' ? style.width : 300;
+        const elementHeight = typeof style.height === 'number' ? style.height : (style.height === '100%' ? CANVAS_HEIGHT : 200);
+
         let content: React.ReactNode;
         switch (baseElementType) {
-            case 'chat':
+            case 'chat': {
+                // Calculate how many messages can fit based on element height
+                const messageHeight = 42; // Approximate height per message
+                const availableHeight = typeof elementHeight === 'number' ? elementHeight : 400;
+                const maxMessages = Math.max(1, Math.floor(availableHeight / messageHeight));
+                const visibleMessages = mockData.chatMessages.slice(-maxMessages);
+
                 content = (
-                    <div className="preview-chat" style={{ width: '100%', height: '100%' }}>
-                        {mockData.chatMessages.map((msg) => (
-                            <div key={msg.id} className="preview-chat-message">
-                                <div className="preview-avatar" style={{ background: msg.color }} />
-                                <span><strong style={{ color: msg.color }}>{msg.user}:</strong> {msg.message}</span>
+                    <div className="preview-chat" style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'flex-end',
+                        overflow: 'hidden',
+                    }}>
+                        {visibleMessages.map((msg) => (
+                            <div key={msg.id} className="preview-chat-message" style={{
+                                fontSize: layout.messageStyle?.fontSize || '16px',
+                            }}>
+                                <div className="preview-avatar" style={{
+                                    background: msg.color,
+                                    width: layout.messageStyle?.avatarSize || '2em',
+                                    height: layout.messageStyle?.avatarSize || '2em',
+                                    flexShrink: 0,
+                                }} />
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <strong style={{ color: msg.color }}>{msg.user}:</strong> {msg.message}
+                                </span>
                             </div>
                         ))}
                     </div>
                 );
                 break;
+            }
             case 'live': {
                 const options = config.options || {};
                 const showIcon = options.showIcon !== false;
@@ -417,13 +491,24 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
                 );
                 break;
             }
-            case 'attribution':
+            case 'text': {
+                const options = config.options || {};
+                const textContent = (options.content as string) || 'Text Element';
+                // Resolve any tokens in the content
+                const resolvedContent = resolveTokens(textContent);
                 content = (
-                    <div className="preview-attribution">
-                        Mad at the Internet
+                    <div className="preview-text" style={{
+                        ...config.style,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                    }}>
+                        {resolvedContent}
                     </div>
                 );
                 break;
+            }
             case 'featured':
                 content = (
                     <div className="preview-featured" style={{ opacity: mockData.featuredMessage ? 1 : 0.5 }}>
@@ -484,15 +569,27 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
     return (
         <div className="editor-canvas">
             <div className="canvas-toolbar">
-                <label style={{ fontSize: '12px', marginRight: '8px' }}>Zoom:</label>
+                <label className="auto-scale-toggle" style={{ marginRight: '16px' }}>
+                    <input
+                        type="checkbox"
+                        checked={autoScale}
+                        onChange={(e) => setAutoScale(e.target.checked)}
+                    />
+                    <span>Auto-fit</span>
+                </label>
+                <label style={{ fontSize: '12px', marginRight: '8px', opacity: autoScale ? 0.5 : 1 }}>Zoom:</label>
                 <input
                     type="range"
                     min="0.25"
                     max="1"
                     step="0.05"
                     value={scale}
-                    onChange={(e) => setScale(parseFloat(e.target.value))}
+                    onChange={(e) => {
+                        setAutoScale(false);
+                        setScale(parseFloat(e.target.value));
+                    }}
                     style={{ width: '100px' }}
+                    disabled={autoScale}
                 />
                 <span style={{ fontSize: '12px', marginLeft: '8px' }}>
                     {Math.round(scale * 100)}%
@@ -500,6 +597,7 @@ export function EditorCanvas({ layout, onLayoutChange, selectedElement, onSelect
             </div>
 
             <div
+                ref={containerRef}
                 className="canvas-container"
                 onMouseMove={(e) => {
                     handleMouseMove(e);

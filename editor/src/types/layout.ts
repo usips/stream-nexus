@@ -45,6 +45,12 @@ export interface LiveBadgeOptions {
     showCount?: boolean;
 }
 
+// Text element specific options
+export interface TextOptions {
+    // The text content - can include tokens like {{datetime:HH:mm:ss}}
+    content?: string;
+}
+
 export interface MessageStyle {
     avatarSize: string;
     maxHeight: string;
@@ -96,11 +102,12 @@ export const defaultLayout = (): Layout => ({
             size: {},
             style: {},
         },
-        attribution: {
+        text: {
             enabled: true,
             position: { x: 15, bottom: 7 },
             size: {},
             style: { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' },
+            options: { content: 'Mad at the Internet' },
         },
         featured: {
             enabled: true,

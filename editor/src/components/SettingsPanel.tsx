@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Layout, ElementConfig } from '../types/layout';
+import { getAvailableTokens } from '../utils/tokens';
 
 interface SettingsPanelProps {
     layout: Layout;
@@ -38,7 +39,7 @@ function getDefaultDisplayName(elementId: string): string {
     const names: Record<string, string> = {
         chat: 'Chat Panel',
         live: 'Live Badge',
-        attribution: 'Attribution',
+        text: 'Text',
         featured: 'Featured Message',
         poll: 'Poll Display',
         superchat: 'Superchat Display',
@@ -522,6 +523,72 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
                             <span>Show Count</span>
                         </label>
                     </div>
+                </div>
+            </CollapsibleSection>
+        );
+    }
+
+    // Text element options
+    if (elementType === 'text') {
+        const content = (options.content as string) || '';
+        const tokens = getAvailableTokens();
+
+        return (
+            <CollapsibleSection title="Text Options" defaultOpen={true}>
+                <div className="settings-row">
+                    <label>Content</label>
+                    <textarea
+                        value={content}
+                        placeholder="Enter text content..."
+                        onChange={(e) => updateOptions({ content: e.target.value })}
+                        rows={3}
+                        style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid #0f3460',
+                            background: '#1a1a2e',
+                            color: '#eee',
+                            fontSize: '13px',
+                            resize: 'vertical',
+                            fontFamily: 'inherit',
+                        }}
+                    />
+                </div>
+                <div className="settings-row">
+                    <label>Available Tokens</label>
+                    <div className="token-list" style={{
+                        fontSize: '11px',
+                        color: '#888',
+                        background: '#1a1a2e',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        border: '1px solid #0f3460',
+                    }}>
+                        {tokens.map((token) => (
+                            <div key={token.name} className="token-item" style={{ marginBottom: '6px' }}>
+                                <code style={{
+                                    background: '#0f3460',
+                                    padding: '2px 6px',
+                                    borderRadius: '3px',
+                                    color: '#e94560',
+                                    cursor: 'pointer',
+                                }}
+                                onClick={() => {
+                                    const newContent = content + token.example;
+                                    updateOptions({ content: newContent });
+                                }}
+                                title="Click to insert"
+                                >
+                                    {token.example}
+                                </code>
+                                <span style={{ marginLeft: '8px' }}>{token.description}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                        Click a token to insert it. Tokens update in real-time.
+                    </small>
                 </div>
             </CollapsibleSection>
         );
