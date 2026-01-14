@@ -1,42 +1,25 @@
 {
   "name": "stream-nexus",
   "version": "1.0.0",
-  "description": "In development. Not production ready. Many things hardcoded.",
+  "description": "SNEED - Stream Nexus aggregation server. In development.",
   "main": "index.js",
   "scripts": {
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:fuzz": "vitest run --testNamePattern='Fuzzing'",
     "webpack": "webpack --config webpack.config.js",
-    "build": "npm run build:userscript && npm run build:extension",
-    "build:userscript": "webpack --config js/webpack.userscript.js",
-    "build:extension": "npm run build:extension:chrome && npm run build:extension:firefox",
-    "build:extension:chrome": "webpack --config js/webpack.extension.js --env target=chrome",
-    "build:extension:firefox": "webpack --config js/webpack.extension.js --env target=firefox",
-    "watch:userscript": "webpack --config js/webpack.userscript.js --watch"
+    "build": "webpack --config webpack.config.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jaw-sh/stream-nexus.git"
+    "url": "git+https://github.com/usips/stream-nexus.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Joshua Moon <josh@josh.rs>",
+  "license": "BSD-3-Clause",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/jaw-sh/stream-nexus/issues"
+    "url": "https://github.com/usips/stream-nexus/issues"
   },
-  "homepage": "https://github.com/jaw-sh/stream-nexus#readme",
+  "homepage": "https://github.com/usips/stream-nexus#readme",
   "devDependencies": {
-    "@babel/core": "^7.23.0",
-    "@babel/preset-env": "^7.23.0",
-    "@vitest/coverage-v8": "^4.0.17",
-    "babel-loader": "^9.1.0",
-    "copy-webpack-plugin": "^12.0.0",
-    "fast-check": "^4.5.3",
-    "jsdom": "^27.4.0",
-    "vitest": "^4.0.17",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
