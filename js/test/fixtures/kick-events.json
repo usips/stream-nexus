@@ -1,0 +1,57 @@
+{
+  "KicksGifted": {
+    "event": "KicksGifted",
+    "data": "{\"message\":\"\",\"sender\":{\"id\":57598142,\"username\":\"Reds_cat\",\"username_color\":\"#E9113C\"},\"gift\":{\"gift_id\":\"hell_yeah\",\"name\":\"Hell Yeah\",\"amount\":1,\"type\":\"BASIC\",\"tier\":\"BASIC\",\"character_limit\":0,\"pinned_time\":0}}",
+    "channel": "channel_57035257"
+  },
+  "ChatMessageEvent": {
+    "event": "App\\Events\\ChatMessageEvent",
+    "data": "{\"id\":\"test-message-id-123\",\"chatroom_id\":2507974,\"content\":\"Hello world!\",\"type\":\"message\",\"created_at\":\"2024-01-15T12:00:00.000000Z\",\"sender\":{\"id\":12345,\"username\":\"TestUser\",\"slug\":\"testuser\",\"identity\":{\"color\":\"#FF0000\",\"badges\":[{\"type\":\"subscriber\",\"text\":\"Subscriber\"}]}}}",
+    "channel": "chatrooms.2507974.v2"
+  },
+  "ChatMessageWithGift": {
+    "event": "App\\Events\\ChatMessageEvent",
+    "data": "{\"id\":\"gift-message-id-456\",\"chatroom_id\":2507974,\"content\":\"Thanks for the stream!\",\"type\":\"message\",\"created_at\":\"2024-01-15T12:01:00.000000Z\",\"sender\":{\"id\":12345,\"username\":\"BigDonor\",\"slug\":\"bigdonor\",\"identity\":{\"color\":\"#00FF00\",\"badges\":[]}},\"gift\":{\"amount\":500}}",
+    "channel": "chatrooms.2507974.v2"
+  },
+  "GiftedSubscriptionsEvent": {
+    "event": "App\\Events\\GiftedSubscriptionsEvent",
+    "data": "{\"chatroom_id\":2507974,\"gifted_usernames\":[\"bigboss_23\"],\"gifter_username\":\"court\"}",
+    "channel": "chatrooms.2507974.v2"
+  },
+  "SubscriptionEvent": {
+    "event": "App\\Events\\SubscriptionEvent",
+    "data": "{\"chatroom_id\":2507974,\"username\":\"feepsyy\",\"months\":2}",
+    "channel": "chatrooms.2507974.v2"
+  },
+  "MessageDeletedEvent": {
+    "event": "App\\Events\\MessageDeletedEvent",
+    "data": "{\"id\":\"d7fd6f26-2ede-407a-bcb0-8a9984eb578d\",\"message\":{\"id\":\"16da752a-1b5a-4b28-9391-4b5c6e8dc405\"},\"aiModerated\":true,\"violatedRules\":[\"hate\"]}",
+    "channel": "chatrooms.56746877.v2"
+  },
+  "MessageDeletedEventManual": {
+    "event": "App\\Events\\MessageDeletedEvent",
+    "data": "{\"id\":\"manual-delete-id\",\"message\":{\"id\":\"deleted-msg-id\"},\"aiModerated\":false}",
+    "channel": "chatrooms.56746877.v2"
+  },
+  "LivestreamUpdated": {
+    "event": "App\\Events\\LivestreamUpdated",
+    "data": "{\"viewers\":1234}",
+    "channel": "channel.2515504"
+  },
+  "KicksLeaderboardUpdated": {
+    "event": "KicksLeaderboardUpdated",
+    "data": "{\"gifts_lifetime\":[{\"user_id\":72058463,\"username\":\"pesoru\",\"quantity\":100}],\"gifts_lifetime_enabled\":true}",
+    "channel": "channel_57035257"
+  },
+  "pusher_connection_established": {
+    "event": "pusher:connection_established",
+    "data": "{\"socket_id\":\"123456.7890\",\"activity_timeout\":120}"
+  },
+  "ping": {
+    "type": "ping"
+  },
+  "pong": {
+    "type": "pong"
+  }
+}

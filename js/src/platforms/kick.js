@@ -49,9 +49,9 @@ export class Kick extends Seed {
 
     prepareChatMessage(json) {
         const message = new ChatMessage(json.id, this.platform, this.channel);
-        message.sent_at = Date.parse(json.created_at);
-        message.username = json.sender.username;
-        message.message = json.content;
+        message.sent_at = json.created_at ? Date.parse(json.created_at) : Date.now();
+        message.username = json.sender?.username ?? 'Unknown';
+        message.message = json.content ?? '';
 
         if ((json.gift?.amount ?? 0) > 0) {
             message.amount = json.gift.amount / 100;
@@ -63,7 +63,9 @@ export class Kick extends Seed {
             message.emojis.push([match[0], `https://files.kick.com/emotes/${match[1]}/fullsize`, match[2]]);
         }
 
-        json.sender.identity.badges.forEach((badge) => {
+        // Handle badges if present (may be missing in some event types like KicksGifted)
+        const badges = json.sender?.identity?.badges ?? [];
+        badges.forEach((badge) => {
             switch (badge.type) {
                 case 'vip':
                 case 'og':
@@ -87,6 +89,30 @@ export class Kick extends Seed {
                     break;
             }
         });
+
+        return message;
+    }
+
+    /**
+     * Prepare a KicksGifted message (platform currency gift)
+     * KicksGifted has a different structure than regular chat messages
+     */
+    prepareKicksGiftedMessage(json) {
+        // Generate a unique ID based on sender and timestamp since KicksGifted has no ID
+        const generatedId = `kicks_${json.sender?.id ?? 'unknown'}_${Date.now()}`;
+        const message = new ChatMessage(generatedId, this.platform, this.channel);
+
+        message.sent_at = Date.now();
+        message.username = json.sender?.username ?? 'Unknown';
+        message.message = json.message || `Sent a ${json.gift?.name ?? 'Kick'}!`;
+
+        // KicksGifted has gift data with amount representing quantity
+        if (json.gift) {
+            // Kicks are platform currency - we mark as paid message
+            // Amount represents number of Kicks sent, approximate value varies
+            message.amount = json.gift.amount ?? 0;
+            message.currency = 'KICKS'; // Platform currency, not real money
+        }
 
         return message;
     }
@@ -116,7 +142,8 @@ export class Kick extends Seed {
 
             case 'KicksGifted':
                 const kicksData = JSON.parse(json.data);
-                this.receiveChatMessage(kicksData);
+                const kicksMessage = this.prepareKicksGiftedMessage(kicksData);
+                this.sendChatMessages([kicksMessage]);
                 this.recordWebSocketHandled(ws, 'in', event.data, kicksData, json.event);
                 break;
 
