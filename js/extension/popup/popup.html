@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>CHUCK</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="header">
+        <h1>CHUCK</h1>
+        <p class="subtitle">Chat Harvesting Universal Connection Kit</p>
+    </div>
+
+    <div class="section">
+        <label for="serverUrl">Server URL</label>
+        <input type="text" id="serverUrl" placeholder="ws://127.0.0.2:1350/chat.ws">
+    </div>
+
+    <div class="section">
+        <label>
+            <input type="checkbox" id="debug">
+            Debug Mode
+        </label>
+    </div>
+
+    <div class="section">
+        <h2>Platforms</h2>
+        <div class="platforms">
+            <label><input type="checkbox" id="platform-kick" checked> Kick</label>
+            <label><input type="checkbox" id="platform-odysee" checked> Odysee</label>
+            <label><input type="checkbox" id="platform-rumble" checked> Rumble</label>
+            <label><input type="checkbox" id="platform-twitch" checked> Twitch</label>
+            <label><input type="checkbox" id="platform-youtube" checked> YouTube</label>
+            <label><input type="checkbox" id="platform-vk" checked> VK</label>
+            <label><input type="checkbox" id="platform-x" checked> X/Twitter</label>
+            <label><input type="checkbox" id="platform-xmrchat" checked> XMRChat</label>
+        </div>
+    </div>
+
+    <div class="section buttons">
+        <button id="save" class="primary">Save</button>
+        <button id="reset">Reset</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

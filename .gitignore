@@ -1,9 +1,12 @@
-.env
-exchange_rates.xml
+.claude/
+.vscode/
+js/dist/*
 node_modules/*
 public/js/*
 !public/js/.gitkeep
-super_chats.json
 ssl/*
 !ssl/.gitkeep
 target/*
+.env
+exchange_rates.xml
+super_chats.json

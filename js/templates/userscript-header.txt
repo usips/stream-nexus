@@ -1,0 +1,44 @@
+// ==UserScript==
+// @name CHUCK
+// @version 2.0.0
+// @description Chat Harvesting Universal Connection Kit - Multi-platform livestream chat aggregator
+// @license BSD-3-Clause
+// @author Joshua Moon <josh@josh.rs>
+// @downloadURL https://raw.githubusercontent.com/jaw-sh/stream-nexus/master/js/dist/chuck.user.js
+// @updateURL https://raw.githubusercontent.com/jaw-sh/stream-nexus/master/js/dist/chuck.user.js
+// @homepageURL https://github.com/jaw-sh/stream-nexus
+// @supportURL https://github.com/jaw-sh/stream-nexus/issues
+// @match https://kick.com/*
+// @match https://kick.com/*/chatroom
+// @match https://odysee.com/*
+// @match https://odysee.com/$/popout/*
+// @match https://rumble.com/v*.html
+// @match https://rumble.com/c/*/live
+// @match https://rumble.com/chat/popup/*
+// @match https://twitch.tv/*
+// @match https://twitch.tv/popout/*/chat
+// @match https://www.youtube.com/watch?v=*
+// @match https://youtube.com/watch?v=*
+// @match https://www.youtube.com/live/*
+// @match https://youtube.com/live/*
+// @match https://www.youtube.com/live_chat?*
+// @match https://youtube.com/live_chat?*
+// @match https://vk.com/video/lives?z=*
+// @match https://twitter.com/i/broadcasts/*
+// @match https://x.com/i/broadcasts/*
+// @match https://xmrchat.com/streamer
+// @connect *
+// @grant unsafeWindow
+// @grant GM_getValue
+// @grant GM_setValue
+// @run-at document-start
+// ==/UserScript==
+
+//
+// CONTENT-SECURITY-POLICY (CSP) NOTICE
+// X blocks outbound connections via connect-src, including to local servers.
+// You have to run another extension to edit the policy, or use the CHUCK browser extension.
+//
+// https://chromewebstore.google.com/detail/content-security-policy-o/lhieoncdgamiiogcllfmboilhgoknmpi?hl=en
+// ["https://twitter\\.com", [["connect-src", "connect-src ws://127.0.0.2:1350"]]]
+//

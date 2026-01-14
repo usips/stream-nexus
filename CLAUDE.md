@@ -4,22 +4,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Stream Nexus (S.N.E.E.D.) is a multi-platform livestream chat aggregator that unifies chat from Twitch, YouTube, Kick, Rumble, Odysee, X/Twitter, VK, and XMRchat into a single dashboard and overlay.
+Stream Nexus is a multi-platform livestream chat aggregator that unifies chat from Twitch, YouTube, Kick, Rumble, Odysee, X/Twitter, VK, and XMRchat into a single dashboard and overlay.
+
+**CHUCK** (Chat Harvesting Universal Connection Kit) is the client-side chat scraper component, available as:
+- Userscript for Violentmonkey/Greasemonkey
+- Browser extension for Chrome and Firefox
 
 ## Build Commands
 
 ```bash
-# Build Rust backend (development)
+# Build Rust backend
 cargo build
-
-# Build Rust backend (release)
 cargo build --release
-
-# Run the server
 cargo run
 
-# Build JavaScript userscripts with webpack
-npm run webpack
+# Build CHUCK userscript
+npm run build:userscript    # Output: js/dist/chuck.user.js
+
+# Build browser extensions
+npm run build:extension:chrome   # Output: js/dist/chrome/
+npm run build:extension:firefox  # Output: js/dist/firefox/
+
+# Build all
+npm run build
+
+# Watch mode for development
+npm run watch:userscript
 ```
 
 ## Architecture
@@ -28,7 +38,7 @@ npm run webpack
 - **Backend**: Rust with Actix-web 4.3 and Actix actors
 - **Templates**: Askama for server-side HTML rendering
 - **Frontend**: Vanilla JavaScript, Matter.js for physics background
-- **Bundling**: Webpack 5 for userscripts
+- **CHUCK**: Modular ES6 JavaScript, bundled with Webpack 5
 
 ### Actor-Based Message System
 The backend uses Actix's actor model for real-time chat:
@@ -37,20 +47,25 @@ The backend uses Actix's actor model for real-time chat:
 
 ### Message Flow
 ```
-Platform Chat → Userscript → WebSocket → ChatClient → ChatServer → All Clients
+Platform Chat → CHUCK (userscript/extension) → WebSocket → ChatClient → ChatServer → All Clients
 ```
 
 ### Key Directories
 - `src/` - Rust backend (server, WebSocket handling, currency exchange)
-- `js/feed/` - Platform-specific userscripts that intercept chat events
+- `js/src/core/` - CHUCK core classes (Seed base, message types, config, UUID)
+- `js/src/platforms/` - Platform-specific scrapers (kick.js, youtube.js, etc.)
+- `js/extension/` - Browser extension files (manifest, popup, background)
+- `js/dist/` - Build output (gitignored)
 - `public/` - Static assets and frontend JavaScript
 - `templates/` - Askama HTML templates
 
-### Userscript Integration
-Each platform has a dedicated userscript in `js/feed/` that:
-1. Monkeypatches native WebSocket/Fetch APIs to intercept chat events
-2. Normalizes messages to a common format
-3. Sends to the local SNEED server via WebSocket
+### CHUCK Architecture
+The `Seed` base class (`js/src/core/seed.js`) provides:
+- WebSocket/Fetch/XHR/EventSource patching to intercept platform traffic
+- Connection to backend server with auto-reconnect
+- Standardized message format (`ChatMessage` class)
+
+Each platform extends `Seed` and overrides hooks like `onWebSocketMessage()` to parse platform-specific data. Platforms are registered in `js/src/platforms/index.js`
 
 ## Configuration
 

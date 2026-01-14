@@ -1,0 +1,94 @@
+{
+    "manifest_version": 3,
+    "name": "CHUCK",
+    "version": "2.0.0",
+    "description": "Chat Harvesting Universal Connection Kit - Multi-platform livestream chat aggregator",
+    "author": "Joshua Moon <josh@josh.rs>",
+    "homepage_url": "https://github.com/jaw-sh/stream-nexus",
+
+    "browser_specific_settings": {
+        "gecko": {
+            "id": "chuck@jaw.sh",
+            "strict_min_version": "109.0"
+        }
+    },
+
+    "permissions": [
+        "storage",
+        "activeTab"
+    ],
+
+    "host_permissions": [
+        "https://kick.com/*",
+        "https://odysee.com/*",
+        "https://rumble.com/*",
+        "https://twitch.tv/*",
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "https://vk.com/*",
+        "https://twitter.com/*",
+        "https://x.com/*",
+        "https://xmrchat.com/*",
+        "ws://127.0.0.1:*/*",
+        "ws://127.0.0.2:*/*",
+        "ws://localhost:*/*"
+    ],
+
+    "action": {
+        "default_popup": "popup/popup.html",
+        "default_icon": {
+            "16": "icons/icon16.png",
+            "48": "icons/icon48.png",
+            "128": "icons/icon128.png"
+        }
+    },
+
+    "icons": {
+        "16": "icons/icon16.png",
+        "48": "icons/icon48.png",
+        "128": "icons/icon128.png"
+    },
+
+    "background": {
+        "scripts": ["background.js"],
+        "type": "module"
+    },
+
+    "content_scripts": [
+        {
+            "matches": [
+                "https://kick.com/*",
+                "https://odysee.com/*",
+                "https://rumble.com/*",
+                "https://twitch.tv/*",
+                "https://www.youtube.com/*",
+                "https://youtube.com/*",
+                "https://vk.com/*",
+                "https://twitter.com/*",
+                "https://x.com/*",
+                "https://xmrchat.com/*"
+            ],
+            "js": ["content-script.js"],
+            "run_at": "document_start",
+            "all_frames": true
+        }
+    ],
+
+    "web_accessible_resources": [
+        {
+            "resources": ["injected.js"],
+            "matches": [
+                "https://kick.com/*",
+                "https://odysee.com/*",
+                "https://rumble.com/*",
+                "https://twitch.tv/*",
+                "https://www.youtube.com/*",
+                "https://youtube.com/*",
+                "https://vk.com/*",
+                "https://twitter.com/*",
+                "https://x.com/*",
+                "https://xmrchat.com/*"
+            ]
+        }
+    ]
+}

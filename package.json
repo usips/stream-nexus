@@ -4,7 +4,14 @@
   "description": "In development. Not production ready. Many things hardcoded.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "webpack": "webpack --config webpack.config.js",
+    "build": "npm run build:userscript && npm run build:extension",
+    "build:userscript": "webpack --config js/webpack.userscript.js",
+    "build:extension": "npm run build:extension:chrome && npm run build:extension:firefox",
+    "build:extension:chrome": "webpack --config js/webpack.extension.js --env target=chrome",
+    "build:extension:firefox": "webpack --config js/webpack.extension.js --env target=firefox",
+    "watch:userscript": "webpack --config js/webpack.userscript.js --watch"
   },
   "repository": {
     "type": "git",
@@ -19,6 +26,10 @@
   },
   "homepage": "https://github.com/jaw-sh/stream-nexus#readme",
   "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-loader": "^9.1.0",
+    "copy-webpack-plugin": "^12.0.0",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.2"
