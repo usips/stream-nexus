@@ -36,3 +36,4 @@ ssl/*
 exchange_rates.xml
 super_chats.json
 *.log
+layouts/
