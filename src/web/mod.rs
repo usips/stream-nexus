@@ -20,9 +20,7 @@ const CLIENT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Template)]
 #[template(path = "background.html")]
-struct BackgroundTemplate {
-    super_chats: Vec<crate::message::Message>,
-}
+struct BackgroundTemplate {}
 #[derive(Template)]
 #[template(path = "chat.html")]
 struct ChatTemplate {}
@@ -35,19 +33,11 @@ struct DashboardTemplate {
 
 #[derive(Template)]
 #[template(path = "overlay.html")]
-struct OverlayTemplate {
-    super_chats: Vec<crate::message::Message>,
-}
+struct OverlayTemplate {}
 
 #[actix_web::get("/background")]
-pub async fn background(req: HttpRequest) -> impl Responder {
-    let chat_server = req
-        .app_data::<Addr<ChatServer>>()
-        .expect("ChatServer missing in app data!")
-        .clone();
-    BackgroundTemplate {
-        super_chats: chat_server.send(PaidMessages).await.unwrap(),
-    }
+pub async fn background() -> impl Responder {
+    BackgroundTemplate {}
 }
 
 #[actix_web::get("/chat")]
@@ -72,14 +62,8 @@ pub async fn dashboard(req: HttpRequest) -> impl Responder {
 }
 
 #[actix_web::get("/overlay")]
-pub async fn overlay(req: HttpRequest) -> impl Responder {
-    let chat_server = req
-        .app_data::<Addr<ChatServer>>()
-        .expect("ChatServer missing in app data!")
-        .clone();
-    OverlayTemplate {
-        super_chats: chat_server.send(PaidMessages).await.unwrap(),
-    }
+pub async fn overlay() -> impl Responder {
+    OverlayTemplate {}
 }
 
 #[actix_web::get("/static/{filename:.*}")]
@@ -130,7 +114,6 @@ pub async fn websocket(req: HttpRequest, stream: web::Payload) -> Result<HttpRes
         id: rand::random(),
         server,
         last_heartbeat_at: Instant::now(),
-        last_command_at: Instant::now(),
     };
 
     let resp = ws::start(client, &req, stream);

@@ -9,6 +9,7 @@ use crate::layout::{Layout, LayoutManager};
 use crate::message::Message as ChatMessage;
 
 pub struct Connection {
+    #[allow(dead_code)] // Stored in HashMap key; field useful for debugging
     pub id: usize,
     pub recipient: Recipient<message::Reply>,
 }

@@ -238,19 +238,19 @@ function apply_layout(layout) {
         // Apply display mode classes to chat
         const chatEl = document.getElementById('chat');
         if (chatEl) {
-            // Condensed mode
-            chatEl.classList.toggle('chat--condensed', ms.condensed_mode === true);
+            // Condensed mode (camelCase from Rust serde)
+            chatEl.classList.toggle('chat--condensed', ms.condensedMode === true);
             // Avatar visibility
-            chatEl.classList.toggle('chat--no-avatars', ms.show_avatars === false);
+            chatEl.classList.toggle('chat--no-avatars', ms.showAvatars === false);
         }
 
-        // Store badge visibility settings for message rendering
+        // Store badge visibility settings for message rendering (camelCase from Rust serde)
         window.badgeSettings = {
-            owner: ms.show_owner_badge !== false,
-            staff: ms.show_staff_badge !== false,
-            mod: ms.show_mod_badge !== false,
-            verified: ms.show_verified_badge !== false,
-            sub: ms.show_sub_badge !== false,
+            owner: ms.showOwnerBadge !== false,
+            staff: ms.showStaffBadge !== false,
+            mod: ms.showModBadge !== false,
+            verified: ms.showVerifiedBadge !== false,
+            sub: ms.showSubBadge !== false,
         };
     }
 

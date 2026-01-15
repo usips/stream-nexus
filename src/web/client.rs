@@ -42,8 +42,6 @@ pub struct ChatClient {
     /// Last Heartbeat
     /// Client must send ping at least once per 10 seconds (CLIENT_TIMEOUT), otherwise we drop connection.
     pub last_heartbeat_at: Instant,
-    /// Last command (any) sent
-    pub last_command_at: Instant,
 }
 
 impl ChatClient {
