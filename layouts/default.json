@@ -2,29 +2,11 @@
   "name": "default",
   "version": 1,
   "elements": {
-    "live": {
+    "superchat": {
       "enabled": true,
       "position": {
-        "x": "0vw",
-        "y": "0vh"
-      },
-      "size": {},
-      "style": {},
-      "options": {
-        "platformMode": "exclude",
-        "platforms": [
-          "YouTube"
-        ],
-        "showCount": true,
-        "showIcon": true,
-        "showLabel": true
-      }
-    },
-    "poll": {
-      "enabled": true,
-      "position": {
-        "x": "31.95vw",
-        "y": "19.22vh"
+        "x": "50.04vw",
+        "y": "53.13vh"
       },
       "size": {},
       "style": {}
@@ -46,31 +28,8 @@
         "fontStyle": "italic"
       },
       "options": {
-        "content": "{{datetime:MMMM do, yyyy HH:mm:ss}}"
+        "content": "Mad at the Internet - MATI.live - {{datetime:MMMM do, yyyy HH:mm:ss}}"
       }
-    },
-    "chat": {
-      "enabled": true,
-      "position": {
-        "y": "0vh",
-        "right": "0vw"
-      },
-      "size": {
-        "width": "14.01vw",
-        "height": "100vh"
-      },
-      "style": {
-        "backgroundColor": "transparent"
-      }
-    },
-    "superchat": {
-      "enabled": true,
-      "position": {
-        "x": "50.04vw",
-        "y": "53.13vh"
-      },
-      "size": {},
-      "style": {}
     },
     "featured": {
       "enabled": true,
@@ -84,6 +43,50 @@
       "style": {
         "fontSize": "32px"
       }
+    },
+    "chat": {
+      "enabled": true,
+      "position": {
+        "y": "0vh",
+        "right": "0vw"
+      },
+      "size": {
+        "width": "21.41vw",
+        "height": "100vh"
+      },
+      "style": {
+        "backgroundColor": "transparent"
+      }
+    },
+    "live": {
+      "enabled": true,
+      "position": {
+        "x": "10.62vw",
+        "y": "27.4vh"
+      },
+      "size": {
+        "width": "21.67vw",
+        "height": "8.89vh"
+      },
+      "style": {},
+      "options": {
+        "platformMode": "exclude",
+        "platforms": [
+          "YouTube"
+        ],
+        "showCount": true,
+        "showIcon": true,
+        "showLabel": true
+      }
+    },
+    "poll": {
+      "enabled": true,
+      "position": {
+        "x": "31.95vw",
+        "y": "19.22vh"
+      },
+      "size": {},
+      "style": {}
     }
   },
   "messageStyle": {

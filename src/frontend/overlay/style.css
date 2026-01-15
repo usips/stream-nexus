@@ -15,9 +15,6 @@ body {
 
 /* Layout-controlled CSS custom properties */
 :root {
-    /* Chat panel */
-    --chat-width: 300px;
-
     /* Message styling (can be overridden by layout) */
     --message-font-size: 16px;
     --message-line-height: calc(var(--message-font-size) * 1.125);
@@ -32,11 +29,11 @@ body {
 
 /**
  * Live Viewers
+ * Position controlled by layout config
  */
 section#live {
     position: absolute;
-    top: 0;
-    left: 0;
+    /* Position controlled by layout config */
     padding: 15px;
 }
 
@@ -63,16 +60,12 @@ section#live {
 }
 
 /**
- * Attribution
+ * Text/Attribution Element
+ * All styling controlled by layout config
  */
 section#attribution {
     position: absolute;
-    bottom: 7px;
-    left: 15px;
-    font-size: 3.5vw;
-    font-family: 'Verlag Black', sans-serif;
-    font-style: italic;
-    font-weight: bold;
+    /* Defaults - all can be overridden by layout */
     color: #fff;
     text-shadow: 2px 2px 2px #000;
     -webkit-text-stroke: 2px #000;
@@ -80,13 +73,11 @@ section#attribution {
 
 /**
  * Chat Messages
+ * Position and size controlled by layout config
  */
 section#chat {
-    width: var(--chat-width);
     position: absolute;
-    right: 0;
-    bottom: 0;
-    top: 0;
+    /* Position and size controlled by layout config */
     overflow-x: hidden;
     overflow-y: auto;
     display: flex;
@@ -434,12 +425,8 @@ section#chat::-webkit-scrollbar {
  **/
 section#show-message {
     position: absolute;
-    bottom: 512px;
-    left: 0;
-
+    /* Defaults - overridden by layout */
     width: auto;
-    max-width: calc(100% - var(--chat-width) - 15px);
-
     --message-text-size: 32px;
 }
 

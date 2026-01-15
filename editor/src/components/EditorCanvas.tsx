@@ -659,28 +659,35 @@ export function EditorCanvas({
                 const maxMessages = Math.max(1, Math.floor(availableHeight / messageHeight));
                 const visibleMessages = mockData.chatMessages.slice(-maxMessages);
 
+                // Apply message style settings as CSS custom properties
+                const chatStyle: React.CSSProperties & Record<string, string> = {
+                    width: '100%',
+                    height: '100%',
+                };
+                if (layout.messageStyle?.fontSize) {
+                    chatStyle['--message-font-size'] = layout.messageStyle.fontSize;
+                }
+                if (layout.messageStyle?.avatarSize) {
+                    chatStyle['--avatar-size'] = layout.messageStyle.avatarSize;
+                }
+
                 content = (
-                    <div className="preview-chat" style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'flex-end',
-                        overflow: 'hidden',
-                    }}>
+                    <div className="preview-chat" style={chatStyle}>
                         {visibleMessages.map((msg) => (
-                            <div key={msg.id} className="preview-chat-message" style={{
-                                fontSize: layout.messageStyle?.fontSize || '16px',
-                            }}>
-                                <div className="preview-avatar" style={{
-                                    background: msg.color,
-                                    width: layout.messageStyle?.avatarSize || '2em',
-                                    height: layout.messageStyle?.avatarSize || '2em',
-                                    flexShrink: 0,
-                                }} />
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    <strong style={{ color: msg.color }}>{msg.user}:</strong> {msg.message}
-                                </span>
+                            <div key={msg.id} className="msg">
+                                <div className="msg-avatar-border" style={{ borderColor: msg.color }}>
+                                    <span className="msg-letter" style={{ color: msg.color }}>
+                                        {msg.user.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                                <div className="msg-container">
+                                    <div className="msg-user">
+                                        <span className="msg-username" style={{ color: msg.color }}>
+                                            {msg.user}
+                                        </span>
+                                    </div>
+                                    <div className="msg-text">{msg.message}</div>
+                                </div>
                             </div>
                         ))}
                     </div>
