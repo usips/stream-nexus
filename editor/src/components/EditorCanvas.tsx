@@ -722,23 +722,45 @@ export function EditorCanvas({
                     chatStyle['--avatar-size'] = layout.messageStyle.avatarSize;
                 }
 
+                // SVG icons for badges
+                const CrownIcon = () => (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                    </svg>
+                );
+                const StarIcon = () => (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/>
+                    </svg>
+                );
+                const ShieldIcon = () => (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l4 2v3c0 2.97-1.67 5.68-4 7-2.33-1.32-4-4.03-4-7V7l4-2z"/>
+                    </svg>
+                );
+                const CheckIcon = () => (
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                    </svg>
+                );
+
                 // Helper to render badges for a message
                 const renderBadges = (roles: string[]) => {
                     const badges: React.ReactNode[] = [];
                     if (roles.includes('owner') && showOwnerBadge) {
-                        badges.push(<span key="owner" className="msg-badge msg-badge--owner">Owner</span>);
+                        badges.push(<span key="owner" className="msg-badge msg-badge--owner" title="Owner"><CrownIcon /></span>);
                     }
                     if (roles.includes('staff') && showStaffBadge) {
-                        badges.push(<span key="staff" className="msg-badge msg-badge--staff">Staff</span>);
+                        badges.push(<span key="staff" className="msg-badge msg-badge--staff" title="Staff"><StarIcon /></span>);
                     }
                     if (roles.includes('mod') && showModBadge) {
-                        badges.push(<span key="mod" className="msg-badge msg-badge--mod">Mod</span>);
+                        badges.push(<span key="mod" className="msg-badge msg-badge--mod" title="Moderator"><ShieldIcon /></span>);
                     }
                     if (roles.includes('verified') && showVerifiedBadge) {
-                        badges.push(<span key="verified" className="msg-badge msg-badge--verified">✓</span>);
+                        badges.push(<span key="verified" className="msg-badge msg-badge--verified" title="Verified"><CheckIcon /></span>);
                     }
                     if (roles.includes('sub') && showSubBadge) {
-                        badges.push(<span key="sub" className="msg-badge msg-badge--sub">Sub</span>);
+                        badges.push(<span key="sub" className="msg-badge msg-badge--sub" title="Subscriber"><StarIcon /></span>);
                     }
                     return badges.length > 0 ? <span className="msg-badges">{badges}</span> : null;
                 };

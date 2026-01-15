@@ -38,13 +38,24 @@ function App() {
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const isUndoingRef = useRef(false);
 
-    // Sync local layout with server layout
+    // Track current layout name to detect when switching layouts
+    const currentLayoutNameRef = useRef<string | null>(null);
+
+    // Sync local layout with server layout only when:
+    // 1. First load (currentLayoutNameRef is null)
+    // 2. Switching to a different layout (name changes)
+    // This prevents overwriting local changes when server echoes back our own updates
     useEffect(() => {
         if (currentLayout) {
-            setLocalLayout(currentLayout);
-            // Clear history when switching layouts
-            setUndoHistory([]);
-            setRedoHistory([]);
+            const isNewLayout = currentLayoutNameRef.current !== currentLayout.name;
+            if (isNewLayout) {
+                console.log('[Editor] Switching to layout:', currentLayout.name);
+                setLocalLayout(currentLayout);
+                // Clear history when switching layouts
+                setUndoHistory([]);
+                setRedoHistory([]);
+                currentLayoutNameRef.current = currentLayout.name;
+            }
         }
     }, [currentLayout]);
 

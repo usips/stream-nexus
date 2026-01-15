@@ -4,13 +4,19 @@
 
 html,
 body {
-    background: none;
+    background: transparent !important;
+    background-color: transparent !important;
     border: none;
     padding: 0;
     margin: 0;
     height: 100dvh;
     width: 100vw;
     overflow: hidden;
+}
+
+/* OBS browser source transparency */
+#overlay {
+    background: transparent !important;
 }
 
 /* Layout-controlled CSS custom properties */
@@ -176,41 +182,51 @@ section#chat::-webkit-scrollbar {
         1px 0 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Role badges - colored badge elements */
+/* Role badges - SVG icon badges */
 .msg-badge {
-    display: inline-block;
-    padding: 0.1em 0.4em;
-    border-radius: 0.25em;
-    font-size: 0.7em;
-    font-weight: bold;
-    text-transform: uppercase;
-    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.1em;
+    height: 1.1em;
     vertical-align: middle;
+    flex-shrink: 0;
 }
 
+.msg-badge svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Owner: Gold crown */
 .msg-badge--owner {
-    background: linear-gradient(135deg, #ffd700, #ffaa00);
-    color: #000;
+    color: #ffd700;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
+/* Staff: Red star */
 .msg-badge--staff {
-    background: #ff3434;
-    color: #fff;
+    color: #ff3434;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
+/* Mod: Blue shield */
 .msg-badge--mod {
-    background: #197ce3;
-    color: #fff;
+    color: #197ce3;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
+/* Verified: Purple checkmark */
 .msg-badge--verified {
-    background: #a80da8;
-    color: #fff;
+    color: #a80da8;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
+/* Sub: Green star */
 .msg-badge--sub {
-    background: #2f8d15;
-    color: #fff;
+    color: #2f8d15;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
 /* Role borders for special users (keep existing) */
