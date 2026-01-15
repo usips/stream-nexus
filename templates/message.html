@@ -11,9 +11,11 @@
             <div class="msg-user">
                 <span class="msg-username">{{ message.username|safe }}</span>
                 <span class="msg-badges">
-                    {% if message.is_verified %}
-                    <span class="material-symbols-outlined">✓</span>
-                    {% endif %}
+                    {%- if message.is_owner %}<span class="msg-badge msg-badge--owner">Owner</span>{% endif -%}
+                    {%- if message.is_staff %}<span class="msg-badge msg-badge--staff">Staff</span>{% endif -%}
+                    {%- if message.is_mod %}<span class="msg-badge msg-badge--mod">Mod</span>{% endif -%}
+                    {%- if message.is_verified %}<span class="msg-badge msg-badge--verified">✓</span>{% endif -%}
+                    {%- if message.is_sub %}<span class="msg-badge msg-badge--sub">Sub</span>{% endif -%}
                 </span>
             </div>
             <div class="msg-amount">{{ message.get_paid_readable_amount() }}</div>
@@ -29,9 +31,11 @@
         <div class="msg-user">
             <span class="msg-username">{{ message.username|safe }}</span>
             <span class="msg-badges">
-                {% if message.is_verified %}
-                <span class="material-symbols-outlined">✓</span>
-                {% endif %}
+                {%- if message.is_owner %}<span class="msg-badge msg-badge--owner">Owner</span>{% endif -%}
+                {%- if message.is_staff %}<span class="msg-badge msg-badge--staff">Staff</span>{% endif -%}
+                {%- if message.is_mod %}<span class="msg-badge msg-badge--mod">Mod</span>{% endif -%}
+                {%- if message.is_verified %}<span class="msg-badge msg-badge--verified">✓</span>{% endif -%}
+                {%- if message.is_sub %}<span class="msg-badge msg-badge--sub">Sub</span>{% endif -%}
             </span>
         </div>
         <div class="msg-text">{{ message.message|safe }}</div>

@@ -225,6 +225,24 @@ pub struct MessageStyle {
     pub background_color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text_color: Option<String>,
+
+    // Display options
+    #[serde(default = "default_true")]
+    pub show_avatars: bool,
+    #[serde(default)]
+    pub condensed_mode: bool,
+
+    // Badge visibility
+    #[serde(default = "default_true")]
+    pub show_owner_badge: bool,
+    #[serde(default = "default_true")]
+    pub show_staff_badge: bool,
+    #[serde(default = "default_true")]
+    pub show_mod_badge: bool,
+    #[serde(default = "default_true")]
+    pub show_verified_badge: bool,
+    #[serde(default = "default_true")]
+    pub show_sub_badge: bool,
 }
 
 fn default_avatar_size() -> String {
@@ -239,6 +257,9 @@ fn default_border_radius() -> String {
 fn default_font_size() -> String {
     "16px".to_string()
 }
+fn default_true() -> bool {
+    true
+}
 
 impl Default for MessageStyle {
     fn default() -> Self {
@@ -249,6 +270,13 @@ impl Default for MessageStyle {
             font_size: default_font_size(),
             background_color: None,
             text_color: None,
+            show_avatars: true,
+            condensed_mode: false,
+            show_owner_badge: true,
+            show_staff_badge: true,
+            show_mod_badge: true,
+            show_verified_badge: true,
+            show_sub_badge: true,
         }
     }
 }

@@ -120,7 +120,7 @@ export function SettingsPanel({
         onLayoutChange(newLayout);
     };
 
-    const updateMessageStyle = (key: keyof typeof layout.messageStyle, value: string) => {
+    const updateMessageStyle = (key: keyof typeof layout.messageStyle, value: string | boolean) => {
         const newLayout = {
             ...layout,
             messageStyle: {
@@ -446,6 +446,76 @@ export function SettingsPanel({
                             value={layout.messageStyle.borderRadius}
                             onChange={(e) => updateMessageStyle('borderRadius', e.target.value)}
                         />
+                    </div>
+
+                    {/* Display Options */}
+                    <div className="settings-row">
+                        <label>Display Options</label>
+                        <div className="settings-checkbox-group">
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showAvatars !== false}
+                                    onChange={(e) => updateMessageStyle('showAvatars', e.target.checked)}
+                                />
+                                <span>Show Avatars</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.condensedMode === true}
+                                    onChange={(e) => updateMessageStyle('condensedMode', e.target.checked)}
+                                />
+                                <span>Condensed Mode</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {/* Badge Visibility */}
+                    <div className="settings-row">
+                        <label>Visible Badges</label>
+                        <div className="settings-checkbox-group">
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showOwnerBadge !== false}
+                                    onChange={(e) => updateMessageStyle('showOwnerBadge', e.target.checked)}
+                                />
+                                <span style={{ color: '#ffd700' }}>Owner</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showStaffBadge !== false}
+                                    onChange={(e) => updateMessageStyle('showStaffBadge', e.target.checked)}
+                                />
+                                <span style={{ color: '#ff3434' }}>Staff</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showModBadge !== false}
+                                    onChange={(e) => updateMessageStyle('showModBadge', e.target.checked)}
+                                />
+                                <span style={{ color: '#197ce3' }}>Mod</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showVerifiedBadge !== false}
+                                    onChange={(e) => updateMessageStyle('showVerifiedBadge', e.target.checked)}
+                                />
+                                <span style={{ color: '#a80da8' }}>Verified</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
+                                    checked={layout.messageStyle.showSubBadge !== false}
+                                    onChange={(e) => updateMessageStyle('showSubBadge', e.target.checked)}
+                                />
+                                <span style={{ color: '#2f8d15' }}>Sub</span>
+                            </label>
+                        </div>
                     </div>
                 </CollapsibleSection>
             </div>

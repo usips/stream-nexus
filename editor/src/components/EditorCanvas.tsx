@@ -52,14 +52,47 @@ interface ResizeState {
 }
 
 // Mock data for live preview
+interface MockChatMessage {
+    id: number;
+    user: string;
+    message: string;
+    platform: string;
+    roles: string[];  // 'owner', 'staff', 'mod', 'verified', 'sub'
+}
+
 interface MockData {
     viewerCount: number;
-    chatMessages: { id: number; user: string; message: string; color: string }[];
+    chatMessages: MockChatMessage[];
     featuredMessage: string | null;
     pollVotes: number[];
     superchatAmount: number;
     currentTime: Date;
 }
+
+// Platform brand colors for usernames
+const PLATFORM_COLORS: Record<string, string> = {
+    'YouTube': '#ff0000',
+    'Kick': '#53fc18',
+    'Twitch': '#9146ff',
+    'Rumble': '#85c742',
+    'Odysee': '#a60a43',
+    'X': '#1da1f2',
+    'VK': '#0077ff',
+    'XMRChat': '#ff7f0a',
+};
+
+const MOCK_PLATFORMS = ['YouTube', 'Kick', 'Twitch', 'Rumble'];
+const MOCK_ROLES: string[][] = [
+    [],           // Regular user
+    [],           // Regular user
+    [],           // Regular user
+    ['sub'],      // Subscriber
+    ['sub'],      // Subscriber
+    ['mod'],      // Mod
+    ['verified'], // Verified
+    ['owner'],    // Owner
+    ['mod', 'sub'], // Mod + Sub
+];
 
 const MOCK_USERNAMES = ['Viewer123', 'ChatFan', 'StreamLover', 'CoolGuy99', 'NightOwl', 'GameMaster', 'TechWiz', 'MusicFan', 'LoyalSub', 'BigDonator', 'xX_Pro_Xx', 'ChillVibes', 'HypeTrain', 'FirstTimer'];
 const MOCK_MESSAGES = [
@@ -87,7 +120,6 @@ const MOCK_MESSAGES = [
     'Sending love from across the pond! It\'s 3am here but totally worth staying up for this content!',
     'This stream is absolutely incredible, I can\'t believe how much effort goes into making this content for us every single day',
 ];
-const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44aaaa', '#ff44aa', '#aaff44'];
 
 // Maximum messages to keep in chat history
 const MAX_CHAT_MESSAGES = 100;
@@ -110,9 +142,9 @@ export function EditorCanvas({
     const [mockData, setMockData] = useState<MockData>({
         viewerCount: 1234,
         chatMessages: [
-            { id: 1, user: 'User123', message: 'Hello everyone! So excited to be here today!', color: '#e94560' },
-            { id: 2, user: 'Viewer', message: 'Great stream as always, keep up the amazing work!', color: '#44aa44' },
-            { id: 3, user: 'ChatFan', message: 'LET\'S GOOOOO! This is gonna be epic!', color: '#4488ff' },
+            { id: 1, user: 'User123', message: 'Hello everyone! So excited to be here today!', platform: 'YouTube', roles: [] },
+            { id: 2, user: 'Viewer', message: 'Great stream as always, keep up the amazing work!', platform: 'Kick', roles: ['sub'] },
+            { id: 3, user: 'ChatFan', message: 'LET\'S GOOOOO! This is gonna be epic!', platform: 'Twitch', roles: ['mod'] },
         ],
         featuredMessage: null,
         pollVotes: [50, 50],
@@ -165,11 +197,12 @@ export function EditorCanvas({
                 const messagesToAdd = Math.random() > 0.7 ? Math.floor(Math.random() * 3) + 1 : 1;
                 for (let i = 0; i < messagesToAdd; i++) {
                     if (Math.random() > 0.2) {
-                        const newMessage = {
+                        const newMessage: MockChatMessage = {
                             id: messageIdRef.current++,
                             user: MOCK_USERNAMES[Math.floor(Math.random() * MOCK_USERNAMES.length)],
                             message: MOCK_MESSAGES[Math.floor(Math.random() * MOCK_MESSAGES.length)],
-                            color: MOCK_COLORS[Math.floor(Math.random() * MOCK_COLORS.length)],
+                            platform: MOCK_PLATFORMS[Math.floor(Math.random() * MOCK_PLATFORMS.length)],
+                            roles: MOCK_ROLES[Math.floor(Math.random() * MOCK_ROLES.length)],
                         };
                         newMessages.push(newMessage);
                     }
@@ -659,6 +692,24 @@ export function EditorCanvas({
                 const maxMessages = Math.max(1, Math.floor(availableHeight / messageHeight));
                 const visibleMessages = mockData.chatMessages.slice(-maxMessages);
 
+                // Get display options from messageStyle
+                const showAvatars = layout.messageStyle?.showAvatars !== false;
+                const condensedMode = layout.messageStyle?.condensedMode === true;
+
+                // Badge visibility settings
+                const showOwnerBadge = layout.messageStyle?.showOwnerBadge !== false;
+                const showStaffBadge = layout.messageStyle?.showStaffBadge !== false;
+                const showModBadge = layout.messageStyle?.showModBadge !== false;
+                const showVerifiedBadge = layout.messageStyle?.showVerifiedBadge !== false;
+                const showSubBadge = layout.messageStyle?.showSubBadge !== false;
+
+                // Build chat container classes
+                const chatClasses = [
+                    'preview-chat',
+                    condensedMode && 'preview-chat--condensed',
+                    !showAvatars && 'preview-chat--no-avatars',
+                ].filter(Boolean).join(' ');
+
                 // Apply message style settings as CSS custom properties
                 const chatStyle: React.CSSProperties & Record<string, string> = {
                     width: '100%',
@@ -671,25 +722,56 @@ export function EditorCanvas({
                     chatStyle['--avatar-size'] = layout.messageStyle.avatarSize;
                 }
 
+                // Helper to render badges for a message
+                const renderBadges = (roles: string[]) => {
+                    const badges: React.ReactNode[] = [];
+                    if (roles.includes('owner') && showOwnerBadge) {
+                        badges.push(<span key="owner" className="msg-badge msg-badge--owner">Owner</span>);
+                    }
+                    if (roles.includes('staff') && showStaffBadge) {
+                        badges.push(<span key="staff" className="msg-badge msg-badge--staff">Staff</span>);
+                    }
+                    if (roles.includes('mod') && showModBadge) {
+                        badges.push(<span key="mod" className="msg-badge msg-badge--mod">Mod</span>);
+                    }
+                    if (roles.includes('verified') && showVerifiedBadge) {
+                        badges.push(<span key="verified" className="msg-badge msg-badge--verified">✓</span>);
+                    }
+                    if (roles.includes('sub') && showSubBadge) {
+                        badges.push(<span key="sub" className="msg-badge msg-badge--sub">Sub</span>);
+                    }
+                    return badges.length > 0 ? <span className="msg-badges">{badges}</span> : null;
+                };
+
                 content = (
-                    <div className="preview-chat" style={chatStyle}>
-                        {visibleMessages.map((msg) => (
-                            <div key={msg.id} className="msg">
-                                <div className="msg-avatar-border" style={{ borderColor: msg.color }}>
-                                    <span className="msg-letter" style={{ color: msg.color }}>
-                                        {msg.user.charAt(0).toUpperCase()}
-                                    </span>
-                                </div>
-                                <div className="msg-container">
-                                    <div className="msg-user">
-                                        <span className="msg-username" style={{ color: msg.color }}>
-                                            {msg.user}
+                    <div className={chatClasses} style={chatStyle}>
+                        {visibleMessages.map((msg) => {
+                            const platformColor = PLATFORM_COLORS[msg.platform] || '#ffffff';
+                            // Build message classes for platform
+                            const msgClasses = [
+                                'msg',
+                                `msg--p-${msg.platform}`,
+                            ].join(' ');
+
+                            return (
+                                <div key={msg.id} className={msgClasses}>
+                                    <div className="msg-avatar-border" style={{ borderColor: platformColor }}>
+                                        <span className="msg-letter" style={{ color: platformColor }}>
+                                            {msg.user.charAt(0).toUpperCase()}
                                         </span>
                                     </div>
-                                    <div className="msg-text">{msg.message}</div>
+                                    <div className="msg-container">
+                                        <div className="msg-user">
+                                            <span className="msg-username" style={{ color: platformColor }}>
+                                                {msg.user}
+                                            </span>
+                                            {renderBadges(msg.roles)}
+                                        </div>
+                                        <div className="msg-text">{msg.message}</div>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 );
                 break;

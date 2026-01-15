@@ -234,6 +234,24 @@ function apply_layout(layout) {
         if (ms.fontSize) root.style.setProperty('--message-font-size', ms.fontSize);
         if (ms.backgroundColor) root.style.setProperty('--message-bg', ms.backgroundColor);
         if (ms.textColor) root.style.setProperty('--message-color', ms.textColor);
+
+        // Apply display mode classes to chat
+        const chatEl = document.getElementById('chat');
+        if (chatEl) {
+            // Condensed mode
+            chatEl.classList.toggle('chat--condensed', ms.condensed_mode === true);
+            // Avatar visibility
+            chatEl.classList.toggle('chat--no-avatars', ms.show_avatars === false);
+        }
+
+        // Store badge visibility settings for message rendering
+        window.badgeSettings = {
+            owner: ms.show_owner_badge !== false,
+            staff: ms.show_staff_badge !== false,
+            mod: ms.show_mod_badge !== false,
+            verified: ms.show_verified_badge !== false,
+            sub: ms.show_sub_badge !== false,
+        };
     }
 
     // Update chat width CSS variable from chat element config
@@ -429,8 +447,23 @@ function handle_emote(node, message) {
     if (allImages) {
         node.classList.add("msg--emote");
     }
+}
 
+// Filter badges based on global badge settings
+function filter_badges(messageEl) {
+    if (!window.badgeSettings) return;
 
+    const badges = messageEl.querySelectorAll('.msg-badge');
+    badges.forEach(badge => {
+        // Extract badge type from class (e.g., "msg-badge--owner" -> "owner")
+        const match = badge.className.match(/msg-badge--(\w+)/);
+        if (match) {
+            const type = match[1];
+            if (!window.badgeSettings[type]) {
+                badge.style.display = 'none';
+            }
+        }
+    });
 }
 
 function handle_feature_message(id) {
@@ -488,6 +521,9 @@ function processMessageImmediate(message) {
     chat_history.appendChild(el);
     el.outerHTML = message.html;
     el = document.getElementById(message.id);
+
+    // Filter badges based on visibility settings
+    filter_badges(el);
 
     // apply premium style
     if (message.amount > 0)

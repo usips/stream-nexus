@@ -733,11 +733,82 @@
     display: none;
 }
 
-/* Badges container */
+/* Role badges container and styling */
 .msg-badges {
-    font-size: 1em;
-    line-height: 1.2em;
-    vertical-align: top;
+    display: inline-flex;
+    gap: 0.2em;
+    margin-left: 0.3em;
+}
+
+.msg-badge {
+    display: inline-block;
+    padding: 0.1em 0.4em;
+    border-radius: 0.25em;
+    font-size: 0.7em;
+    font-weight: bold;
+    text-transform: uppercase;
+    line-height: 1.2;
+    vertical-align: middle;
+}
+
+.msg-badge--owner {
+    background: linear-gradient(135deg, #ffd700, #ffaa00);
+    color: #000;
+}
+
+.msg-badge--staff {
+    background: #ff3434;
+    color: #fff;
+}
+
+.msg-badge--mod {
+    background: #197ce3;
+    color: #fff;
+}
+
+.msg-badge--verified {
+    background: #a80da8;
+    color: #fff;
+}
+
+.msg-badge--sub {
+    background: #2f8d15;
+    color: #fff;
+}
+
+/* Condensed Mode - Single line messages */
+.preview-chat--condensed .msg {
+    align-items: baseline;
+}
+
+.preview-chat--condensed .msg-container {
+    display: inline;
+}
+
+.preview-chat--condensed .msg-user {
+    display: inline;
+    margin-right: 0;
+}
+
+.preview-chat--condensed .msg-username::after {
+    content: ':';
+    margin-right: 0.3em;
+}
+
+.preview-chat--condensed .msg-text {
+    display: inline;
+}
+
+/* In condensed mode, badges appear before username */
+.preview-chat--condensed .msg-badges {
+    order: -1;
+    margin-right: 0.3em;
+    margin-left: 0;
+}
+
+/* Avatar Visibility Toggle */
+.preview-chat--no-avatars .msg-avatar-border {
+    display: none;
 }
 
 .preview-live {

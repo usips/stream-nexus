@@ -122,6 +122,17 @@ export interface MessageStyle {
     fontSize: string;
     backgroundColor?: string;
     textColor?: string;
+
+    // Display options
+    showAvatars?: boolean;       // Default: true
+    condensedMode?: boolean;     // Default: false
+
+    // Badge visibility
+    showOwnerBadge?: boolean;    // Default: true
+    showStaffBadge?: boolean;    // Default: true
+    showModBadge?: boolean;      // Default: true
+    showVerifiedBadge?: boolean; // Default: true
+    showSubBadge?: boolean;      // Default: true
 }
 
 export interface Layout {
@@ -148,6 +159,14 @@ export const defaultMessageStyle = (): MessageStyle => ({
     maxHeight: '10em',
     borderRadius: '2em 0 0 2em',
     fontSize: '16px',
+    // Display options default to showing everything
+    showAvatars: true,
+    condensedMode: false,
+    showOwnerBadge: true,
+    showStaffBadge: true,
+    showModBadge: true,
+    showVerifiedBadge: true,
+    showSubBadge: true,
 });
 
 export const defaultLayout = (): Layout => ({
