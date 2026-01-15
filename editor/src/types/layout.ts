@@ -1,8 +1,9 @@
+// Position values can be numbers (pixels) or strings (vw/vh units)
 export interface Position {
-    x?: number | null;
-    y?: number | null;
-    right?: number | null;
-    bottom?: number | null;
+    x?: number | string | null;
+    y?: number | string | null;
+    right?: number | string | null;
+    bottom?: number | string | null;
 }
 
 export interface Size {
@@ -10,6 +11,69 @@ export interface Size {
     height?: number | string | null;
     maxWidth?: string | null;
     maxHeight?: string | null;
+}
+
+// Canvas dimensions for conversions
+export const CANVAS_WIDTH = 1920;
+export const CANVAS_HEIGHT = 1080;
+
+// Convert pixel value to vw (viewport width percentage)
+export function pxToVw(px: number): string {
+    return `${((px / CANVAS_WIDTH) * 100).toFixed(2)}vw`;
+}
+
+// Convert pixel value to vh (viewport height percentage)
+export function pxToVh(px: number): string {
+    return `${((px / CANVAS_HEIGHT) * 100).toFixed(2)}vh`;
+}
+
+// Convert vw string to pixels
+export function vwToPx(vw: string | number | null | undefined): number {
+    if (vw === null || vw === undefined) return 0;
+    if (typeof vw === 'number') return vw;
+    const match = vw.match(/^([\d.]+)vw$/);
+    if (match) {
+        return (parseFloat(match[1]) / 100) * CANVAS_WIDTH;
+    }
+    return parseFloat(vw) || 0;
+}
+
+// Convert vh string to pixels
+export function vhToPx(vh: string | number | null | undefined): number {
+    if (vh === null || vh === undefined) return 0;
+    if (typeof vh === 'number') return vh;
+    const match = vh.match(/^([\d.]+)vh$/);
+    if (match) {
+        return (parseFloat(match[1]) / 100) * CANVAS_HEIGHT;
+    }
+    return parseFloat(vh) || 0;
+}
+
+// Get numeric pixel value from position (handles both px and vw/vh)
+export function positionToPx(value: number | string | null | undefined, isHorizontal: boolean): number {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return value;
+    if (value.endsWith('vw')) return vwToPx(value);
+    if (value.endsWith('vh')) return vhToPx(value);
+    if (value.endsWith('%')) {
+        const percent = parseFloat(value) / 100;
+        return isHorizontal ? percent * CANVAS_WIDTH : percent * CANVAS_HEIGHT;
+    }
+    return parseFloat(value) || 0;
+}
+
+// Get numeric pixel value from size (handles px, vw, vh, %)
+export function sizeToPx(value: number | string | null | undefined, isWidth: boolean): number {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return value;
+    if (value === '100%') return isWidth ? CANVAS_WIDTH : CANVAS_HEIGHT;
+    if (value.endsWith('vw')) return vwToPx(value);
+    if (value.endsWith('vh')) return vhToPx(value);
+    if (value.endsWith('%')) {
+        const percent = parseFloat(value) / 100;
+        return isWidth ? percent * CANVAS_WIDTH : percent * CANVAS_HEIGHT;
+    }
+    return parseFloat(value) || 0;
 }
 
 export interface Style {
@@ -92,38 +156,38 @@ export const defaultLayout = (): Layout => ({
     elements: {
         chat: {
             enabled: true,
-            position: { y: 0, right: 0 },
-            size: { width: 300, height: '100%' },
+            position: { y: '0vh', right: '0vw' },
+            size: { width: '15.63vw', height: '100vh' },
             style: { backgroundColor: 'transparent' },
         },
         live: {
             enabled: true,
-            position: { x: 0, y: 0 },
+            position: { x: '0vw', y: '0vh' },
             size: {},
             style: {},
         },
         text: {
             enabled: true,
-            position: { x: 15, bottom: 7 },
+            position: { x: '0.78vw', bottom: '0.65vh' },
             size: {},
             style: { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' },
             options: { content: 'Mad at the Internet' },
         },
         featured: {
             enabled: true,
-            position: { x: 0, bottom: 512 },
-            size: { maxWidth: 'calc(100% - 315px)' },
+            position: { x: '0vw', bottom: '47.41vh' },
+            size: { maxWidth: 'calc(100vw - 16.41vw)' },
             style: { fontSize: '32px' },
         },
         poll: {
             enabled: true,
-            position: { y: 0 },
+            position: { y: '0vh' },
             size: {},
             style: {},
         },
         superchat: {
             enabled: true,
-            position: { y: 0 },
+            position: { y: '0vh' },
             size: {},
             style: {},
         },

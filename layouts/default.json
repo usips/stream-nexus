@@ -2,19 +2,14 @@
   "name": "default",
   "version": 1,
   "elements": {
-    "chat": {
+    "superchat": {
       "enabled": true,
       "position": {
-        "y": 0.0,
-        "right": 0.0
+        "x": 960.8488587291796,
+        "y": 573.7828500925355
       },
-      "size": {
-        "width": 269.0,
-        "height": 1080.0
-      },
-      "style": {
-        "backgroundColor": "transparent"
-      }
+      "size": {},
+      "style": {}
     },
     "live": {
       "enabled": true,
@@ -48,11 +43,25 @@
         "fontStyle": "italic"
       }
     },
-    "superchat": {
+    "chat": {
       "enabled": true,
       "position": {
-        "x": 416.0,
-        "y": 222.0
+        "y": 0.0,
+        "right": 0.0
+      },
+      "size": {
+        "width": 269.0,
+        "height": 1080.0
+      },
+      "style": {
+        "backgroundColor": "transparent"
+      }
+    },
+    "poll": {
+      "enabled": true,
+      "position": {
+        "x": 624.1714990746452,
+        "y": 276.23195558297346
       },
       "size": {},
       "style": {}
@@ -60,8 +69,8 @@
     "featured": {
       "enabled": true,
       "position": {
-        "x": 266.0,
-        "bottom": 524.0
+        "x": 115.5743368291178,
+        "bottom": 577.3004318322023
       },
       "size": {
         "maxWidth": "calc(100% - 315px)"
@@ -69,15 +78,6 @@
       "style": {
         "fontSize": "32px"
       }
-    },
-    "poll": {
-      "enabled": true,
-      "position": {
-        "x": 302.0,
-        "y": 172.0
-      },
-      "size": {},
-      "style": {}
     }
   },
   "messageStyle": {

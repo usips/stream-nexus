@@ -1,5 +1,15 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Layout, ElementConfig } from '../types/layout';
+import {
+    Layout,
+    ElementConfig,
+    Position,
+    CANVAS_WIDTH,
+    CANVAS_HEIGHT,
+    pxToVw,
+    pxToVh,
+    positionToPx,
+    sizeToPx,
+} from '../types/layout';
 import { resolveTokens } from '../utils/tokens';
 
 interface EditorCanvasProps {
@@ -16,10 +26,16 @@ interface EditorCanvasProps {
 
 interface DragState {
     elementId: string;
-    startX: number;
-    startY: number;
-    startPosX: number;
-    startPosY: number;
+    startMouseX: number;
+    startMouseY: number;
+    // Starting position in pixels
+    startLeft: number | null;
+    startTop: number | null;
+    startRight: number | null;
+    startBottom: number | null;
+    // Element dimensions in pixels (for edge calculation)
+    elementWidth: number;
+    elementHeight: number;
 }
 
 interface ResizeState {
@@ -75,9 +91,6 @@ const MOCK_COLORS = ['#e94560', '#44aa44', '#4488ff', '#ff8844', '#aa44ff', '#44
 
 // Maximum messages to keep in chat history
 const MAX_CHAT_MESSAGES = 100;
-
-const CANVAS_WIDTH = 1920;
-const CANVAS_HEIGHT = 1080;
 
 export function EditorCanvas({
     layout,
@@ -223,37 +236,95 @@ export function EditorCanvas({
         const element = layout.elements[elementId];
         if (!element) return;
 
+        // Get current position in pixels
+        const pos = element.position;
+        const hasLeft = pos.x !== null && pos.x !== undefined;
+        const hasTop = pos.y !== null && pos.y !== undefined;
+        const hasRight = pos.right !== null && pos.right !== undefined;
+        const hasBottom = pos.bottom !== null && pos.bottom !== undefined;
+
+        // Convert current positions to pixels
+        const leftPx = hasLeft ? positionToPx(pos.x, true) : null;
+        const topPx = hasTop ? positionToPx(pos.y, false) : null;
+        const rightPx = hasRight ? positionToPx(pos.right, true) : null;
+        const bottomPx = hasBottom ? positionToPx(pos.bottom, false) : null;
+
+        // Get element dimensions
+        const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
+        const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
+        const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+
         setDragState({
             elementId,
-            startX: e.clientX,
-            startY: e.clientY,
-            startPosX: element.position.x ?? element.position.right ?? 0,
-            startPosY: element.position.y ?? element.position.bottom ?? 0,
+            startMouseX: e.clientX,
+            startMouseY: e.clientY,
+            startLeft: leftPx,
+            startTop: topPx,
+            startRight: rightPx,
+            startBottom: bottomPx,
+            elementWidth: widthPx,
+            elementHeight: heightPx,
         });
     }, [layout.elements, onSelectElement]);
 
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!dragState) return;
 
-        const dx = (e.clientX - dragState.startX) / scale;
-        const dy = (e.clientY - dragState.startY) / scale;
+        const dx = (e.clientX - dragState.startMouseX) / scale;
+        const dy = (e.clientY - dragState.startMouseY) / scale;
 
         const element = layout.elements[dragState.elementId];
         if (!element) return;
 
-        const newPosition: typeof element.position = {};
+        // Calculate new position in pixels based on which edges were set
+        let newLeftPx: number;
+        let newTopPx: number;
 
-        // Determine if element uses right/bottom positioning
-        if (element.position.right !== null && element.position.right !== undefined) {
-            newPosition.right = Math.max(0, dragState.startPosX - dx);
+        // Handle horizontal position
+        if (dragState.startLeft !== null) {
+            newLeftPx = Math.max(0, Math.min(CANVAS_WIDTH - dragState.elementWidth, dragState.startLeft + dx));
+        } else if (dragState.startRight !== null) {
+            const newRight = Math.max(0, dragState.startRight - dx);
+            newLeftPx = CANVAS_WIDTH - dragState.elementWidth - newRight;
+            newLeftPx = Math.max(0, Math.min(CANVAS_WIDTH - dragState.elementWidth, newLeftPx));
         } else {
-            newPosition.x = Math.max(0, dragState.startPosX + dx);
+            newLeftPx = Math.max(0, Math.min(CANVAS_WIDTH - dragState.elementWidth, dx));
         }
 
-        if (element.position.bottom !== null && element.position.bottom !== undefined) {
-            newPosition.bottom = Math.max(0, dragState.startPosY - dy);
+        // Handle vertical position
+        if (dragState.startTop !== null) {
+            newTopPx = Math.max(0, Math.min(CANVAS_HEIGHT - dragState.elementHeight, dragState.startTop + dy));
+        } else if (dragState.startBottom !== null) {
+            const newBottom = Math.max(0, dragState.startBottom - dy);
+            newTopPx = CANVAS_HEIGHT - dragState.elementHeight - newBottom;
+            newTopPx = Math.max(0, Math.min(CANVAS_HEIGHT - dragState.elementHeight, newTopPx));
         } else {
-            newPosition.y = Math.max(0, dragState.startPosY + dy);
+            newTopPx = Math.max(0, Math.min(CANVAS_HEIGHT - dragState.elementHeight, dy));
+        }
+
+        // Calculate element center
+        const centerX = newLeftPx + dragState.elementWidth / 2;
+        const centerY = newTopPx + dragState.elementHeight / 2;
+
+        // Determine nearest edges based on center position
+        const useRight = centerX > CANVAS_WIDTH / 2;
+        const useBottom = centerY > CANVAS_HEIGHT / 2;
+
+        // Build new position with vw/vh units
+        const newPosition: Position = {};
+
+        if (useRight) {
+            const rightPx = CANVAS_WIDTH - newLeftPx - dragState.elementWidth;
+            newPosition.right = pxToVw(Math.max(0, rightPx));
+        } else {
+            newPosition.x = pxToVw(newLeftPx);
+        }
+
+        if (useBottom) {
+            const bottomPx = CANVAS_HEIGHT - newTopPx - dragState.elementHeight;
+            newPosition.bottom = pxToVh(Math.max(0, bottomPx));
+        } else {
+            newPosition.y = pxToVh(newTopPx);
         }
 
         updateElementConfig(dragState.elementId, { position: newPosition });
@@ -274,20 +345,27 @@ export function EditorCanvas({
         if (!element) return;
 
         const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
-        const currentWidth = element.size.width ?? defaults.width;
-        const currentHeight = element.size.height ?? defaults.height;
+        const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
+        const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+
+        // Convert positions to pixels
+        const pos = element.position;
+        const leftPx = pos.x !== null && pos.x !== undefined ? positionToPx(pos.x, true) : null;
+        const topPx = pos.y !== null && pos.y !== undefined ? positionToPx(pos.y, false) : null;
+        const rightPx = pos.right !== null && pos.right !== undefined ? positionToPx(pos.right, true) : null;
+        const bottomPx = pos.bottom !== null && pos.bottom !== undefined ? positionToPx(pos.bottom, false) : null;
 
         setResizeState({
             elementId,
             handle,
             startX: e.clientX,
             startY: e.clientY,
-            startWidth: typeof currentWidth === 'number' ? currentWidth : parseInt(currentWidth) || 200,
-            startHeight: typeof currentHeight === 'number' ? currentHeight : parseInt(currentHeight) || 100,
-            startPosX: element.position.x ?? null,
-            startPosY: element.position.y ?? null,
-            startPosRight: element.position.right ?? null,
-            startPosBottom: element.position.bottom ?? null,
+            startWidth: widthPx,
+            startHeight: heightPx,
+            startPosX: leftPx,
+            startPosY: topPx,
+            startPosRight: rightPx,
+            startPosBottom: bottomPx,
         });
     }, [layout.elements, onSelectElement]);
 
@@ -300,9 +378,12 @@ export function EditorCanvas({
         const element = layout.elements[resizeState.elementId];
         if (!element) return;
 
-        let newWidth = resizeState.startWidth;
-        let newHeight = resizeState.startHeight;
-        const newPosition: typeof element.position = {};
+        let newWidthPx = resizeState.startWidth;
+        let newHeightPx = resizeState.startHeight;
+        let newLeftPx = resizeState.startPosX;
+        let newTopPx = resizeState.startPosY;
+        let newRightPx = resizeState.startPosRight;
+        let newBottomPx = resizeState.startPosBottom;
 
         const handle = resizeState.handle;
         const usesRight = resizeState.startPosRight !== null;
@@ -311,39 +392,32 @@ export function EditorCanvas({
         // Width changes
         if (handle.includes('e')) {
             if (usesRight) {
-                // Right-anchored element: east edge is the anchor point
-                // Dragging the east handle moves the anchor, not the width
-                // This makes the element slide left/right while keeping its size
-                // When right=0 (at boundary), dragging right does nothing (stops)
-                const proposedRight = resizeState.startPosRight! - dx;
-                newPosition.right = Math.max(0, proposedRight);
-                // Width stays the same - no leftward growth
+                // Right-anchored: east handle moves anchor
+                newRightPx = Math.max(0, resizeState.startPosRight! - dx);
             } else {
-                // Left-anchored element: east handle resizes (left edge fixed)
+                // Left-anchored: east handle resizes
                 const proposedWidth = resizeState.startWidth + dx;
                 const startX = resizeState.startPosX ?? 0;
                 const maxWidth = CANVAS_WIDTH - startX;
-                newWidth = Math.max(50, Math.min(proposedWidth, maxWidth));
+                newWidthPx = Math.max(50, Math.min(proposedWidth, maxWidth));
             }
         }
         if (handle.includes('w')) {
             if (usesRight) {
-                // Right-anchored element: west handle resizes (right edge fixed)
+                // Right-anchored: west handle resizes
                 const proposedWidth = resizeState.startWidth - dx;
                 const maxWidth = CANVAS_WIDTH - resizeState.startPosRight!;
-                newWidth = Math.max(50, Math.min(proposedWidth, maxWidth));
+                newWidthPx = Math.max(50, Math.min(proposedWidth, maxWidth));
             } else {
-                // Left-anchored element: west handle resizes AND moves position
+                // Left-anchored: west handle resizes AND moves
                 const proposedWidth = resizeState.startWidth - dx;
                 const proposedX = (resizeState.startPosX ?? 0) + dx;
-                // Don't let it go past left edge
                 if (proposedX >= 0) {
-                    newWidth = Math.max(50, proposedWidth);
-                    newPosition.x = proposedX;
+                    newWidthPx = Math.max(50, proposedWidth);
+                    newLeftPx = proposedX;
                 } else {
-                    // Clamp to left edge
-                    newPosition.x = 0;
-                    newWidth = Math.max(50, resizeState.startWidth + (resizeState.startPosX ?? 0));
+                    newLeftPx = 0;
+                    newWidthPx = Math.max(50, resizeState.startWidth + (resizeState.startPosX ?? 0));
                 }
             }
         }
@@ -351,44 +425,55 @@ export function EditorCanvas({
         // Height changes
         if (handle.includes('s')) {
             if (usesBottom) {
-                // Bottom-anchored element: south edge is the anchor point
-                // Dragging the south handle moves the anchor, not the height
-                // When bottom=0 (at boundary), dragging down does nothing (stops)
-                const proposedBottom = resizeState.startPosBottom! - dy;
-                newPosition.bottom = Math.max(0, proposedBottom);
-                // Height stays the same - no upward growth
+                // Bottom-anchored: south handle moves anchor
+                newBottomPx = Math.max(0, resizeState.startPosBottom! - dy);
             } else {
-                // Top-anchored element: south handle resizes (top edge fixed)
+                // Top-anchored: south handle resizes
                 const proposedHeight = resizeState.startHeight + dy;
                 const startY = resizeState.startPosY ?? 0;
                 const maxHeight = CANVAS_HEIGHT - startY;
-                newHeight = Math.max(30, Math.min(proposedHeight, maxHeight));
+                newHeightPx = Math.max(30, Math.min(proposedHeight, maxHeight));
             }
         }
         if (handle.includes('n')) {
             if (usesBottom) {
-                // Bottom-anchored element: north handle resizes (bottom edge fixed)
+                // Bottom-anchored: north handle resizes
                 const proposedHeight = resizeState.startHeight - dy;
                 const maxHeight = CANVAS_HEIGHT - resizeState.startPosBottom!;
-                newHeight = Math.max(30, Math.min(proposedHeight, maxHeight));
+                newHeightPx = Math.max(30, Math.min(proposedHeight, maxHeight));
             } else {
-                // Top-anchored element: north handle resizes AND moves position
+                // Top-anchored: north handle resizes AND moves
                 const proposedHeight = resizeState.startHeight - dy;
                 const proposedY = (resizeState.startPosY ?? 0) + dy;
-                // Don't let it go past top edge
                 if (proposedY >= 0) {
-                    newHeight = Math.max(30, proposedHeight);
-                    newPosition.y = proposedY;
+                    newHeightPx = Math.max(30, proposedHeight);
+                    newTopPx = proposedY;
                 } else {
-                    // Clamp to top edge
-                    newPosition.y = 0;
-                    newHeight = Math.max(30, resizeState.startHeight + (resizeState.startPosY ?? 0));
+                    newTopPx = 0;
+                    newHeightPx = Math.max(30, resizeState.startHeight + (resizeState.startPosY ?? 0));
                 }
             }
         }
 
+        // Build position with vw/vh units, preserving which edges are used
+        const newPosition: Position = {};
+        if (newRightPx !== null) {
+            newPosition.right = pxToVw(newRightPx);
+        } else if (newLeftPx !== null) {
+            newPosition.x = pxToVw(newLeftPx);
+        }
+        if (newBottomPx !== null) {
+            newPosition.bottom = pxToVh(newBottomPx);
+        } else if (newTopPx !== null) {
+            newPosition.y = pxToVh(newTopPx);
+        }
+
+        // Convert size to vw/vh
         updateElementConfig(resizeState.elementId, {
-            size: { width: Math.round(newWidth), height: Math.round(newHeight) },
+            size: {
+                width: pxToVw(Math.round(newWidthPx)),
+                height: pxToVh(Math.round(newHeightPx)),
+            },
             ...(Object.keys(newPosition).length > 0 ? { position: newPosition } : {}),
         });
     }, [resizeState, scale, layout.elements, updateElementConfig]);
@@ -409,29 +494,28 @@ export function EditorCanvas({
             position: 'absolute',
         };
 
-        const defaults = defaultSizes[elementId] || { width: 200, height: 100 };
+        const baseId = elementId.replace(/-\d+$/, '');
+        const defaults = defaultSizes[baseId] || { width: 200, height: 100 };
 
-        // Position
+        // Position - convert vw/vh to pixels for canvas display
         if (config.position.x !== null && config.position.x !== undefined) {
-            style.left = config.position.x;
+            style.left = positionToPx(config.position.x, true);
         }
         if (config.position.y !== null && config.position.y !== undefined) {
-            style.top = config.position.y;
+            style.top = positionToPx(config.position.y, false);
         }
         if (config.position.right !== null && config.position.right !== undefined) {
-            style.right = config.position.right;
+            style.right = positionToPx(config.position.right, true);
         }
         if (config.position.bottom !== null && config.position.bottom !== undefined) {
-            style.bottom = config.position.bottom;
+            style.bottom = positionToPx(config.position.bottom, false);
         }
 
-        // Size (with defaults)
-        style.width = config.size.width
-            ? (typeof config.size.width === 'number' ? config.size.width : config.size.width)
-            : defaults.width;
-        style.height = config.size.height
-            ? (typeof config.size.height === 'number' ? config.size.height : config.size.height)
-            : defaults.height;
+        // Size - convert to pixels for canvas display
+        const widthValue = config.size.width ?? defaults.width;
+        const heightValue = config.size.height ?? defaults.height;
+        style.width = sizeToPx(widthValue, true);
+        style.height = sizeToPx(heightValue, false);
 
         return style;
     };

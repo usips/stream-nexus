@@ -12,9 +12,10 @@ let current_layout = null;
 
 const messageBuffer = {
     queue: [],
-    maxWaitTime: 500, // Maximum time a message can wait (ms)
-    minInterval: 50,  // Minimum interval between messages (ms)
+    maxWaitTime: 1000, // Maximum time any message can wait (ms) - 1 second
+    minInterval: 50,   // Minimum interval between messages (ms)
     intervalId: null,
+    lastProcessTime: 0,
 
     // Add a message to the buffer
     push(message) {
@@ -32,18 +33,52 @@ const messageBuffer = {
         }
     },
 
-    // Calculate delay until next message based on queue size
-    getDelay() {
-        const queueSize = this.queue.length;
-        if (queueSize === 0) return this.minInterval;
+    // Calculate how many messages should be processed right now
+    getProcessCount() {
+        if (this.queue.length === 0) return 0;
 
-        // If we have N messages, we need to process them all within maxWaitTime
-        // So interval = maxWaitTime / queueSize, but never less than minInterval
-        const calculatedDelay = Math.floor(this.maxWaitTime / queueSize);
+        const now = Date.now();
+        let count = 0;
+
+        // Count messages that have exceeded their max wait time (must process immediately)
+        for (const item of this.queue) {
+            if (now - item.timestamp >= this.maxWaitTime) {
+                count++;
+            } else {
+                break; // Queue is ordered by time, so we can stop here
+            }
+        }
+
+        // Always process at least one if we have messages and enough time has passed
+        if (count === 0 && this.queue.length > 0) {
+            const timeSinceLastProcess = now - this.lastProcessTime;
+            if (timeSinceLastProcess >= this.minInterval) {
+                count = 1;
+            }
+        }
+
+        return count;
+    },
+
+    // Calculate delay until next processing
+    getDelay() {
+        if (this.queue.length === 0) return this.minInterval;
+
+        // How long has the oldest message been waiting?
+        const oldestAge = Date.now() - this.queue[0].timestamp;
+        const remainingTime = this.maxWaitTime - oldestAge;
+
+        // If oldest message has expired, process immediately
+        if (remainingTime <= 0) {
+            return 0;
+        }
+
+        // Spread remaining messages over remaining time
+        const calculatedDelay = Math.floor(remainingTime / this.queue.length);
         return Math.max(this.minInterval, calculatedDelay);
     },
 
-    // Schedule the next message to be processed
+    // Schedule the next processing cycle
     scheduleNext() {
         if (this.queue.length === 0) {
             this.intervalId = null;
@@ -52,19 +87,41 @@ const messageBuffer = {
 
         const delay = this.getDelay();
         this.intervalId = setTimeout(() => {
-            this.processOne();
+            this.processBatch();
             this.scheduleNext();
         }, delay);
     },
 
-    // Process one message from the queue
-    processOne() {
+    // Process messages - handles both normal flow and catch-up after tab becomes active
+    processBatch() {
         if (this.queue.length === 0) return;
 
-        const item = this.queue.shift();
-        processMessageImmediate(item.message);
+        const count = this.getProcessCount();
+        for (let i = 0; i < count && this.queue.length > 0; i++) {
+            const item = this.queue.shift();
+            processMessageImmediate(item.message);
+        }
+        this.lastProcessTime = Date.now();
+    },
+
+    // Called when tab visibility changes - process all overdue messages immediately
+    onVisibilityChange() {
+        if (document.visibilityState === 'visible' && this.queue.length > 0) {
+            this.processBatch();
+            // Restart the timer if there are more messages
+            if (this.intervalId !== null) {
+                clearTimeout(this.intervalId);
+                this.intervalId = null;
+            }
+            this.ensureProcessing();
+        }
     }
 };
+
+// Handle tab visibility changes to catch up on messages when tab becomes active
+document.addEventListener('visibilitychange', () => {
+    messageBuffer.onVisibilityChange();
+});
 
 // Create WebSocket connection using current host
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -335,6 +392,12 @@ function processMessageImmediate(message) {
                 break;
             }
         }
+    }
+
+    // Auto-scroll to bottom to show newest messages
+    const chatSection = chat_history.parentElement;
+    if (chatSection) {
+        chatSection.scrollTop = chatSection.scrollHeight;
     }
 }
 

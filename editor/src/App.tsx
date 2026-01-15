@@ -35,7 +35,6 @@ function App() {
     const [selectedElement, setSelectedElement] = useState<string>('chat');
     const [undoHistory, setUndoHistory] = useState<Layout[]>([]);
     const [redoHistory, setRedoHistory] = useState<Layout[]>([]);
-    const debounceRef = useRef<NodeJS.Timeout | null>(null);
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const isUndoingRef = useRef(false);
 
@@ -190,23 +189,18 @@ function App() {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleDeleteElement, handleUndo, handleRedo]);
 
-    // Debounced layout broadcast (always broadcasts for live preview)
-    // Also saves to disk if autoSave is enabled
+    // Layout broadcast - sends immediately for live preview during drag
+    // Also saves to disk if autoSave is enabled (debounced)
     const broadcastLayout = useCallback((layout: Layout, addToHistory = true) => {
         // Add to history before making changes (debounced to avoid flooding)
         if (addToHistory && !isUndoingRef.current) {
             pushToHistory(localLayout);
         }
 
-        // Always broadcast immediately for live preview
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
-        debounceRef.current = setTimeout(() => {
-            sendLayoutUpdate(layout);
-        }, 100); // 100ms debounce for broadcast
+        // Broadcast immediately for live preview during drag
+        sendLayoutUpdate(layout);
 
-        // Auto-save to disk with longer debounce
+        // Auto-save to disk with debounce (don't save on every drag frame)
         if (autoSave) {
             if (saveDebounceRef.current) {
                 clearTimeout(saveDebounceRef.current);

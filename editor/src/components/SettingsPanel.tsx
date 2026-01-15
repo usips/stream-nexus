@@ -218,12 +218,12 @@ export function SettingsPanel({
                         <div className="settings-row">
                             <label>X (Left)</label>
                             <input
-                                type="number"
+                                type="text"
                                 value={currentConfig.position.x ?? ''}
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        x: e.target.value ? parseFloat(e.target.value) : null,
+                                        x: e.target.value || null,
                                         right: null,
                                     }
                                 })}
@@ -232,12 +232,12 @@ export function SettingsPanel({
                         <div className="settings-row">
                             <label>Y (Top)</label>
                             <input
-                                type="number"
+                                type="text"
                                 value={currentConfig.position.y ?? ''}
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        y: e.target.value ? parseFloat(e.target.value) : null,
+                                        y: e.target.value || null,
                                         bottom: null,
                                     }
                                 })}
@@ -248,12 +248,12 @@ export function SettingsPanel({
                         <div className="settings-row">
                             <label>Right</label>
                             <input
-                                type="number"
+                                type="text"
                                 value={currentConfig.position.right ?? ''}
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        right: e.target.value ? parseFloat(e.target.value) : null,
+                                        right: e.target.value || null,
                                         x: null,
                                     }
                                 })}
@@ -262,12 +262,12 @@ export function SettingsPanel({
                         <div className="settings-row">
                             <label>Bottom</label>
                             <input
-                                type="number"
+                                type="text"
                                 value={currentConfig.position.bottom ?? ''}
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        bottom: e.target.value ? parseFloat(e.target.value) : null,
+                                        bottom: e.target.value || null,
                                         y: null,
                                     }
                                 })}
