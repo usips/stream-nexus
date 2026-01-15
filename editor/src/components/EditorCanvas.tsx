@@ -203,23 +203,28 @@ export function EditorCanvas({
     }, []);
 
     const updateElementConfig = useCallback((elementId: string, updates: Partial<ElementConfig>) => {
+        const currentElement = layout.elements[elementId];
+
+        // For position updates, we REPLACE rather than merge to allow clearing anchors
+        // The caller should provide the complete new position state
+        const newPosition = updates.position !== undefined
+            ? updates.position
+            : currentElement?.position;
+
         const newLayout = {
             ...layout,
             elements: {
                 ...layout.elements,
                 [elementId]: {
-                    ...layout.elements[elementId],
+                    ...currentElement,
                     ...updates,
-                    position: {
-                        ...layout.elements[elementId]?.position,
-                        ...updates.position,
-                    },
+                    position: newPosition,
                     size: {
-                        ...layout.elements[elementId]?.size,
+                        ...currentElement?.size,
                         ...updates.size,
                     },
                     style: {
-                        ...layout.elements[elementId]?.style,
+                        ...currentElement?.style,
                         ...updates.style,
                     },
                 },
@@ -243,25 +248,40 @@ export function EditorCanvas({
         const hasRight = pos.right !== null && pos.right !== undefined;
         const hasBottom = pos.bottom !== null && pos.bottom !== undefined;
 
-        // Convert current positions to pixels
-        const leftPx = hasLeft ? positionToPx(pos.x, true) : null;
-        const topPx = hasTop ? positionToPx(pos.y, false) : null;
-        const rightPx = hasRight ? positionToPx(pos.right, true) : null;
-        const bottomPx = hasBottom ? positionToPx(pos.bottom, false) : null;
-
-        // Get element dimensions
+        // Get element dimensions first (needed for position calculations)
         const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
         const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
         const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+
+        // Convert current positions to pixels
+        // If both left and right are set, pick one (prefer left for consistency)
+        let leftPx: number | null = null;
+        let rightPx: number | null = null;
+        if (hasLeft) {
+            leftPx = positionToPx(pos.x, true);
+        } else if (hasRight) {
+            rightPx = positionToPx(pos.right, true);
+            leftPx = CANVAS_WIDTH - rightPx - widthPx; // Calculate left for drag math
+        }
+
+        // If both top and bottom are set, pick one (prefer top for consistency)
+        let topPx: number | null = null;
+        let bottomPx: number | null = null;
+        if (hasTop) {
+            topPx = positionToPx(pos.y, false);
+        } else if (hasBottom) {
+            bottomPx = positionToPx(pos.bottom, false);
+            topPx = CANVAS_HEIGHT - bottomPx - heightPx; // Calculate top for drag math
+        }
 
         setDragState({
             elementId,
             startMouseX: e.clientX,
             startMouseY: e.clientY,
-            startLeft: leftPx,
-            startTop: topPx,
-            startRight: rightPx,
-            startBottom: bottomPx,
+            startLeft: hasLeft ? leftPx : null,
+            startTop: hasTop ? topPx : null,
+            startRight: hasRight && !hasLeft ? rightPx : null,
+            startBottom: hasBottom && !hasTop ? bottomPx : null,
             elementWidth: widthPx,
             elementHeight: heightPx,
         });
@@ -349,11 +369,28 @@ export function EditorCanvas({
         const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
 
         // Convert positions to pixels
+        // If both anchors are set on same axis, prefer left/top
         const pos = element.position;
-        const leftPx = pos.x !== null && pos.x !== undefined ? positionToPx(pos.x, true) : null;
-        const topPx = pos.y !== null && pos.y !== undefined ? positionToPx(pos.y, false) : null;
-        const rightPx = pos.right !== null && pos.right !== undefined ? positionToPx(pos.right, true) : null;
-        const bottomPx = pos.bottom !== null && pos.bottom !== undefined ? positionToPx(pos.bottom, false) : null;
+        const hasLeft = pos.x !== null && pos.x !== undefined;
+        const hasTop = pos.y !== null && pos.y !== undefined;
+        const hasRight = pos.right !== null && pos.right !== undefined;
+        const hasBottom = pos.bottom !== null && pos.bottom !== undefined;
+
+        let leftPx: number | null = null;
+        let rightPx: number | null = null;
+        if (hasLeft) {
+            leftPx = positionToPx(pos.x, true);
+        } else if (hasRight) {
+            rightPx = positionToPx(pos.right, true);
+        }
+
+        let topPx: number | null = null;
+        let bottomPx: number | null = null;
+        if (hasTop) {
+            topPx = positionToPx(pos.y, false);
+        } else if (hasBottom) {
+            bottomPx = positionToPx(pos.bottom, false);
+        }
 
         setResizeState({
             elementId,
@@ -498,16 +535,21 @@ export function EditorCanvas({
         const defaults = defaultSizes[baseId] || { width: 200, height: 100 };
 
         // Position - convert vw/vh to pixels for canvas display
-        if (config.position.x !== null && config.position.x !== undefined) {
+        // Only use one anchor per axis (prefer left/top over right/bottom)
+        const hasLeft = config.position.x !== null && config.position.x !== undefined;
+        const hasTop = config.position.y !== null && config.position.y !== undefined;
+        const hasRight = config.position.right !== null && config.position.right !== undefined;
+        const hasBottom = config.position.bottom !== null && config.position.bottom !== undefined;
+
+        if (hasLeft) {
             style.left = positionToPx(config.position.x, true);
-        }
-        if (config.position.y !== null && config.position.y !== undefined) {
-            style.top = positionToPx(config.position.y, false);
-        }
-        if (config.position.right !== null && config.position.right !== undefined) {
+        } else if (hasRight) {
             style.right = positionToPx(config.position.right, true);
         }
-        if (config.position.bottom !== null && config.position.bottom !== undefined) {
+
+        if (hasTop) {
+            style.top = positionToPx(config.position.y, false);
+        } else if (hasBottom) {
             style.bottom = positionToPx(config.position.bottom, false);
         }
 

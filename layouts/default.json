@@ -2,6 +2,15 @@
   "name": "default",
   "version": 1,
   "elements": {
+    "poll": {
+      "enabled": true,
+      "position": {
+        "x": "32.51vw",
+        "y": "25.58vh"
+      },
+      "size": {},
+      "style": {}
+    },
     "superchat": {
       "enabled": true,
       "position": {
@@ -10,24 +19,6 @@
       },
       "size": {},
       "style": {}
-    },
-    "live": {
-      "enabled": true,
-      "position": {
-        "x": "0vw",
-        "y": "0vh"
-      },
-      "size": {},
-      "style": {},
-      "options": {
-        "platformMode": "exclude",
-        "platforms": [
-          "YouTube"
-        ],
-        "showCount": true,
-        "showIcon": true,
-        "showLabel": true
-      }
     },
     "attribution": {
       "enabled": true,
@@ -46,8 +37,10 @@
     "chat": {
       "enabled": true,
       "position": {
+        "x": "41.21vw",
         "y": "0vh",
-        "right": "0vw"
+        "right": "19.31vw",
+        "bottom": "0vh"
       },
       "size": {
         "width": "14.01vw",
@@ -57,14 +50,23 @@
         "backgroundColor": "transparent"
       }
     },
-    "poll": {
+    "live": {
       "enabled": true,
       "position": {
-        "x": "32.51vw",
-        "y": "25.58vh"
+        "x": "0vw",
+        "y": "0vh"
       },
       "size": {},
-      "style": {}
+      "style": {},
+      "options": {
+        "platformMode": "exclude",
+        "platforms": [
+          "YouTube"
+        ],
+        "showCount": true,
+        "showIcon": true,
+        "showLabel": true
+      }
     },
     "featured": {
       "enabled": true,

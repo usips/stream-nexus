@@ -223,8 +223,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        x: e.target.value || null,
-                                        right: null,
+                                        ...currentConfig.position,
+                                        x: e.target.value || undefined,
+                                        right: undefined, // Clear opposite anchor
                                     }
                                 })}
                             />
@@ -237,8 +238,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        y: e.target.value || null,
-                                        bottom: null,
+                                        ...currentConfig.position,
+                                        y: e.target.value || undefined,
+                                        bottom: undefined, // Clear opposite anchor
                                     }
                                 })}
                             />
@@ -253,8 +255,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        right: e.target.value || null,
-                                        x: null,
+                                        ...currentConfig.position,
+                                        right: e.target.value || undefined,
+                                        x: undefined, // Clear opposite anchor
                                     }
                                 })}
                             />
@@ -267,8 +270,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => updateElementConfig({
                                     position: {
-                                        bottom: e.target.value || null,
-                                        y: null,
+                                        ...currentConfig.position,
+                                        bottom: e.target.value || undefined,
+                                        y: undefined, // Clear opposite anchor
                                     }
                                 })}
                             />
