@@ -75,6 +75,7 @@ export function hasTokens(input: string): boolean {
  * - MMM: Abbreviated month name (Jan)
  * - MM: 2-digit month (01-12)
  * - M: Month (1-12)
+ * - do: Day with ordinal suffix (1st, 2nd, 3rd, 4th, ...)
  * - dd: 2-digit day (01-31)
  * - d: Day (1-31)
  * - EEEE: Full weekday name (Monday)
@@ -101,6 +102,12 @@ function formatDateTime(date: Date, format: string): string {
 
     const pad = (n: number, len = 2): string => n.toString().padStart(len, '0');
 
+    const ordinal = (n: number): string => {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
     const replacements: Record<string, string> = {
         'yyyy': date.getFullYear().toString(),
         'yy': date.getFullYear().toString().slice(-2),
@@ -108,6 +115,7 @@ function formatDateTime(date: Date, format: string): string {
         'MMM': monthsShort[date.getMonth()],
         'MM': pad(date.getMonth() + 1),
         'M': (date.getMonth() + 1).toString(),
+        'do': ordinal(date.getDate()),
         'dd': pad(date.getDate()),
         'd': date.getDate().toString(),
         'EEEE': weekdays[date.getDay()],

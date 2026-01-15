@@ -2,20 +2,6 @@
   "name": "default",
   "version": 1,
   "elements": {
-    "chat": {
-      "enabled": true,
-      "position": {
-        "y": "0vh",
-        "right": "18.45vw"
-      },
-      "size": {
-        "width": "14.01vw",
-        "height": "100vh"
-      },
-      "style": {
-        "backgroundColor": "transparent"
-      }
-    },
     "featured": {
       "enabled": true,
       "position": {
@@ -29,14 +15,25 @@
         "fontSize": "32px"
       }
     },
-    "superchat": {
+    "attribution": {
       "enabled": true,
+      "displayName": "hjkhjkjhkjhkhj",
       "position": {
-        "x": "50.04vw",
-        "y": "53.13vh"
+        "x": "0vw",
+        "bottom": "0vh"
       },
-      "size": {},
-      "style": {}
+      "size": {
+        "width": "64.53vw",
+        "height": "8.06vh"
+      },
+      "style": {
+        "fontSize": "3.5vw",
+        "fontWeight": "bold",
+        "fontStyle": "italic"
+      },
+      "options": {
+        "content": "{{datetime:MMMM dd, yyyy HH:mm:ss}}"
+      }
     },
     "live": {
       "enabled": true,
@@ -56,6 +53,29 @@
         "showLabel": true
       }
     },
+    "superchat": {
+      "enabled": true,
+      "position": {
+        "x": "50.04vw",
+        "y": "53.13vh"
+      },
+      "size": {},
+      "style": {}
+    },
+    "chat": {
+      "enabled": true,
+      "position": {
+        "y": "0vh",
+        "right": "0vw"
+      },
+      "size": {
+        "width": "14.01vw",
+        "height": "100vh"
+      },
+      "style": {
+        "backgroundColor": "transparent"
+      }
+    },
     "poll": {
       "enabled": true,
       "position": {
@@ -64,26 +84,6 @@
       },
       "size": {},
       "style": {}
-    },
-    "attribution": {
-      "enabled": true,
-      "displayName": "hjkhjkjhkjhkhj",
-      "position": {
-        "x": "0vw",
-        "bottom": "0vh"
-      },
-      "size": {
-        "width": "64.53vw",
-        "height": "8.06vh"
-      },
-      "style": {
-        "fontSize": "3.5vw",
-        "fontWeight": "bold",
-        "fontStyle": "italic"
-      },
-      "options": {
-        "content": "{{datetime:ss, yyyy HH:mm:ss}}"
-      }
     }
   },
   "messageStyle": {
