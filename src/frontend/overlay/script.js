@@ -251,17 +251,20 @@ function apply_element_config(el, config) {
         el.style.top = 'auto';
         el.style.bottom = 'auto';
 
+        // Helper to format position value (preserve vw/vh/% units, add px to numbers)
+        const formatPos = (val) => typeof val === 'number' ? `${val}px` : val;
+
         if (pos.x !== null && pos.x !== undefined) {
-            el.style.left = `${pos.x}px`;
+            el.style.left = formatPos(pos.x);
         }
         if (pos.y !== null && pos.y !== undefined) {
-            el.style.top = `${pos.y}px`;
+            el.style.top = formatPos(pos.y);
         }
         if (pos.right !== null && pos.right !== undefined) {
-            el.style.right = `${pos.right}px`;
+            el.style.right = formatPos(pos.right);
         }
         if (pos.bottom !== null && pos.bottom !== undefined) {
-            el.style.bottom = `${pos.bottom}px`;
+            el.style.bottom = formatPos(pos.bottom);
         }
     }
 
