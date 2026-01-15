@@ -107,6 +107,7 @@ section#chat::-webkit-scrollbar {
 .msg {
     display: flex;
     flex-direction: row;
+    align-items: flex-start; /* Prevent children from stretching vertically */
     overflow: hidden;
     z-index: 1;
 
@@ -428,6 +429,7 @@ section#chat::-webkit-scrollbar {
     flex: 1;
     min-width: 0;
     max-width: 100%;
+    height: auto;
     overflow: visible;
 }
 
