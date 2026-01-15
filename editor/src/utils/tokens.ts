@@ -130,12 +130,29 @@ function formatDateTime(date: Date, format: string): string {
         })(),
     };
 
-    // Sort by length descending to replace longer patterns first
+    // Sort by length descending to match longer patterns first
     const sortedKeys = Object.keys(replacements).sort((a, b) => b.length - a.length);
 
-    let result = format;
-    for (const key of sortedKeys) {
-        result = result.replace(new RegExp(key, 'g'), replacements[key]);
+    // Build result by scanning through format string and matching patterns
+    // This prevents replacement text from being processed again (e.g., 'a' in 'January')
+    let result = '';
+    let i = 0;
+    while (i < format.length) {
+        let matched = false;
+        // Try to match each pattern at current position
+        for (const key of sortedKeys) {
+            if (format.substring(i, i + key.length) === key) {
+                result += replacements[key];
+                i += key.length;
+                matched = true;
+                break;
+            }
+        }
+        // No pattern matched, copy character as-is
+        if (!matched) {
+            result += format[i];
+            i++;
+        }
     }
 
     return result;

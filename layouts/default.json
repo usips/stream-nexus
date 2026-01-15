@@ -2,52 +2,24 @@
   "name": "default",
   "version": 1,
   "elements": {
-    "poll": {
-      "enabled": true,
-      "position": {
-        "x": "32.51vw",
-        "y": "25.58vh"
-      },
-      "size": {},
-      "style": {}
-    },
-    "superchat": {
-      "enabled": true,
-      "position": {
-        "x": "50.04vw",
-        "y": "53.13vh"
-      },
-      "size": {},
-      "style": {}
-    },
     "attribution": {
       "enabled": true,
       "displayName": "hjkhjkjhkjhkhj",
       "position": {
         "x": "0vw",
-        "bottom": "0.11vh"
+        "bottom": "0vh"
       },
-      "size": {},
+      "size": {
+        "width": "64.53vw",
+        "height": "8.06vh"
+      },
       "style": {
         "fontSize": "3.5vw",
         "fontWeight": "bold",
         "fontStyle": "italic"
-      }
-    },
-    "chat": {
-      "enabled": true,
-      "position": {
-        "x": "41.21vw",
-        "y": "0vh",
-        "right": "19.31vw",
-        "bottom": "0vh"
       },
-      "size": {
-        "width": "14.01vw",
-        "height": "100vh"
-      },
-      "style": {
-        "backgroundColor": "transparent"
+      "options": {
+        "content": "{{datetime:MMMM, d, yyyy HH:mm:ss}}"
       }
     },
     "live": {
@@ -68,11 +40,43 @@
         "showLabel": true
       }
     },
+    "poll": {
+      "enabled": true,
+      "position": {
+        "x": "32.51vw",
+        "y": "25.58vh"
+      },
+      "size": {},
+      "style": {}
+    },
+    "chat": {
+      "enabled": true,
+      "position": {
+        "y": "0vh",
+        "right": "0vw"
+      },
+      "size": {
+        "width": "14.01vw",
+        "height": "100vh"
+      },
+      "style": {
+        "backgroundColor": "transparent"
+      }
+    },
+    "superchat": {
+      "enabled": true,
+      "position": {
+        "x": "50.04vw",
+        "y": "53.13vh"
+      },
+      "size": {},
+      "style": {}
+    },
     "featured": {
       "enabled": true,
       "position": {
-        "x": "6.02vw",
-        "bottom": "53.45vh"
+        "x": "12.74vw",
+        "y": "18.14vh"
       },
       "size": {
         "maxWidth": "calc(100vw - 16.41vw)"
