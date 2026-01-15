@@ -264,6 +264,10 @@ section#chat {
     --brand-color: var(--youtube-brand, rgba(255, 0, 0, 1));
 }
 
+.msg--p-Twitch .msg-avatar-border {
+    --brand-color: var(--twitch-brand, #a970ff);
+}
+
 .msg--p-VK .msg-avatar-border {
     --brand-color: var(--vk-brand, rgb(255, 43, 66, 1));
 }
