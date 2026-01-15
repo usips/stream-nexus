@@ -190,6 +190,23 @@ bindWebsocketEvents(socket);
 // Layout Application
 // ============================================================================
 
+// Update text element content periodically for live datetime tokens
+let textUpdateInterval = null;
+function start_text_updates() {
+    if (textUpdateInterval) clearInterval(textUpdateInterval);
+    textUpdateInterval = setInterval(() => {
+        if (!current_layout) return;
+        const textConfig = current_layout.elements?.text || current_layout.elements?.attribution;
+        if (textConfig && textConfig.enabled !== false && textConfig.options?.content) {
+            const el = document.getElementById("attribution");
+            if (el) {
+                el.innerHTML = resolve_tokens(textConfig.options.content);
+            }
+        }
+    }, 1000);
+}
+start_text_updates();
+
 function apply_layout(layout) {
     console.log("[SNEED] Applying layout:", layout.name);
     current_layout = layout;
@@ -199,7 +216,9 @@ function apply_layout(layout) {
     // Apply each element's configuration
     apply_element_config(document.getElementById("chat"), elements.chat);
     apply_element_config(document.getElementById("live"), elements.live);
-    apply_element_config(document.getElementById("attribution"), elements.attribution);
+    // Support both "text" (new) and "attribution" (legacy) element names
+    const textConfig = elements.text || elements.attribution;
+    apply_element_config(document.getElementById("attribution"), textConfig, true);
     apply_element_config(document.getElementById("show-message"), elements.featured);
     apply_element_config(document.getElementById("poll-ui"), elements.poll);
     apply_element_config(document.getElementById("superchat-ui"), elements.superchat);
@@ -225,7 +244,92 @@ function apply_layout(layout) {
     }
 }
 
-function apply_element_config(el, config) {
+// Token resolver for dynamic text content (datetime, etc.)
+function resolve_tokens(text) {
+    if (!text) return text;
+
+    // Match {{tokenName}} or {{tokenName:parameters}}
+    return text.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]*))?\}\}/g, (match, tokenName, params) => {
+        if (tokenName === 'datetime' || tokenName === 'date' || tokenName === 'time') {
+            return format_datetime(new Date(), params || get_default_format(tokenName));
+        }
+        if (tokenName === 'year') {
+            return new Date().getFullYear().toString();
+        }
+        return match; // Return original if unknown token
+    });
+}
+
+function get_default_format(tokenName) {
+    switch (tokenName) {
+        case 'date': return 'MMMM d, yyyy';
+        case 'time': return 'HH:mm:ss';
+        default: return 'yyyy-MM-dd HH:mm:ss';
+    }
+}
+
+function format_datetime(date, format) {
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const weekdaysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const pad = (n, len = 2) => n.toString().padStart(len, '0');
+    const ordinal = (n) => {
+        const s = ['th', 'st', 'nd', 'rd'];
+        const v = n % 100;
+        return n + (s[(v - 20) % 10] || s[v] || s[0]);
+    };
+
+    const replacements = {
+        'yyyy': date.getFullYear().toString(),
+        'yy': date.getFullYear().toString().slice(-2),
+        'MMMM': months[date.getMonth()],
+        'MMM': monthsShort[date.getMonth()],
+        'MM': pad(date.getMonth() + 1),
+        'M': (date.getMonth() + 1).toString(),
+        'do': ordinal(date.getDate()),
+        'dd': pad(date.getDate()),
+        'd': date.getDate().toString(),
+        'EEEE': weekdays[date.getDay()],
+        'EEE': weekdaysShort[date.getDay()],
+        'HH': pad(date.getHours()),
+        'H': date.getHours().toString(),
+        'hh': pad(date.getHours() % 12 || 12),
+        'h': (date.getHours() % 12 || 12).toString(),
+        'mm': pad(date.getMinutes()),
+        'm': date.getMinutes().toString(),
+        'ss': pad(date.getSeconds()),
+        's': date.getSeconds().toString(),
+        'a': date.getHours() < 12 ? 'AM' : 'PM',
+    };
+
+    // Sort by length descending to match longer patterns first
+    const sortedKeys = Object.keys(replacements).sort((a, b) => b.length - a.length);
+
+    // Build result by scanning through format string
+    let result = '';
+    let i = 0;
+    while (i < format.length) {
+        let matched = false;
+        for (const key of sortedKeys) {
+            if (format.substring(i, i + key.length) === key) {
+                result += replacements[key];
+                i += key.length;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            result += format[i];
+            i++;
+        }
+    }
+    return result;
+}
+
+function apply_element_config(el, config, isTextElement = false) {
     if (!el || !config) {
         console.log("[SNEED] apply_element_config: missing el or config", el?.id, config);
         return;
@@ -239,6 +343,12 @@ function apply_element_config(el, config) {
         return;
     } else {
         el.style.display = '';
+    }
+
+    // Handle text content for text elements
+    if (isTextElement && config.options && config.options.content !== undefined) {
+        const content = resolve_tokens(config.options.content);
+        el.innerHTML = content;
     }
 
     // Handle positioning

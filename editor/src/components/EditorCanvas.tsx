@@ -130,12 +130,16 @@ export function EditorCanvas({
         const calculateScale = () => {
             if (!containerRef.current) return;
             const container = containerRef.current;
-            const containerWidth = container.clientWidth - 40; // padding
-            const containerHeight = container.clientHeight - 40;
+            // Use minimal padding (16px) to maximize canvas usage
+            // Handles extend ~5px outside so 16px gives comfortable margin
+            const padding = 16;
+            const containerWidth = container.clientWidth - padding * 2;
+            const containerHeight = container.clientHeight - padding * 2;
 
             const scaleX = containerWidth / CANVAS_WIDTH;
             const scaleY = containerHeight / CANVAS_HEIGHT;
-            const newScale = Math.min(scaleX, scaleY, 1); // Don't scale above 100%
+            // Use 0.98 max to ensure slight margin, don't scale above 100%
+            const newScale = Math.min(scaleX, scaleY, 0.98);
 
             setScale(Math.max(0.1, newScale));
         };
