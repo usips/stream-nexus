@@ -2,25 +2,41 @@
   "name": "default",
   "version": 1,
   "elements": {
-    "attribution": {
+    "chat": {
       "enabled": true,
-      "displayName": "hjkhjkjhkjhkhj",
       "position": {
-        "x": "0vw",
-        "bottom": "0vh"
+        "y": "0vh",
+        "right": "18.45vw"
       },
       "size": {
-        "width": "64.53vw",
-        "height": "8.06vh"
+        "width": "14.01vw",
+        "height": "100vh"
       },
       "style": {
-        "fontSize": "3.5vw",
-        "fontWeight": "bold",
-        "fontStyle": "italic"
-      },
-      "options": {
-        "content": "{{datetime:MMMM, d, yyyy HH:mm:ss}}"
+        "backgroundColor": "transparent"
       }
+    },
+    "featured": {
+      "enabled": true,
+      "position": {
+        "x": "12.74vw",
+        "y": "18.14vh"
+      },
+      "size": {
+        "maxWidth": "calc(100vw - 16.41vw)"
+      },
+      "style": {
+        "fontSize": "32px"
+      }
+    },
+    "superchat": {
+      "enabled": true,
+      "position": {
+        "x": "50.04vw",
+        "y": "53.13vh"
+      },
+      "size": {},
+      "style": {}
     },
     "live": {
       "enabled": true,
@@ -43,46 +59,30 @@
     "poll": {
       "enabled": true,
       "position": {
-        "x": "32.51vw",
-        "y": "25.58vh"
+        "x": "31.95vw",
+        "y": "19.22vh"
       },
       "size": {},
       "style": {}
     },
-    "chat": {
+    "attribution": {
       "enabled": true,
+      "displayName": "hjkhjkjhkjhkhj",
       "position": {
-        "y": "0vh",
-        "right": "0vw"
+        "x": "0vw",
+        "bottom": "0vh"
       },
       "size": {
-        "width": "14.01vw",
-        "height": "100vh"
+        "width": "64.53vw",
+        "height": "8.06vh"
       },
       "style": {
-        "backgroundColor": "transparent"
-      }
-    },
-    "superchat": {
-      "enabled": true,
-      "position": {
-        "x": "50.04vw",
-        "y": "53.13vh"
+        "fontSize": "3.5vw",
+        "fontWeight": "bold",
+        "fontStyle": "italic"
       },
-      "size": {},
-      "style": {}
-    },
-    "featured": {
-      "enabled": true,
-      "position": {
-        "x": "12.74vw",
-        "y": "18.14vh"
-      },
-      "size": {
-        "maxWidth": "calc(100vw - 16.41vw)"
-      },
-      "style": {
-        "fontSize": "32px"
+      "options": {
+        "content": "{{datetime:ss, yyyy HH:mm:ss}}"
       }
     }
   },

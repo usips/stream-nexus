@@ -322,40 +322,12 @@ export function EditorCanvas({
             newTopPx = Math.max(0, Math.min(CANVAS_HEIGHT - dragState.elementHeight, dy));
         }
 
-        // Calculate element center
-        const centerX = newLeftPx + dragState.elementWidth / 2;
-        const centerY = newTopPx + dragState.elementHeight / 2;
+        // Keep the same anchor type during drag to prevent flicker
+        // We'll switch anchors only on mouse up based on final position
+        const useRight = dragState.startRight !== null;
+        const useBottom = dragState.startBottom !== null;
 
-        // Determine which anchor the element was originally using
-        const wasUsingRight = dragState.startRight !== null;
-        const wasUsingBottom = dragState.startBottom !== null;
-
-        // Add hysteresis to prevent flicker at midpoint - only switch anchor
-        // when element center is more than 5% past the midpoint
-        const hysteresis = 0.05;
-        const midX = CANVAS_WIDTH / 2;
-        const midY = CANVAS_HEIGHT / 2;
-
-        let useRight: boolean;
-        let useBottom: boolean;
-
-        if (wasUsingRight) {
-            // Currently using right anchor - only switch to left if significantly past center
-            useRight = centerX > midX * (1 - hysteresis);
-        } else {
-            // Currently using left anchor - only switch to right if significantly past center
-            useRight = centerX > midX * (1 + hysteresis);
-        }
-
-        if (wasUsingBottom) {
-            // Currently using bottom anchor - only switch to top if significantly past center
-            useBottom = centerY > midY * (1 - hysteresis);
-        } else {
-            // Currently using top anchor - only switch to bottom if significantly past center
-            useBottom = centerY > midY * (1 + hysteresis);
-        }
-
-        // Build new position with vw/vh units
+        // Build new position with vw/vh units, keeping original anchor
         const newPosition: Position = {};
 
         if (useRight) {
@@ -376,9 +348,67 @@ export function EditorCanvas({
     }, [dragState, scale, layout.elements, updateElementConfig]);
 
     const handleMouseUp = useCallback(() => {
+        // On drag end, switch anchors based on final position
+        if (dragState) {
+            const element = layout.elements[dragState.elementId];
+            if (element) {
+                const pos = element.position;
+                const defaults = defaultSizes[dragState.elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
+                const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
+                const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+
+                // Calculate current position in pixels
+                let leftPx: number;
+                let topPx: number;
+
+                if (pos.x !== null && pos.x !== undefined) {
+                    leftPx = positionToPx(pos.x, true);
+                } else if (pos.right !== null && pos.right !== undefined) {
+                    leftPx = CANVAS_WIDTH - positionToPx(pos.right, true) - widthPx;
+                } else {
+                    leftPx = 0;
+                }
+
+                if (pos.y !== null && pos.y !== undefined) {
+                    topPx = positionToPx(pos.y, false);
+                } else if (pos.bottom !== null && pos.bottom !== undefined) {
+                    topPx = CANVAS_HEIGHT - positionToPx(pos.bottom, false) - heightPx;
+                } else {
+                    topPx = 0;
+                }
+
+                // Calculate element center
+                const centerX = leftPx + widthPx / 2;
+                const centerY = topPx + heightPx / 2;
+
+                // Determine optimal anchor based on center position
+                const useRight = centerX > CANVAS_WIDTH / 2;
+                const useBottom = centerY > CANVAS_HEIGHT / 2;
+
+                // Build final position with optimal anchors
+                const newPosition: Position = {};
+
+                if (useRight) {
+                    const rightPx = CANVAS_WIDTH - leftPx - widthPx;
+                    newPosition.right = pxToVw(Math.max(0, rightPx));
+                } else {
+                    newPosition.x = pxToVw(leftPx);
+                }
+
+                if (useBottom) {
+                    const bottomPx = CANVAS_HEIGHT - topPx - heightPx;
+                    newPosition.bottom = pxToVh(Math.max(0, bottomPx));
+                } else {
+                    newPosition.y = pxToVh(topPx);
+                }
+
+                updateElementConfig(dragState.elementId, { position: newPosition });
+            }
+        }
+
         setDragState(null);
         setResizeState(null);
-    }, []);
+    }, [dragState, layout.elements, updateElementConfig]);
 
     // Resize handlers
     const handleResizeStart = useCallback((e: React.MouseEvent, elementId: string, handle: ResizeState['handle']) => {
