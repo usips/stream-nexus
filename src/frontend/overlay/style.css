@@ -114,6 +114,7 @@ section#chat::-webkit-scrollbar {
 
     max-height: var(--message-max-height);
     overflow: hidden;
+    flex-shrink: 0; /* Prevent messages from shrinking/overlapping */
 
     font-family: "Open Sans";
     font-size: var(--message-text-size, var(--message-font-size));
