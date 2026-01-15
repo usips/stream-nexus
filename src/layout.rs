@@ -4,17 +4,25 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+/// Position value can be a number (pixels) or a string (CSS value like "10vw" or "5vh")
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum PositionValue {
+    Pixels(f64),
+    Css(String),
+}
+
 /// Position configuration for an element
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Position {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub x: Option<f64>,
+    pub x: Option<PositionValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub y: Option<f64>,
+    pub y: Option<PositionValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub right: Option<f64>,
+    pub right: Option<PositionValue>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bottom: Option<f64>,
+    pub bottom: Option<PositionValue>,
 }
 
 /// Size configuration for an element
@@ -174,13 +182,13 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(0.0),
-                    right: Some(0.0),
+                    y: Some(PositionValue::Css("0vh".to_string())),
+                    right: Some(PositionValue::Css("0vw".to_string())),
                     bottom: None,
                 },
                 size: Size {
-                    width: Some(SizeValue::Pixels(300.0)),
-                    height: Some(SizeValue::Css("100%".to_string())),
+                    width: Some(SizeValue::Css("15.63vw".to_string())),
+                    height: Some(SizeValue::Css("100vh".to_string())),
                     max_width: None,
                     max_height: None,
                 },
@@ -199,8 +207,8 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(0.0),
-                    y: Some(0.0),
+                    x: Some(PositionValue::Css("0vw".to_string())),
+                    y: Some(PositionValue::Css("0vh".to_string())),
                     right: None,
                     bottom: None,
                 },
@@ -217,10 +225,10 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(15.0),
+                    x: Some(PositionValue::Css("0.78vw".to_string())),
                     y: None,
                     right: None,
-                    bottom: Some(7.0),
+                    bottom: Some(PositionValue::Css("0.65vh".to_string())),
                 },
                 size: Size::default(),
                 style: Style {
@@ -242,15 +250,15 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(0.0),
+                    x: Some(PositionValue::Css("0vw".to_string())),
                     y: None,
                     right: None,
-                    bottom: Some(512.0),
+                    bottom: Some(PositionValue::Css("47.41vh".to_string())),
                 },
                 size: Size {
                     width: None,
                     height: None,
-                    max_width: Some("calc(100% - 315px)".to_string()),
+                    max_width: Some("calc(100vw - 16.41vw)".to_string()),
                     max_height: None,
                 },
                 style: Style {
@@ -269,7 +277,7 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(0.0),
+                    y: Some(PositionValue::Css("0vh".to_string())),
                     right: None,
                     bottom: None,
                 },
@@ -287,7 +295,7 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(0.0),
+                    y: Some(PositionValue::Css("0vh".to_string())),
                     right: None,
                     bottom: None,
                 },

@@ -287,10 +287,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    const numVal = parseFloat(val);
                                     updateElementConfig({
                                         size: {
-                                            width: val === '' ? undefined : (isNaN(numVal) ? val : numVal),
+                                            width: val === '' ? undefined : val,
                                         }
                                     });
                                 }}
@@ -304,10 +303,9 @@ export function SettingsPanel({
                                 placeholder="auto"
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    const numVal = parseFloat(val);
                                     updateElementConfig({
                                         size: {
-                                            height: val === '' ? undefined : (isNaN(numVal) ? val : numVal),
+                                            height: val === '' ? undefined : val,
                                         }
                                     });
                                 }}
