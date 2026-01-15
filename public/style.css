@@ -4,7 +4,8 @@
 
 html,
 body {
-    background: none;
+    background: transparent !important;
+    background-color: transparent !important;
     border: none;
     padding: 0;
     margin: 0;
@@ -13,11 +14,13 @@ body {
     overflow: hidden;
 }
 
+/* OBS browser source transparency */
+#overlay {
+    background: transparent !important;
+}
+
 /* Layout-controlled CSS custom properties */
 :root {
-    /* Chat panel */
-    --chat-width: 300px;
-
     /* Message styling (can be overridden by layout) */
     --message-font-size: 16px;
     --message-line-height: calc(var(--message-font-size) * 1.125);
@@ -32,11 +35,11 @@ body {
 
 /**
  * Live Viewers
+ * Position controlled by layout config
  */
 section#live {
     position: absolute;
-    top: 0;
-    left: 0;
+    /* Position controlled by layout config */
     padding: 15px;
 }
 
@@ -63,16 +66,12 @@ section#live {
 }
 
 /**
- * Attribution
+ * Text/Attribution Element
+ * All styling controlled by layout config
  */
 section#attribution {
     position: absolute;
-    bottom: 7px;
-    left: 15px;
-    font-size: 3.5vw;
-    font-family: 'Verlag Black', sans-serif;
-    font-style: italic;
-    font-weight: bold;
+    /* Defaults - all can be overridden by layout */
     color: #fff;
     text-shadow: 2px 2px 2px #000;
     -webkit-text-stroke: 2px #000;
@@ -80,13 +79,11 @@ section#attribution {
 
 /**
  * Chat Messages
+ * Position and size controlled by layout config
  */
 section#chat {
-    width: var(--chat-width);
     position: absolute;
-    right: 0;
-    bottom: 0;
-    top: 0;
+    /* Position and size controlled by layout config */
     overflow-x: hidden;
     overflow-y: auto;
     display: flex;
@@ -110,6 +107,7 @@ section#chat::-webkit-scrollbar {
 .msg {
     display: flex;
     flex-direction: row;
+    align-items: flex-start; /* Prevent children from stretching vertically */
     overflow: hidden;
     z-index: 1;
 
@@ -123,6 +121,7 @@ section#chat::-webkit-scrollbar {
 
     max-height: var(--message-max-height);
     overflow: hidden;
+    flex-shrink: 0; /* Prevent messages from shrinking/overlapping */
 
     font-family: "Open Sans";
     font-size: var(--message-text-size, var(--message-font-size));
@@ -184,24 +183,63 @@ section#chat::-webkit-scrollbar {
         1px 0 0 rgba(0, 0, 0, 0.1);
 }
 
-.msg--b-sub .msg-user {
-    color: rgb(47, 141, 21);
+/* Role badges - SVG icon badges */
+.msg-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    flex-shrink: 0;
 }
 
-.msg--b-mod .msg-user {
-    color: rgb(25, 124, 237);
+.msg-badge svg {
+    width: 1em;
+    height: 1em;
+    max-width: 1em;
+    max-height: 1em;
+    display: block;
+    flex-shrink: 0;
 }
 
-.msg--b-verified .msg-user {
-    color: rgb(168, 13, 168);
+/* Owner: Gold crown */
+.msg-badge--owner {
+    color: #ffd700;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
-.msg--b-staff .msg-user {
-    color: rgb(255, 52, 52);
+/* Staff: Red star */
+.msg-badge--staff {
+    color: #ff3434;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
-.msg--b-owner .msg-user {
-    color: rgb(255, 215, 0);
+/* Mod: Blue shield */
+.msg-badge--mod {
+    color: #197ce3;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Verified: Purple checkmark */
+.msg-badge--verified {
+    color: #a80da8;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Sub: Green star */
+.msg-badge--sub {
+    color: #2f8d15;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* Role borders for special users (keep existing) */
+.msg--b-owner {
+    border-color: gold;
+}
+
+.msg--b-staff {
+    border-color: red;
 }
 
 
@@ -303,6 +341,23 @@ section#chat::-webkit-scrollbar {
     content: '@';
 }
 
+/* Platform-based username colors (support both cases) */
+.msg--p-Kick .msg-user,
+.msg--p-kick .msg-user { color: var(--kick-brand, #53fc18); }
+.msg--p-YouTube .msg-user,
+.msg--p-youtube .msg-user { color: var(--youtube-brand, #ff0000); }
+.msg--p-Twitch .msg-user,
+.msg--p-twitch .msg-user { color: var(--twitch-brand, #9146ff); }
+.msg--p-Rumble .msg-user,
+.msg--p-rumble .msg-user { color: var(--rumble-brand, #85c742); }
+.msg--p-Odysee .msg-user,
+.msg--p-odysee .msg-user { color: var(--odysee-brand, #a60a43); }
+.msg--p-X .msg-user,
+.msg--p-x .msg-user { color: var(--x-brand, #1da1f2); }
+.msg--p-VK .msg-user,
+.msg--p-vk .msg-user { color: var(--vk-brand, #0077ff); }
+.msg--p-XMRChat .msg-user,
+.msg--p-xmrchat .msg-user { color: var(--xmr-brand, #ff7f0a); }
 
 .msg--p-XMRChat .msg-avatar-border {
     --brand-color: var(--xmr-brand, rgb(255 127 10));
@@ -379,6 +434,8 @@ section#chat::-webkit-scrollbar {
 }
 
 .msg-container {
+    flex: 1;
+    min-width: 0;
     max-width: 100%;
     height: auto;
     overflow: visible;
@@ -404,6 +461,53 @@ section#chat::-webkit-scrollbar {
     width: 100%;
     padding: 1em;
     padding-top: 0.5em;
+}
+
+/**
+ * Condensed Mode - Single line messages
+ * Applied via chat--condensed class on #chat container
+ */
+.chat--condensed .msg {
+    align-items: baseline;
+}
+
+.chat--condensed .msg-container {
+    display: inline;
+}
+
+.chat--condensed .msg-user {
+    display: inline;
+    margin-right: 0;
+}
+
+.chat--condensed .msg-username::after {
+    content: ':';
+    margin-right: 0.3em;
+}
+
+.chat--condensed .msg-text {
+    display: inline;
+}
+
+/* In condensed mode, badges appear before username */
+.chat--condensed .msg-badges {
+    order: -1;
+    margin-right: 0.3em;
+}
+
+/* In regular mode, badges appear after username */
+.msg-badges {
+    display: inline-flex;
+    gap: 0.2em;
+    margin-left: 0.3em;
+}
+
+/**
+ * Avatar Visibility Toggle
+ * Applied via chat--no-avatars class on #chat container
+ */
+.chat--no-avatars .msg-avatar-border {
+    display: none;
 }
 
 /**
@@ -434,12 +538,8 @@ section#chat::-webkit-scrollbar {
  **/
 section#show-message {
     position: absolute;
-    bottom: 512px;
-    left: 0;
-
+    /* Defaults - overridden by layout */
     width: auto;
-    max-width: calc(100% - var(--chat-width) - 15px);
-
     --message-text-size: 32px;
 }
 
