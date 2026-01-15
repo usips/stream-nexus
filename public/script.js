@@ -4,6 +4,68 @@ const feature_message = document.querySelector("#show-message");
 // Current layout state
 let current_layout = null;
 
+// ============================================================================
+// Message Buffer System
+// Smooths out message delivery to prevent jarring bursts from platforms like
+// YouTube and Twitch that send messages in batches.
+// ============================================================================
+
+const messageBuffer = {
+    queue: [],
+    maxWaitTime: 500, // Maximum time a message can wait (ms)
+    minInterval: 50,  // Minimum interval between messages (ms)
+    intervalId: null,
+
+    // Add a message to the buffer
+    push(message) {
+        this.queue.push({
+            message,
+            timestamp: Date.now()
+        });
+        this.ensureProcessing();
+    },
+
+    // Start processing if not already running
+    ensureProcessing() {
+        if (this.intervalId === null && this.queue.length > 0) {
+            this.scheduleNext();
+        }
+    },
+
+    // Calculate delay until next message based on queue size
+    getDelay() {
+        const queueSize = this.queue.length;
+        if (queueSize === 0) return this.minInterval;
+
+        // If we have N messages, we need to process them all within maxWaitTime
+        // So interval = maxWaitTime / queueSize, but never less than minInterval
+        const calculatedDelay = Math.floor(this.maxWaitTime / queueSize);
+        return Math.max(this.minInterval, calculatedDelay);
+    },
+
+    // Schedule the next message to be processed
+    scheduleNext() {
+        if (this.queue.length === 0) {
+            this.intervalId = null;
+            return;
+        }
+
+        const delay = this.getDelay();
+        this.intervalId = setTimeout(() => {
+            this.processOne();
+            this.scheduleNext();
+        }, delay);
+    },
+
+    // Process one message from the queue
+    processOne() {
+        if (this.queue.length === 0) return;
+
+        const item = this.queue.shift();
+        processMessageImmediate(item.message);
+    }
+};
+
 // Create WebSocket connection using current host
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/chat.ws`;
@@ -231,6 +293,24 @@ function handle_message(message) {
     if (handle_command(message)) {
         // consume message if it is a command.
         return null;
+    }
+
+    // Premium messages (superchats) bypass the buffer for immediate display
+    if (message.amount > 0) {
+        processMessageImmediate(message);
+        return;
+    }
+
+    // Regular messages go through the buffer for smooth flow
+    messageBuffer.push(message);
+}
+
+// Actually process and display a message (called by buffer or directly for premium)
+function processMessageImmediate(message) {
+    // Double-check it wasn't already added while in buffer
+    const existingEl = document.getElementById(message.id);
+    if (existingEl !== null) {
+        return existingEl;
     }
 
     // create message el
