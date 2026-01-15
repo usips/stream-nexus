@@ -1,28 +1,137 @@
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-/// Position value can be a number (pixels) or a string (CSS value like "10vw" or "5vh")
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum PositionValue {
-    Pixels(f64),
-    Css(String),
+/// A dimension value with explicit unit type
+#[derive(Debug, Clone, PartialEq)]
+pub enum Dimension {
+    /// Pixels (default for bare numbers)
+    Px(f64),
+    /// Viewport width percentage
+    Vw(f64),
+    /// Viewport height percentage
+    Vh(f64),
+    /// Percentage
+    Percent(f64),
+    /// CSS calc() expression or other complex value
+    Calc(String),
+}
+
+impl Dimension {
+    /// Parse a dimension from a string like "100vh", "50%", "calc(100% - 20px)"
+    pub fn parse(s: &str) -> Option<Self> {
+        let s = s.trim();
+
+        if s.starts_with("calc(") {
+            return Some(Dimension::Calc(s.to_string()));
+        }
+
+        if let Some(num_str) = s.strip_suffix("vw") {
+            return num_str.trim().parse().ok().map(Dimension::Vw);
+        }
+        if let Some(num_str) = s.strip_suffix("vh") {
+            return num_str.trim().parse().ok().map(Dimension::Vh);
+        }
+        if let Some(num_str) = s.strip_suffix('%') {
+            return num_str.trim().parse().ok().map(Dimension::Percent);
+        }
+        if let Some(num_str) = s.strip_suffix("px") {
+            return num_str.trim().parse().ok().map(Dimension::Px);
+        }
+
+        // Try parsing as bare number (pixels)
+        s.parse().ok().map(Dimension::Px)
+    }
+
+    /// Convert to CSS string
+    pub fn to_css(&self) -> String {
+        match self {
+            Dimension::Px(v) => format!("{}px", v),
+            Dimension::Vw(v) => format!("{}vw", v),
+            Dimension::Vh(v) => format!("{}vh", v),
+            Dimension::Percent(v) => format!("{}%", v),
+            Dimension::Calc(s) => s.clone(),
+        }
+    }
+}
+
+impl Serialize for Dimension {
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            // Serialize pixels as bare numbers for backward compatibility
+            Dimension::Px(v) => serializer.serialize_f64(*v),
+            // Serialize others as strings with units
+            _ => serializer.serialize_str(&self.to_css()),
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for Dimension {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        use serde::de::{self, Visitor};
+
+        struct DimensionVisitor;
+
+        impl<'de> Visitor<'de> for DimensionVisitor {
+            type Value = Dimension;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a number or a string with CSS units")
+            }
+
+            fn visit_i64<E>(self, v: i64) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Dimension::Px(v as f64))
+            }
+
+            fn visit_u64<E>(self, v: u64) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Dimension::Px(v as f64))
+            }
+
+            fn visit_f64<E>(self, v: f64) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Ok(Dimension::Px(v))
+            }
+
+            fn visit_str<E>(self, v: &str) -> std::result::Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                Dimension::parse(v)
+                    .ok_or_else(|| de::Error::custom(format!("invalid dimension: {}", v)))
+            }
+        }
+
+        deserializer.deserialize_any(DimensionVisitor)
+    }
 }
 
 /// Position configuration for an element
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Position {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub x: Option<PositionValue>,
+    pub x: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub y: Option<PositionValue>,
+    pub y: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub right: Option<PositionValue>,
+    pub right: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub bottom: Option<PositionValue>,
+    pub bottom: Option<Dimension>,
 }
 
 /// Size configuration for an element
@@ -30,21 +139,13 @@ pub struct Position {
 #[serde(rename_all = "camelCase")]
 pub struct Size {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub width: Option<SizeValue>,
+    pub width: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub height: Option<SizeValue>,
+    pub height: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_width: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_height: Option<String>,
-}
-
-/// Size value can be a number (pixels) or a string (CSS value like "100%" or "auto")
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum SizeValue {
-    Pixels(f64),
-    Css(String),
 }
 
 /// Style properties for an element
@@ -182,13 +283,13 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(PositionValue::Css("0vh".to_string())),
-                    right: Some(PositionValue::Css("0vw".to_string())),
+                    y: Some(Dimension::Vh(0.0)),
+                    right: Some(Dimension::Vw(0.0)),
                     bottom: None,
                 },
                 size: Size {
-                    width: Some(SizeValue::Css("15.63vw".to_string())),
-                    height: Some(SizeValue::Css("100vh".to_string())),
+                    width: Some(Dimension::Vw(15.63)),
+                    height: Some(Dimension::Vh(100.0)),
                     max_width: None,
                     max_height: None,
                 },
@@ -207,8 +308,8 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(PositionValue::Css("0vw".to_string())),
-                    y: Some(PositionValue::Css("0vh".to_string())),
+                    x: Some(Dimension::Vw(0.0)),
+                    y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
                 },
@@ -225,10 +326,10 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(PositionValue::Css("0.78vw".to_string())),
+                    x: Some(Dimension::Vw(0.78)),
                     y: None,
                     right: None,
-                    bottom: Some(PositionValue::Css("0.65vh".to_string())),
+                    bottom: Some(Dimension::Vh(0.65)),
                 },
                 size: Size::default(),
                 style: Style {
@@ -250,10 +351,10 @@ impl Layout {
                 enabled: true,
                 display_name: None,
                 position: Position {
-                    x: Some(PositionValue::Css("0vw".to_string())),
+                    x: Some(Dimension::Vw(0.0)),
                     y: None,
                     right: None,
-                    bottom: Some(PositionValue::Css("47.41vh".to_string())),
+                    bottom: Some(Dimension::Vh(47.41)),
                 },
                 size: Size {
                     width: None,
@@ -277,7 +378,7 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(PositionValue::Css("0vh".to_string())),
+                    y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
                 },
@@ -295,7 +396,7 @@ impl Layout {
                 display_name: None,
                 position: Position {
                     x: None,
-                    y: Some(PositionValue::Css("0vh".to_string())),
+                    y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
                 },
@@ -394,5 +495,94 @@ impl LayoutManager {
     pub fn exists(&self, name: &str) -> bool {
         let path = format!("{}/{}.json", self.layouts_dir, name);
         Path::new(&path).exists()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dimension_parse() {
+        assert_eq!(Dimension::parse("100"), Some(Dimension::Px(100.0)));
+        assert_eq!(Dimension::parse("100px"), Some(Dimension::Px(100.0)));
+        assert_eq!(Dimension::parse("50vw"), Some(Dimension::Vw(50.0)));
+        assert_eq!(Dimension::parse("100vh"), Some(Dimension::Vh(100.0)));
+        assert_eq!(Dimension::parse("75%"), Some(Dimension::Percent(75.0)));
+        assert_eq!(
+            Dimension::parse("calc(100% - 20px)"),
+            Some(Dimension::Calc("calc(100% - 20px)".to_string()))
+        );
+        assert_eq!(Dimension::parse("15.63vw"), Some(Dimension::Vw(15.63)));
+    }
+
+    #[test]
+    fn test_dimension_to_css() {
+        assert_eq!(Dimension::Px(100.0).to_css(), "100px");
+        assert_eq!(Dimension::Vw(50.0).to_css(), "50vw");
+        assert_eq!(Dimension::Vh(100.0).to_css(), "100vh");
+        assert_eq!(Dimension::Percent(75.0).to_css(), "75%");
+        assert_eq!(
+            Dimension::Calc("calc(100% - 20px)".to_string()).to_css(),
+            "calc(100% - 20px)"
+        );
+    }
+
+    #[test]
+    fn test_dimension_serialize() {
+        // Pixels serialize as bare numbers
+        let px = Dimension::Px(100.0);
+        assert_eq!(serde_json::to_string(&px).unwrap(), "100.0");
+
+        // Others serialize as strings with units
+        let vw = Dimension::Vw(50.0);
+        assert_eq!(serde_json::to_string(&vw).unwrap(), "\"50vw\"");
+
+        let vh = Dimension::Vh(100.0);
+        assert_eq!(serde_json::to_string(&vh).unwrap(), "\"100vh\"");
+
+        let pct = Dimension::Percent(75.0);
+        assert_eq!(serde_json::to_string(&pct).unwrap(), "\"75%\"");
+    }
+
+    #[test]
+    fn test_dimension_deserialize() {
+        // Numbers deserialize as pixels
+        let px: Dimension = serde_json::from_str("100").unwrap();
+        assert_eq!(px, Dimension::Px(100.0));
+
+        let px_float: Dimension = serde_json::from_str("100.5").unwrap();
+        assert_eq!(px_float, Dimension::Px(100.5));
+
+        // Strings with units deserialize correctly
+        let vw: Dimension = serde_json::from_str("\"50vw\"").unwrap();
+        assert_eq!(vw, Dimension::Vw(50.0));
+
+        let vh: Dimension = serde_json::from_str("\"100vh\"").unwrap();
+        assert_eq!(vh, Dimension::Vh(100.0));
+
+        let pct: Dimension = serde_json::from_str("\"75%\"").unwrap();
+        assert_eq!(pct, Dimension::Percent(75.0));
+
+        let calc: Dimension = serde_json::from_str("\"calc(100% - 20px)\"").unwrap();
+        assert_eq!(calc, Dimension::Calc("calc(100% - 20px)".to_string()));
+    }
+
+    #[test]
+    fn test_position_roundtrip() {
+        let pos = Position {
+            x: Some(Dimension::Vw(10.0)),
+            y: Some(Dimension::Vh(20.0)),
+            right: None,
+            bottom: Some(Dimension::Px(50.0)),
+        };
+
+        let json = serde_json::to_string(&pos).unwrap();
+        let parsed: Position = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.x, Some(Dimension::Vw(10.0)));
+        assert_eq!(parsed.y, Some(Dimension::Vh(20.0)));
+        assert_eq!(parsed.right, None);
+        assert_eq!(parsed.bottom, Some(Dimension::Px(50.0)));
     }
 }
