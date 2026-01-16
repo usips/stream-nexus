@@ -72,10 +72,40 @@ export interface MessageStyle {
     showSubBadge?: boolean;
 }
 
+// DonationMatter configuration options
+export interface DonationMatterOptions {
+    // Object appearance
+    objectType?: 'ammo' | 'coin' | 'custom';
+    objectScale?: number;
+    objectSprites?: string[];
+
+    // Physics properties
+    restitution?: number;            // Bounciness (0-1)
+    friction?: number;               // Surface friction (0-1)
+    frictionAir?: number;            // Air resistance (0-0.1)
+    density?: number;                // Mass per unit area
+
+    // Label display
+    showLabels?: boolean;
+    labelColor?: string;
+    labelFont?: string;
+    labelSize?: number;
+
+    // Spawn behavior
+    spawnRate?: number;              // Objects per dollar
+    spawnDelay?: number;             // Delay between spawns (ms)
+    maxObjects?: number;             // Maximum objects before cleanup
+
+    // Renderer options
+    showAngleIndicator?: boolean;
+    wireframes?: boolean;
+}
+
 export interface Frame {
     name: string;
     elements: string[];
     background?: string;
+    donationMatter?: DonationMatterOptions;  // Configuration for physics background
 }
 
 export interface Layout {
@@ -158,6 +188,7 @@ declare global {
             frameName: string;
             elements: string[];
             background: string | null;
+            donationMatter?: Record<string, unknown> | null;
         };
     }
 }

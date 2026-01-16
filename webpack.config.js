@@ -5,6 +5,7 @@ module.exports = {
     entry: {
         'script': './src/frontend/overlay/script.ts',
         'dashboard': './src/frontend/dashboard/dashboard.ts',
+        'background': './src/frontend/background/background.ts',
     },
     output: {
         filename: '[name].js',
@@ -21,6 +22,9 @@ module.exports = {
                 exclude: /node_modules/,
             },
         ],
+    },
+    externals: {
+        'matter-js': 'Matter',
     },
     target: 'web',
     devServer: {
