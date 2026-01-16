@@ -138,11 +138,41 @@ export interface MessageStyle {
     showSubBadge?: boolean;      // Default: true
 }
 
+// DonationMatter configuration options
+export interface DonationMatterOptions {
+    // Object appearance
+    objectType?: 'ammo' | 'coin' | 'custom';
+    objectScale?: number;
+    objectSprites?: string[];
+
+    // Physics properties
+    restitution?: number;            // Bounciness (0-1)
+    friction?: number;               // Surface friction (0-1)
+    frictionAir?: number;            // Air resistance (0-0.1)
+    density?: number;                // Mass per unit area
+
+    // Label display
+    showLabels?: boolean;
+    labelColor?: string;
+    labelFont?: string;
+    labelSize?: number;
+
+    // Spawn behavior
+    spawnRate?: number;              // Objects per dollar
+    spawnDelay?: number;             // Delay between spawns (ms)
+    maxObjects?: number;             // Maximum objects before cleanup
+
+    // Renderer options
+    showAngleIndicator?: boolean;
+    wireframes?: boolean;
+}
+
 /// A frame is a named view that shows a subset of elements
 export interface Frame {
     name: string;
     elements: string[];  // Element IDs to include (empty = all)
     background?: string; // Special background type (e.g., "physics")
+    donationMatter?: DonationMatterOptions;  // Configuration for physics background
 }
 
 export interface Layout {
@@ -180,6 +210,31 @@ export const defaultMessageStyle = (): MessageStyle => ({
     showSubBadge: true,
 });
 
+// Default DonationMatter configuration
+export const defaultDonationMatterOptions = (): DonationMatterOptions => ({
+    objectType: 'ammo',
+    objectScale: 0.1,
+    objectSprites: [
+        '/static/img/ammo_556_round_a.png',
+        '/static/img/ammo_556_round_b.png',
+        '/static/img/ammo_556_round_c.png',
+        '/static/img/ammo_556_round_d.png',
+    ],
+    restitution: 0.1,
+    friction: 0.8,
+    frictionAir: 0.02,
+    density: 0.008,
+    showLabels: true,
+    labelColor: '#ffff00',
+    labelFont: 'Verlag',
+    labelSize: 12,
+    spawnRate: 2,
+    spawnDelay: 50,
+    maxObjects: 500,
+    showAngleIndicator: false,
+    wireframes: false,
+});
+
 export const defaultFrames = (): Record<string, Frame> => ({
     overlay: {
         name: 'Overlay',
@@ -190,6 +245,7 @@ export const defaultFrames = (): Record<string, Frame> => ({
         name: 'Background',
         elements: [],
         background: 'physics',
+        donationMatter: defaultDonationMatterOptions(),
     },
 });
 

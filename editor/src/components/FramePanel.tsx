@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Layout, Frame, defaultFrames } from '../types/layout';
+import { Layout, Frame, defaultFrames, DonationMatterOptions, defaultDonationMatterOptions } from '../types/layout';
 
 interface FramePanelProps {
     layout: Layout;
@@ -26,6 +26,225 @@ function getElementDisplayName(elementId: string, layout: Layout): string {
     const suffix = elementId.match(/-(\d+)$/)?.[1];
     const baseName = names[baseId] || baseId.charAt(0).toUpperCase() + baseId.slice(1);
     return suffix ? `${baseName} ${suffix}` : baseName;
+}
+
+// Collapsible section component for DonationMatter settings
+interface CollapsibleSectionProps {
+    title: string;
+    defaultOpen?: boolean;
+    children: React.ReactNode;
+}
+
+function CollapsibleSection({ title, defaultOpen = false, children }: CollapsibleSectionProps) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className={`dm-collapsible ${isOpen ? 'open' : 'closed'}`}>
+            <div className="dm-section-header" onClick={() => setIsOpen(!isOpen)}>
+                <span className="dm-collapse-icon">{isOpen ? '▼' : '▶'}</span>
+                <span>{title}</span>
+            </div>
+            {isOpen && <div className="dm-section-content">{children}</div>}
+        </div>
+    );
+}
+
+// DonationMatter configuration panel
+interface DonationMatterSettingsProps {
+    config: DonationMatterOptions;
+    onChange: (config: DonationMatterOptions) => void;
+}
+
+function DonationMatterSettings({ config, onChange }: DonationMatterSettingsProps) {
+    const updateConfig = (updates: Partial<DonationMatterOptions>) => {
+        onChange({ ...config, ...updates });
+    };
+
+    return (
+        <div className="dm-settings">
+            <CollapsibleSection title="💥 Donation Matter" defaultOpen={true}>
+                <div className="dm-row">
+                    <label>Object Type</label>
+                    <select
+                        value={config.objectType || 'ammo'}
+                        onChange={(e) => updateConfig({ objectType: e.target.value as 'ammo' | 'coin' | 'custom' })}
+                    >
+                        <option value="ammo">Ammo Rounds</option>
+                        <option value="coin">Coins</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+
+                <div className="dm-row">
+                    <label>Object Scale</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max="1"
+                        value={config.objectScale ?? 0.1}
+                        onChange={(e) => updateConfig({ objectScale: parseFloat(e.target.value) })}
+                    />
+                </div>
+
+                <div className="dm-row">
+                    <label>Spawn Rate</label>
+                    <input
+                        type="number"
+                        step="0.5"
+                        min="0.5"
+                        max="20"
+                        value={config.spawnRate ?? 2}
+                        onChange={(e) => updateConfig({ spawnRate: parseFloat(e.target.value) })}
+                    />
+                    <small>objects per dollar</small>
+                </div>
+
+                <div className="dm-row">
+                    <label>Spawn Delay</label>
+                    <input
+                        type="number"
+                        step="10"
+                        min="10"
+                        max="500"
+                        value={config.spawnDelay ?? 50}
+                        onChange={(e) => updateConfig({ spawnDelay: parseInt(e.target.value) })}
+                    />
+                    <small>ms between spawns</small>
+                </div>
+
+                <div className="dm-row">
+                    <label>Max Objects</label>
+                    <input
+                        type="number"
+                        step="50"
+                        min="10"
+                        max="2000"
+                        value={config.maxObjects ?? 500}
+                        onChange={(e) => updateConfig({ maxObjects: parseInt(e.target.value) })}
+                    />
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="⚡ Physics" defaultOpen={false}>
+                <div className="dm-row">
+                    <label>Bounciness</label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.restitution ?? 0.1}
+                        onChange={(e) => updateConfig({ restitution: parseFloat(e.target.value) })}
+                    />
+                    <span className="dm-range-value">{(config.restitution ?? 0.1).toFixed(2)}</span>
+                </div>
+
+                <div className="dm-row">
+                    <label>Friction</label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={config.friction ?? 0.8}
+                        onChange={(e) => updateConfig({ friction: parseFloat(e.target.value) })}
+                    />
+                    <span className="dm-range-value">{(config.friction ?? 0.8).toFixed(2)}</span>
+                </div>
+
+                <div className="dm-row">
+                    <label>Air Resistance</label>
+                    <input
+                        type="range"
+                        min="0"
+                        max="0.1"
+                        step="0.005"
+                        value={config.frictionAir ?? 0.02}
+                        onChange={(e) => updateConfig({ frictionAir: parseFloat(e.target.value) })}
+                    />
+                    <span className="dm-range-value">{(config.frictionAir ?? 0.02).toFixed(3)}</span>
+                </div>
+
+                <div className="dm-row">
+                    <label>Density</label>
+                    <input
+                        type="range"
+                        min="0.001"
+                        max="0.05"
+                        step="0.001"
+                        value={config.density ?? 0.008}
+                        onChange={(e) => updateConfig({ density: parseFloat(e.target.value) })}
+                    />
+                    <span className="dm-range-value">{(config.density ?? 0.008).toFixed(3)}</span>
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="🏷️ Labels" defaultOpen={false}>
+                <div className="dm-row dm-checkbox">
+                    <input
+                        type="checkbox"
+                        id="dm-show-labels"
+                        checked={config.showLabels !== false}
+                        onChange={(e) => updateConfig({ showLabels: e.target.checked })}
+                    />
+                    <label htmlFor="dm-show-labels">Show Username Labels</label>
+                </div>
+
+                <div className="dm-row">
+                    <label>Label Color</label>
+                    <input
+                        type="color"
+                        value={config.labelColor || '#ffff00'}
+                        onChange={(e) => updateConfig({ labelColor: e.target.value })}
+                    />
+                </div>
+
+                <div className="dm-row">
+                    <label>Label Font</label>
+                    <input
+                        type="text"
+                        value={config.labelFont || 'Verlag'}
+                        onChange={(e) => updateConfig({ labelFont: e.target.value })}
+                    />
+                </div>
+
+                <div className="dm-row">
+                    <label>Label Size</label>
+                    <input
+                        type="number"
+                        min="8"
+                        max="48"
+                        value={config.labelSize ?? 12}
+                        onChange={(e) => updateConfig({ labelSize: parseInt(e.target.value) })}
+                    />
+                    <small>px</small>
+                </div>
+            </CollapsibleSection>
+
+            <CollapsibleSection title="🔧 Debug" defaultOpen={false}>
+                <div className="dm-row dm-checkbox">
+                    <input
+                        type="checkbox"
+                        id="dm-wireframes"
+                        checked={config.wireframes === true}
+                        onChange={(e) => updateConfig({ wireframes: e.target.checked })}
+                    />
+                    <label htmlFor="dm-wireframes">Wireframe Mode</label>
+                </div>
+
+                <div className="dm-row dm-checkbox">
+                    <input
+                        type="checkbox"
+                        id="dm-angle-indicator"
+                        checked={config.showAngleIndicator === true}
+                        onChange={(e) => updateConfig({ showAngleIndicator: e.target.checked })}
+                    />
+                    <label htmlFor="dm-angle-indicator">Show Angle Indicators</label>
+                </div>
+            </CollapsibleSection>
+        </div>
+    );
 }
 
 export function FramePanel({
@@ -211,16 +430,28 @@ export function FramePanel({
                                         <label>Background</label>
                                         <select
                                             value={frame.background || ''}
-                                            onChange={(e) =>
-                                                updateFrame(frameId, {
-                                                    background: e.target.value || undefined,
-                                                })
-                                            }
+                                            onChange={(e) => {
+                                                const newBackground = e.target.value || undefined;
+                                                const updates: Partial<Frame> = { background: newBackground };
+                                                // Add default donation matter config when enabling physics
+                                                if (newBackground === 'physics' && !frame.donationMatter) {
+                                                    updates.donationMatter = defaultDonationMatterOptions();
+                                                }
+                                                updateFrame(frameId, updates);
+                                            }}
                                         >
                                             <option value="">None</option>
-                                            <option value="physics">Physics</option>
+                                            <option value="physics">Physics (Donation Matter)</option>
                                         </select>
                                     </div>
+
+                                    {frame.background === 'physics' && (
+                                        <DonationMatterSettings
+                                            config={frame.donationMatter || defaultDonationMatterOptions()}
+                                            onChange={(newConfig) => updateFrame(frameId, { donationMatter: newConfig })}
+                                        />
+                                    )}
+
                                     <div className="frame-edit-row">
                                         <label>
                                             Elements

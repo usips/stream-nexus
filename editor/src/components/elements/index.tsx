@@ -181,3 +181,32 @@ export function SuperchatDisplay({ style }: { style?: React.CSSProperties }) {
 SuperchatDisplay.craft = {
     displayName: 'Superchat Display',
 };
+
+// Donation Matter element (for background physics visualization)
+export function DonationMatter({ style }: { style?: React.CSSProperties }) {
+    const { connectors: { connect, drag }, selected } = useNode((state) => ({
+        selected: state.events.selected,
+    }));
+
+    return (
+        <div
+            ref={(ref) => ref && connect(drag(ref))}
+            style={style}
+            className={`element-wrapper ${selected ? 'selected' : ''}`}
+        >
+            <span className="element-label">Donation Matter</span>
+            <div className="preview-donation-matter">
+                <div className="physics-preview">
+                    <span className="bullet">💥</span>
+                    <span className="bullet">💥</span>
+                    <span className="bullet">💥</span>
+                </div>
+                <small>Physics-based donation visualization</small>
+            </div>
+        </div>
+    );
+}
+
+DonationMatter.craft = {
+    displayName: 'Donation Matter',
+};

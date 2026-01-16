@@ -14,6 +14,7 @@ import {
     FeaturedMessage,
     PollDisplay,
     SuperchatDisplay,
+    DonationMatter,
     Container,
 } from './components/elements';
 import './styles.css';
@@ -254,6 +255,7 @@ function App() {
                     FeaturedMessage,
                     PollDisplay,
                     SuperchatDisplay,
+                    DonationMatter,
                 }}
             >
                 <TopBar

@@ -62,6 +62,16 @@ export function Toolbox() {
                 elementId="superchat"
             />
 
+            <h3 style={{ marginTop: '24px' }}>Background</h3>
+            <div className="toolbox-info" style={{ fontSize: '12px', color: '#888', marginBottom: '8px' }}>
+                Background elements are configured per-frame in the Frames panel.
+            </div>
+
+            <div className="toolbox-item disabled" title="Configure in Frames panel">
+                <span className="toolbox-icon">💥</span>
+                <span>Donation Matter</span>
+            </div>
+
             <h3 style={{ marginTop: '24px' }}>Tips</h3>
             <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>
                 <p>Click an element to select it and edit its properties.</p>
