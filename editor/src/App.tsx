@@ -6,6 +6,7 @@ import { TopBar } from './components/TopBar';
 import { Toolbox } from './components/Toolbox';
 import { SettingsPanel } from './components/SettingsPanel';
 import { EditorCanvas } from './components/EditorCanvas';
+import { FramePanel } from './components/FramePanel';
 import {
     ChatPanel,
     LiveBadge,
@@ -33,6 +34,7 @@ function App() {
     const [localLayout, setLocalLayout] = useState<Layout>(defaultLayout());
     const [autoSave, setAutoSave] = useState(true);
     const [selectedElement, setSelectedElement] = useState<string>('chat');
+    const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
     const [undoHistory, setUndoHistory] = useState<Layout[]>([]);
     const [redoHistory, setRedoHistory] = useState<Layout[]>([]);
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
@@ -265,7 +267,18 @@ function App() {
                     onAutoSaveChange={setAutoSave}
                 />
                 <div className="editor-main">
-                    <Toolbox />
+                    <div className="editor-left-panels">
+                        <Toolbox />
+                        <FramePanel
+                            layout={localLayout}
+                            onLayoutChange={(newLayout) => {
+                                setLocalLayout(newLayout);
+                                broadcastLayout(newLayout);
+                            }}
+                            selectedFrame={selectedFrame}
+                            onSelectFrame={setSelectedFrame}
+                        />
+                    </div>
                     <EditorCanvas
                         layout={localLayout}
                         onLayoutChange={(newLayout) => {
@@ -279,6 +292,7 @@ function App() {
                         onRedo={handleRedo}
                         canUndo={undoHistory.length > 0}
                         canRedo={redoHistory.length > 0}
+                        selectedFrame={selectedFrame}
                     />
                     <SettingsPanel
                         layout={localLayout}

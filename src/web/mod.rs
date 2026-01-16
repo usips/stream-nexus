@@ -19,6 +19,10 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(1);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Template)]
+#[template(path = "home.html")]
+struct HomeTemplate {}
+
+#[derive(Template)]
 #[template(path = "chat.html")]
 struct ChatTemplate {}
 
@@ -26,6 +30,11 @@ struct ChatTemplate {}
 #[template(path = "dashboard.html")]
 struct DashboardTemplate {
     super_chats: Vec<crate::message::Message>,
+}
+
+#[actix_web::get("/")]
+pub async fn home() -> impl Responder {
+    HomeTemplate {}
 }
 
 #[derive(Template)]

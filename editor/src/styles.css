@@ -136,9 +136,9 @@
 .toolbox {
     width: 200px;
     background: #16213e;
-    border-right: 1px solid #0f3460;
     padding: 16px;
     overflow-y: auto;
+    flex-shrink: 0;
 }
 
 .toolbox h3 {
@@ -949,4 +949,220 @@
     display: flex;
     gap: 8px;
     justify-content: flex-end;
+}
+
+/* ============================================================================
+   Left Panels Container (Toolbox + FramePanel)
+   ============================================================================ */
+
+.editor-left-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: #16213e;
+    border-right: 1px solid #0f3460;
+}
+
+/* ============================================================================
+   Frame Panel
+   ============================================================================ */
+
+.frame-panel {
+    width: 200px;
+    background: #16213e;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    border-top: 1px solid #0f3460;
+}
+
+.frame-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    border-bottom: 1px solid #0f3460;
+}
+
+.frame-panel-header h4 {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #aaa;
+}
+
+.frame-panel .frame-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.frame-panel .frame-item {
+    background: rgba(15, 52, 96, 0.5);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: background 0.15s;
+}
+
+.frame-panel .frame-item:hover {
+    background: rgba(15, 52, 96, 0.8);
+}
+
+.frame-panel .frame-item.selected {
+    background: #0f3460;
+    border: 1px solid #e94560;
+}
+
+.frame-panel .frame-item.editing {
+    background: #0f3460;
+}
+
+.frame-panel .frame-item-header {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.frame-panel .frame-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #eee;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.frame-panel .frame-meta {
+    font-size: 11px;
+    color: #888;
+    flex-shrink: 0;
+}
+
+.frame-panel .frame-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.frame-panel .btn-xs {
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 3px;
+}
+
+.frame-panel .frame-edit-panel {
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid #0f3460;
+}
+
+.frame-panel .frame-edit-row {
+    margin-bottom: 12px;
+}
+
+.frame-panel .frame-edit-row:last-child {
+    margin-bottom: 0;
+}
+
+.frame-panel .frame-edit-row label {
+    display: block;
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.frame-panel .frame-edit-row input,
+.frame-panel .frame-edit-row select {
+    width: 100%;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #0f3460;
+    background: #1a1a2e;
+    color: #eee;
+    font-size: 12px;
+}
+
+.frame-panel .frame-elements-list {
+    max-height: 120px;
+    overflow-y: auto;
+    background: #1a1a2e;
+    border-radius: 4px;
+    padding: 4px 8px;
+    border: 1px solid #0f3460;
+}
+
+.frame-panel .frame-element-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    font-size: 12px;
+    color: #ccc;
+    cursor: pointer;
+}
+
+.frame-panel .frame-element-checkbox:hover {
+    color: #fff;
+}
+
+.frame-panel .frame-element-checkbox input {
+    width: auto;
+    margin: 0;
+}
+
+.frame-panel .frame-edit-url {
+    padding-top: 8px;
+    border-top: 1px solid #0f3460;
+}
+
+.frame-panel .frame-edit-url label {
+    display: block;
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.frame-panel .frame-edit-url code {
+    display: block;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 11px;
+    color: #e94560;
+    background: #1a1a2e;
+    padding: 6px 8px;
+    border-radius: 4px;
+    user-select: all;
+}
+
+.frame-add {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #0f3460;
+}
+
+.frame-add input {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: 1px solid #0f3460;
+    background: #1a1a2e;
+    color: #eee;
+    font-size: 12px;
+}
+
+.frame-add input::placeholder {
+    color: #666;
+}
+
+.frame-add .btn-sm {
+    flex-shrink: 0;
 }

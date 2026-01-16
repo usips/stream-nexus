@@ -22,6 +22,7 @@ interface EditorCanvasProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    selectedFrame: string | null;
 }
 
 interface DragState {
@@ -134,6 +135,7 @@ export function EditorCanvas({
     onRedo,
     canUndo,
     canRedo,
+    selectedFrame,
 }: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
     const [autoScale, setAutoScale] = useState(true);
@@ -1014,9 +1016,21 @@ export function EditorCanvas({
                         }
                     }}
                 >
-                    {Object.entries(layout.elements).map(([id, config]) =>
-                        renderElement(id, config)
-                    )}
+                    {Object.entries(layout.elements).map(([id, config]) => {
+                        // Filter by frame if one is selected
+                        if (selectedFrame && layout.frames) {
+                            const frame = layout.frames[selectedFrame];
+                            if (frame) {
+                                // Empty elements array means show all
+                                if (frame.elements && frame.elements.length > 0) {
+                                    if (!frame.elements.includes(id)) {
+                                        return null;
+                                    }
+                                }
+                            }
+                        }
+                        return renderElement(id, config);
+                    })}
                 </div>
             </div>
         </div>
