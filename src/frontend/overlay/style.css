@@ -123,7 +123,7 @@ section#chat::-webkit-scrollbar {
     overflow: hidden;
     flex-shrink: 0; /* Prevent messages from shrinking/overlapping */
 
-    font-family: "Open Sans";
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
     font-size: var(--message-text-size, var(--message-font-size));
     line-height: var(--message-line-height);
     color: var(--message-text-color, var(--message-color));
@@ -468,15 +468,19 @@ section#chat::-webkit-scrollbar {
  * Applied via chat--condensed class on #chat container
  */
 .chat--condensed .msg {
-    align-items: baseline;
+    align-items: center;
+    border-radius: 0;
 }
 
 .chat--condensed .msg-container {
     display: inline;
 }
 
+/* Make msg-user a flex container so order property works for badges */
 .chat--condensed .msg-user {
-    display: inline;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
     margin-right: 0;
 }
 
@@ -489,9 +493,19 @@ section#chat::-webkit-scrollbar {
     display: inline;
 }
 
-/* In condensed mode, badges appear before username */
+/* In condensed mode, badges appear BEFORE username (left side) */
 .chat--condensed .msg-badges {
     order: -1;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+/* In condensed mode, avatars are same size as badges */
+.chat--condensed .msg-avatar-border {
+    width: 1em;
+    height: 1em;
+    min-width: 1em;
+    min-height: 1em;
     margin-right: 0.3em;
 }
 
@@ -555,7 +569,7 @@ section#show-message .msg {
     position: absolute;
     z-index: 100;
     width: 100%;
-    font-family: "Open Sans";
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
 }
 
 #superchat-ui {

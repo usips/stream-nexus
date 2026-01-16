@@ -123,6 +123,7 @@ impl<'de> Deserialize<'de> for Dimension {
 
 /// Position configuration for an element
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Position {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub x: Option<Dimension>,
@@ -132,6 +133,8 @@ pub struct Position {
     pub right: Option<Dimension>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bottom: Option<Dimension>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub z_index: Option<i32>,
 }
 
 /// Size configuration for an element
@@ -176,6 +179,12 @@ pub struct Style {
     pub transform: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub z_index: Option<i32>,
+    /// SCSS source to apply to the element
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_css: Option<String>,
+    /// Compiled CSS (populated by server from custom_css)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub compiled_css: Option<String>,
 }
 
 /// Configuration for an individual overlay element
@@ -281,6 +290,30 @@ impl Default for MessageStyle {
     }
 }
 
+/// A frame is a named view that shows a subset of elements
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Frame {
+    /// Display name for the frame
+    pub name: String,
+    /// Element IDs to include in this frame (empty = all elements)
+    #[serde(default)]
+    pub elements: Vec<String>,
+    /// Optional background color for this frame
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+}
+
+impl Default for Frame {
+    fn default() -> Self {
+        Self {
+            name: "default".to_string(),
+            elements: vec![],
+            background: None,
+        }
+    }
+}
+
 /// Complete layout configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -292,6 +325,32 @@ pub struct Layout {
     pub elements: HashMap<String, ElementConfig>,
     #[serde(default)]
     pub message_style: MessageStyle,
+    /// Named frames (views) for this layout
+    #[serde(default = "default_frames")]
+    pub frames: HashMap<String, Frame>,
+}
+
+fn default_frames() -> HashMap<String, Frame> {
+    let mut frames = HashMap::new();
+    // Default "overlay" frame shows all elements
+    frames.insert(
+        "overlay".to_string(),
+        Frame {
+            name: "Overlay".to_string(),
+            elements: vec![],
+            background: None,
+        },
+    );
+    // Default "background" frame for physics background
+    frames.insert(
+        "background".to_string(),
+        Frame {
+            name: "Background".to_string(),
+            elements: vec![],
+            background: Some("physics".to_string()),
+        },
+    );
+    frames
 }
 
 fn default_version() -> u32 {
@@ -314,6 +373,7 @@ impl Layout {
                     y: Some(Dimension::Vh(0.0)),
                     right: Some(Dimension::Vw(0.0)),
                     bottom: None,
+                    z_index: None,
                 },
                 size: Size {
                     width: Some(Dimension::Vw(15.63)),
@@ -340,6 +400,7 @@ impl Layout {
                     y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
+                    z_index: None,
                 },
                 size: Size::default(),
                 style: Style::default(),
@@ -358,6 +419,7 @@ impl Layout {
                     y: None,
                     right: None,
                     bottom: Some(Dimension::Vh(0.65)),
+                    z_index: None,
                 },
                 size: Size::default(),
                 style: Style {
@@ -383,6 +445,7 @@ impl Layout {
                     y: None,
                     right: None,
                     bottom: Some(Dimension::Vh(47.41)),
+                    z_index: None,
                 },
                 size: Size {
                     width: None,
@@ -409,6 +472,7 @@ impl Layout {
                     y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
+                    z_index: None,
                 },
                 size: Size::default(),
                 style: Style::default(),
@@ -427,6 +491,7 @@ impl Layout {
                     y: Some(Dimension::Vh(0.0)),
                     right: None,
                     bottom: None,
+                    z_index: None,
                 },
                 size: Size::default(),
                 style: Style::default(),
@@ -439,8 +504,57 @@ impl Layout {
             version: 1,
             elements,
             message_style: MessageStyle::default(),
+            frames: default_frames(),
         }
     }
+
+    /// Compile SCSS in all elements' custom_css fields
+    pub fn compile_scss(&mut self) {
+        for (_id, config) in self.elements.iter_mut() {
+            if let Some(scss) = &config.style.custom_css {
+                if !scss.trim().is_empty() {
+                    match compile_scss_to_css(scss) {
+                        Ok(css) => {
+                            config.style.compiled_css = Some(css);
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to compile SCSS: {}", e);
+                            // Fall back to using the source as-is
+                            config.style.compiled_css = Some(scss.clone());
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Compile SCSS source to CSS
+fn compile_scss_to_css(scss: &str) -> Result<String> {
+    // Wrap in a dummy selector so grass can parse it
+    let wrapped = format!(".element {{ {} }}", scss);
+
+    let options = grass::Options::default().style(grass::OutputStyle::Expanded);
+    let compiled = grass::from_string(wrapped, &options)
+        .map_err(|e| anyhow::anyhow!("SCSS compilation error: {}", e))?;
+
+    // Extract just the properties from inside .element { }
+    // The compiled CSS will be like: .element {\n  property: value;\n}\n
+    if let Some(start) = compiled.find('{') {
+        if let Some(end) = compiled.rfind('}') {
+            let inner = &compiled[start + 1..end];
+            // Clean up the extracted CSS
+            let css = inner
+                .lines()
+                .map(|line| line.trim())
+                .filter(|line| !line.is_empty())
+                .collect::<Vec<_>>()
+                .join(" ");
+            return Ok(css);
+        }
+    }
+
+    Ok(scss.to_string())
 }
 
 /// Manages layout storage and retrieval
@@ -499,10 +613,14 @@ impl LayoutManager {
         Ok(layout)
     }
 
-    /// Save a layout
+    /// Save a layout (compiles SCSS before saving)
     pub fn save(&self, layout: &Layout) -> Result<()> {
+        // Clone and compile SCSS
+        let mut layout = layout.clone();
+        layout.compile_scss();
+
         let path = format!("{}/{}.json", self.layouts_dir, layout.name);
-        let content = serde_json::to_string_pretty(layout)
+        let content = serde_json::to_string_pretty(&layout)
             .context("Failed to serialize layout")?;
         fs::write(&path, content)
             .context(format!("Failed to write layout file: {}", path))?;
@@ -603,6 +721,7 @@ mod tests {
             y: Some(Dimension::Vh(20.0)),
             right: None,
             bottom: Some(Dimension::Px(50.0)),
+            z_index: None,
         };
 
         let json = serde_json::to_string(&pos).unwrap();
@@ -612,5 +731,25 @@ mod tests {
         assert_eq!(parsed.y, Some(Dimension::Vh(20.0)));
         assert_eq!(parsed.right, None);
         assert_eq!(parsed.bottom, Some(Dimension::Px(50.0)));
+    }
+
+    #[test]
+    fn test_scss_compilation() {
+        // Test basic SCSS with variables
+        let scss = "$color: #ff0000; background: $color;";
+        let result = super::compile_scss_to_css(scss).unwrap();
+        assert!(result.contains("background:"));
+        assert!(result.contains("#ff0000") || result.contains("red"));
+
+        // Test color functions
+        let scss_color = "color: lighten(#000, 50%);";
+        let result = super::compile_scss_to_css(scss_color).unwrap();
+        assert!(result.contains("color:"));
+
+        // Test plain CSS passthrough
+        let plain_css = "margin: 10px; padding: 5px;";
+        let result = super::compile_scss_to_css(plain_css).unwrap();
+        assert!(result.contains("margin:"));
+        assert!(result.contains("padding:"));
     }
 }

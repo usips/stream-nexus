@@ -19,9 +19,6 @@ const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(1);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Template)]
-#[template(path = "background.html")]
-struct BackgroundTemplate {}
-#[derive(Template)]
 #[template(path = "chat.html")]
 struct ChatTemplate {}
 
@@ -32,12 +29,70 @@ struct DashboardTemplate {
 }
 
 #[derive(Template)]
-#[template(path = "overlay.html")]
-struct OverlayTemplate {}
+#[template(path = "frame.html")]
+struct FrameTemplate {
+    view_id: String,
+    frame_name: String,
+    elements_json: String,
+    background: String,  // Empty string means no background
+}
 
+/// Query parameters for frame endpoint
+#[derive(serde::Deserialize)]
+pub struct FrameQuery {
+    view: Option<String>,
+}
+
+#[actix_web::get("/frame")]
+pub async fn frame(req: HttpRequest, query: web::Query<FrameQuery>) -> impl Responder {
+    let view_id = query.view.clone().unwrap_or_else(|| "overlay".to_string());
+
+    // Get frame config from the active layout
+    let chat_server = req
+        .app_data::<Addr<ChatServer>>()
+        .expect("ChatServer missing in app data!")
+        .clone();
+
+    let layout = chat_server.send(message::RequestLayout).await.unwrap();
+    let frame_config = layout.frames.get(&view_id);
+
+    let (frame_name, elements, bg) = match frame_config {
+        Some(f) => (
+            f.name.clone(),
+            f.elements.clone(),
+            f.background.clone().unwrap_or_default(),
+        ),
+        None => (
+            view_id.clone(),
+            vec![],
+            String::new(),
+        ),
+    };
+
+    let elements_json = serde_json::to_string(&elements).unwrap_or_else(|_| "[]".to_string());
+
+    FrameTemplate {
+        view_id,
+        frame_name,
+        elements_json,
+        background: bg,
+    }
+}
+
+/// Backward compatibility: /overlay redirects to /frame?view=overlay
+#[actix_web::get("/overlay")]
+pub async fn overlay_redirect() -> impl Responder {
+    HttpResponse::TemporaryRedirect()
+        .insert_header((header::LOCATION, "/frame?view=overlay"))
+        .finish()
+}
+
+/// Backward compatibility: /background redirects to /frame?view=background
 #[actix_web::get("/background")]
-pub async fn background() -> impl Responder {
-    BackgroundTemplate {}
+pub async fn background_redirect() -> impl Responder {
+    HttpResponse::TemporaryRedirect()
+        .insert_header((header::LOCATION, "/frame?view=background"))
+        .finish()
 }
 
 #[actix_web::get("/chat")]
@@ -59,11 +114,6 @@ pub async fn dashboard(req: HttpRequest) -> impl Responder {
     DashboardTemplate {
         super_chats: chat_server.send(PaidMessages).await.unwrap(),
     }
-}
-
-#[actix_web::get("/overlay")]
-pub async fn overlay() -> impl Responder {
-    OverlayTemplate {}
 }
 
 #[actix_web::get("/static/{filename:.*}")]

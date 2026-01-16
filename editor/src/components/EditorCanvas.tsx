@@ -618,6 +618,27 @@ export function EditorCanvas({
         superchat: { width: 300, height: 100 },
     };
 
+    // Parse CSS string into style object
+    // Note: SCSS is compiled server-side; compiledCss contains the result
+    const parseCustomCss = (css: string): React.CSSProperties => {
+        const style: Record<string, string> = {};
+        if (!css) return style;
+
+        // Split by semicolons and parse each property
+        const rules = css.split(';').map(r => r.trim()).filter(r => r && !r.startsWith('/*') && !r.startsWith('//'));
+        for (const rule of rules) {
+            const colonIndex = rule.indexOf(':');
+            if (colonIndex > 0) {
+                const prop = rule.slice(0, colonIndex).trim();
+                const value = rule.slice(colonIndex + 1).trim();
+                // Convert kebab-case to camelCase for React
+                const camelProp = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+                style[camelProp] = value;
+            }
+        }
+        return style as React.CSSProperties;
+    };
+
     const getElementStyle = (elementId: string, config: ElementConfig): React.CSSProperties => {
         const style: React.CSSProperties = {
             position: 'absolute',
@@ -650,6 +671,17 @@ export function EditorCanvas({
         const heightValue = config.size.height ?? defaults.height;
         style.width = sizeToPx(widthValue, true);
         style.height = sizeToPx(heightValue, false);
+
+        // Z-index
+        if (config.position.zIndex !== undefined) {
+            style.zIndex = config.position.zIndex;
+        }
+
+        // Apply custom CSS (use compiledCss if available, otherwise parse customCss)
+        const cssToApply = config.style.compiledCss || config.style.customCss;
+        if (cssToApply) {
+            Object.assign(style, parseCustomCss(cssToApply));
+        }
 
         return style;
     };

@@ -35,10 +35,11 @@ async fn main() -> Result<(), std::io::Error> {
         App::new()
             .app_data(chat_for_server.clone())
             // Views
-            .service(web::background)
+            .service(web::frame)
+            .service(web::overlay_redirect)
+            .service(web::background_redirect)
             .service(web::chat)
             .service(web::dashboard)
-            .service(web::overlay)
             .service(web::editor)
             .service(web::editor_static)
             // Static files

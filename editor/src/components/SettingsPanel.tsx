@@ -18,7 +18,7 @@ interface CollapsibleSectionProps {
     children: React.ReactNode;
 }
 
-function CollapsibleSection({ title, defaultOpen = true, children }: CollapsibleSectionProps) {
+function CollapsibleSection({ title, defaultOpen = false, children }: CollapsibleSectionProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
@@ -205,216 +205,8 @@ export function SettingsPanel({
                     </div>
                 </div>
 
-                {/* Element-specific Options Section - at top for quick access */}
-                <ElementOptionsSection
-                    elementId={selectedElement}
-                    config={currentConfig}
-                    onUpdate={updateElementConfig}
-                />
-
-                {/* Position Section */}
-                <CollapsibleSection title="Position" defaultOpen={false}>
-                    <div className="settings-row-inline">
-                        <div className="settings-row">
-                            <label>X (Left)</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.x ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
-                                    position: {
-                                        ...currentConfig.position,
-                                        x: e.target.value || undefined,
-                                        right: undefined, // Clear opposite anchor
-                                    }
-                                })}
-                            />
-                        </div>
-                        <div className="settings-row">
-                            <label>Y (Top)</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.y ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
-                                    position: {
-                                        ...currentConfig.position,
-                                        y: e.target.value || undefined,
-                                        bottom: undefined, // Clear opposite anchor
-                                    }
-                                })}
-                            />
-                        </div>
-                    </div>
-                    <div className="settings-row-inline">
-                        <div className="settings-row">
-                            <label>Right</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.right ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
-                                    position: {
-                                        ...currentConfig.position,
-                                        right: e.target.value || undefined,
-                                        x: undefined, // Clear opposite anchor
-                                    }
-                                })}
-                            />
-                        </div>
-                        <div className="settings-row">
-                            <label>Bottom</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.bottom ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
-                                    position: {
-                                        ...currentConfig.position,
-                                        bottom: e.target.value || undefined,
-                                        y: undefined, // Clear opposite anchor
-                                    }
-                                })}
-                            />
-                        </div>
-                    </div>
-                </CollapsibleSection>
-
-                {/* Size Section */}
-                <CollapsibleSection title="Size" defaultOpen={true}>
-                    <div className="settings-row-inline">
-                        <div className="settings-row">
-                            <label>Width</label>
-                            <input
-                                type="text"
-                                value={currentConfig.size.width ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    updateElementConfig({
-                                        size: {
-                                            width: val === '' ? undefined : val,
-                                        }
-                                    });
-                                }}
-                            />
-                        </div>
-                        <div className="settings-row">
-                            <label>Height</label>
-                            <input
-                                type="text"
-                                value={currentConfig.size.height ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    updateElementConfig({
-                                        size: {
-                                            height: val === '' ? undefined : val,
-                                        }
-                                    });
-                                }}
-                            />
-                        </div>
-                    </div>
-                </CollapsibleSection>
-
-                {/* Style Section */}
-                <CollapsibleSection title="Style" defaultOpen={false}>
-                    <div className="settings-row">
-                        <label>Background Color</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.backgroundColor ?? ''}
-                            placeholder="transparent"
-                            onChange={(e) => updateElementConfig({
-                                style: { backgroundColor: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Font Size</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.fontSize ?? ''}
-                            placeholder="inherit"
-                            onChange={(e) => updateElementConfig({
-                                style: { fontSize: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Font Family</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.fontFamily ?? ''}
-                            placeholder="inherit"
-                            onChange={(e) => updateElementConfig({
-                                style: { fontFamily: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Font Weight</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.fontWeight ?? ''}
-                            placeholder="normal"
-                            onChange={(e) => updateElementConfig({
-                                style: { fontWeight: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Text Color</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.color ?? ''}
-                            placeholder="inherit"
-                            onChange={(e) => updateElementConfig({
-                                style: { color: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Opacity</label>
-                        <input
-                            type="number"
-                            min="0"
-                            max="1"
-                            step="0.1"
-                            value={currentConfig.style.opacity ?? ''}
-                            placeholder="1"
-                            onChange={(e) => updateElementConfig({
-                                style: { opacity: e.target.value ? parseFloat(e.target.value) : undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Padding</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.padding ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updateElementConfig({
-                                style: { padding: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Border Radius</label>
-                        <input
-                            type="text"
-                            value={currentConfig.style.borderRadius ?? ''}
-                            placeholder="0"
-                            onChange={(e) => updateElementConfig({
-                                style: { borderRadius: e.target.value || undefined }
-                            })}
-                        />
-                    </div>
-                </CollapsibleSection>
-
-                {/* Message Style (Global) */}
-                <CollapsibleSection title="Message Style (Global)" defaultOpen={false}>
+                {/* Element Section (Global Message Style) - Always open by default */}
+                <CollapsibleSection title="Element" defaultOpen={true}>
                     <div className="settings-row">
                         <label>Avatar Size</label>
                         <input
@@ -518,6 +310,162 @@ export function SettingsPanel({
                         </div>
                     </div>
                 </CollapsibleSection>
+
+                {/* Element-specific Options Section */}
+                <ElementOptionsSection
+                    elementId={selectedElement}
+                    config={currentConfig}
+                    onUpdate={updateElementConfig}
+                />
+
+                {/* Position Section */}
+                <CollapsibleSection title="Position" defaultOpen={false}>
+                    <div className="settings-row-inline">
+                        <div className="settings-row">
+                            <label>X (Left)</label>
+                            <input
+                                type="text"
+                                value={currentConfig.position.x ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => updateElementConfig({
+                                    position: {
+                                        ...currentConfig.position,
+                                        x: e.target.value || undefined,
+                                        right: undefined, // Clear opposite anchor
+                                    }
+                                })}
+                            />
+                        </div>
+                        <div className="settings-row">
+                            <label>Y (Top)</label>
+                            <input
+                                type="text"
+                                value={currentConfig.position.y ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => updateElementConfig({
+                                    position: {
+                                        ...currentConfig.position,
+                                        y: e.target.value || undefined,
+                                        bottom: undefined, // Clear opposite anchor
+                                    }
+                                })}
+                            />
+                        </div>
+                    </div>
+                    <div className="settings-row-inline">
+                        <div className="settings-row">
+                            <label>Right</label>
+                            <input
+                                type="text"
+                                value={currentConfig.position.right ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => updateElementConfig({
+                                    position: {
+                                        ...currentConfig.position,
+                                        right: e.target.value || undefined,
+                                        x: undefined, // Clear opposite anchor
+                                    }
+                                })}
+                            />
+                        </div>
+                        <div className="settings-row">
+                            <label>Bottom</label>
+                            <input
+                                type="text"
+                                value={currentConfig.position.bottom ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => updateElementConfig({
+                                    position: {
+                                        ...currentConfig.position,
+                                        bottom: e.target.value || undefined,
+                                        y: undefined, // Clear opposite anchor
+                                    }
+                                })}
+                            />
+                        </div>
+                    </div>
+                    <div className="settings-row">
+                        <label>Z-Index</label>
+                        <input
+                            type="number"
+                            value={currentConfig.position.zIndex ?? ''}
+                            placeholder="auto"
+                            onChange={(e) => updateElementConfig({
+                                position: {
+                                    ...currentConfig.position,
+                                    zIndex: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                                }
+                            })}
+                        />
+                    </div>
+                </CollapsibleSection>
+
+                {/* Size Section */}
+                <CollapsibleSection title="Size" defaultOpen={false}>
+                    <div className="settings-row-inline">
+                        <div className="settings-row">
+                            <label>Width</label>
+                            <input
+                                type="text"
+                                value={currentConfig.size.width ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    updateElementConfig({
+                                        size: {
+                                            width: val === '' ? undefined : val,
+                                        }
+                                    });
+                                }}
+                            />
+                        </div>
+                        <div className="settings-row">
+                            <label>Height</label>
+                            <input
+                                type="text"
+                                value={currentConfig.size.height ?? ''}
+                                placeholder="auto"
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    updateElementConfig({
+                                        size: {
+                                            height: val === '' ? undefined : val,
+                                        }
+                                    });
+                                }}
+                            />
+                        </div>
+                    </div>
+                </CollapsibleSection>
+
+                {/* CSS/SCSS Editor Section */}
+                <CollapsibleSection title="CSS / SCSS" defaultOpen={false}>
+                    <div className="settings-row">
+                        <label>Custom Styles</label>
+                        <textarea
+                            value={currentConfig.style.customCss ?? ''}
+                            placeholder="/* SCSS supported */&#10;$primary: #e94560;&#10;&#10;background: rgba(0,0,0,0.5);&#10;border: 1px solid $primary;&#10;box-shadow: 0 2px 8px rgba($primary, 0.3);"
+                            onChange={(e) => updateElementConfig({
+                                style: { customCss: e.target.value || undefined }
+                            })}
+                            rows={8}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid #0f3460',
+                                background: '#1a1a2e',
+                                color: '#eee',
+                                fontSize: '12px',
+                                resize: 'vertical',
+                                fontFamily: 'monospace',
+                            }}
+                        />
+                    </div>
+                    <small style={{ color: '#666', display: 'block', marginTop: '4px' }}>
+                        Supports SCSS: variables ($var), color functions (rgba, lighten, darken), and more.
+                    </small>
+                </CollapsibleSection>
             </div>
         </div>
     );
@@ -549,7 +497,7 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
         const showCount = options.showCount !== false;
 
         return (
-            <CollapsibleSection title="Live Badge Options" defaultOpen={true}>
+            <CollapsibleSection title="Live Badge Options" defaultOpen={false}>
                 <div className="settings-row">
                     <label>Platform Filter</label>
                     <select
@@ -624,7 +572,7 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
         const tokens = getAvailableTokens();
 
         return (
-            <CollapsibleSection title="Text Options" defaultOpen={true}>
+            <CollapsibleSection title="Text Options" defaultOpen={false}>
                 <div className="settings-row">
                     <label>Content</label>
                     <textarea

@@ -4,6 +4,7 @@ export interface Position {
     y?: number | string | null;
     right?: number | string | null;
     bottom?: number | string | null;
+    zIndex?: number;
 }
 
 export interface Size {
@@ -89,6 +90,8 @@ export interface Style {
     opacity?: number;
     transform?: string;
     zIndex?: number;
+    customCss?: string;      // SCSS source
+    compiledCss?: string;    // Compiled CSS (set by server)
 }
 
 export interface ElementConfig {
@@ -135,11 +138,19 @@ export interface MessageStyle {
     showSubBadge?: boolean;      // Default: true
 }
 
+/// A frame is a named view that shows a subset of elements
+export interface Frame {
+    name: string;
+    elements: string[];  // Element IDs to include (empty = all)
+    background?: string; // Special background type (e.g., "physics")
+}
+
 export interface Layout {
     name: string;
     version: number;
     elements: Record<string, ElementConfig>;
     messageStyle: MessageStyle;
+    frames: Record<string, Frame>;
 }
 
 export interface LayoutListResponse {
@@ -167,6 +178,19 @@ export const defaultMessageStyle = (): MessageStyle => ({
     showModBadge: true,
     showVerifiedBadge: true,
     showSubBadge: true,
+});
+
+export const defaultFrames = (): Record<string, Frame> => ({
+    overlay: {
+        name: 'Overlay',
+        elements: [],  // Empty means all elements
+        background: undefined,
+    },
+    background: {
+        name: 'Background',
+        elements: [],
+        background: 'physics',
+    },
 });
 
 export const defaultLayout = (): Layout => ({
@@ -212,4 +236,5 @@ export const defaultLayout = (): Layout => ({
         },
     },
     messageStyle: defaultMessageStyle(),
+    frames: defaultFrames(),
 });
