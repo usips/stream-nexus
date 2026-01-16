@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": false,
+    "outDir": "./public",
+    "rootDir": "./src/frontend",
+    "baseUrl": "./src/frontend"
+  },
+  "include": ["src/frontend/**/*"],
+  "exclude": ["node_modules", "public", "editor"]
+}

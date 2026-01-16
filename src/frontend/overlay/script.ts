@@ -1,8 +1,22 @@
-const chat_history = document.querySelector("#chat-messages");
-const feature_message = document.querySelector("#show-message");
+import type {
+    Layout,
+    ElementConfig,
+    ChatMessage,
+    WebSocketMessage,
+    ViewerCounts,
+    BadgeSettings,
+    LiveBadgeOptions,
+} from '../types';
+
+// ============================================================================
+// DOM Elements
+// ============================================================================
+
+const chat_history = document.querySelector<HTMLElement>("#chat-messages");
+const feature_message = document.querySelector<HTMLElement>("#show-message");
 
 // Current layout state
-let current_layout = null;
+let current_layout: Layout | null = null;
 
 // ============================================================================
 // Message Buffer System
@@ -10,15 +24,20 @@ let current_layout = null;
 // YouTube and Twitch that send messages in batches.
 // ============================================================================
 
+interface BufferedMessage {
+    message: ChatMessage;
+    timestamp: number;
+}
+
 const messageBuffer = {
-    queue: [],
+    queue: [] as BufferedMessage[],
     maxWaitTime: 1000, // Maximum time any message can wait (ms) - 1 second
     minInterval: 50,   // Minimum interval between messages (ms)
-    intervalId: null,
+    intervalId: null as ReturnType<typeof setTimeout> | null,
     lastProcessTime: 0,
 
     // Add a message to the buffer
-    push(message) {
+    push(message: ChatMessage): void {
         this.queue.push({
             message,
             timestamp: Date.now()
@@ -27,14 +46,14 @@ const messageBuffer = {
     },
 
     // Start processing if not already running
-    ensureProcessing() {
+    ensureProcessing(): void {
         if (this.intervalId === null && this.queue.length > 0) {
             this.scheduleNext();
         }
     },
 
     // Calculate how many messages should be processed right now
-    getProcessCount() {
+    getProcessCount(): number {
         if (this.queue.length === 0) return 0;
 
         const now = Date.now();
@@ -61,7 +80,7 @@ const messageBuffer = {
     },
 
     // Calculate delay until next processing
-    getDelay() {
+    getDelay(): number {
         if (this.queue.length === 0) return this.minInterval;
 
         // How long has the oldest message been waiting?
@@ -79,7 +98,7 @@ const messageBuffer = {
     },
 
     // Schedule the next processing cycle
-    scheduleNext() {
+    scheduleNext(): void {
         if (this.queue.length === 0) {
             this.intervalId = null;
             return;
@@ -93,19 +112,21 @@ const messageBuffer = {
     },
 
     // Process messages - handles both normal flow and catch-up after tab becomes active
-    processBatch() {
+    processBatch(): void {
         if (this.queue.length === 0) return;
 
         const count = this.getProcessCount();
         for (let i = 0; i < count && this.queue.length > 0; i++) {
             const item = this.queue.shift();
-            processMessageImmediate(item.message);
+            if (item) {
+                processMessageImmediate(item.message);
+            }
         }
         this.lastProcessTime = Date.now();
     },
 
     // Called when tab visibility changes - process all overdue messages immediately
-    onVisibilityChange() {
+    onVisibilityChange(): void {
         if (document.visibilityState === 'visible' && this.queue.length > 0) {
             this.processBatch();
             // Restart the timer if there are more messages
@@ -123,45 +144,46 @@ document.addEventListener('visibilitychange', () => {
     messageBuffer.onVisibilityChange();
 });
 
-// Create WebSocket connection using current host
+// ============================================================================
+// WebSocket Connection
+// ============================================================================
+
 const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 const wsUrl = `${wsProtocol}//${window.location.host}/chat.ws`;
 
 let socket = new WebSocket(wsUrl);
-const reconnect = () => {
-    // check if socket is connected
+
+const reconnect = (): boolean => {
     if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
         return true;
     }
-    // attempt to connect
     socket = new WebSocket(wsUrl);
-    bindWebsocketEvents(socket);
+    bindWebsocketEvents();
+    return false;
 };
 
-// Connection opened
-const bindWebsocketEvents = () => {
-    socket.addEventListener("open", (event) => {
+const bindWebsocketEvents = (): void => {
+    socket.addEventListener("open", () => {
         console.log("[SNEED] Connection established.");
-        // Request current layout on connection
         socket.send(JSON.stringify({ request_layout: true }));
     });
 
-    // Listen for messages
-    socket.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
+    socket.addEventListener("message", (event: MessageEvent) => {
+        const data: WebSocketMessage = JSON.parse(event.data);
         const message = JSON.parse(data.message);
+
         switch (data.tag) {
             case "chat_message":
-                handle_message(message);
+                handle_message(message as ChatMessage);
                 break;
             case "feature_message":
-                handle_feature_message(message);
+                handle_feature_message(message as string | null);
                 break;
             case "viewers":
-                handle_viewers(message);
+                handle_viewers(message as ViewerCounts);
                 break;
             case "layout_update":
-                apply_layout(message);
+                apply_layout(message as Layout);
                 break;
             case "layout_list":
                 console.log("[SNEED] Available layouts:", message);
@@ -169,30 +191,29 @@ const bindWebsocketEvents = () => {
             default:
                 console.log("Unknown tag:", data.tag);
                 break;
-
         }
     });
 
-    socket.addEventListener("close", (event) => {
+    socket.addEventListener("close", (event: CloseEvent) => {
         console.log("[SNEED] Socket has closed. Attempting reconnect.", event.reason);
-        setTimeout(function () { reconnect(); }, 1000);
+        setTimeout(() => { reconnect(); }, 1000);
     });
 
-    socket.addEventListener("error", (event) => {
+    socket.addEventListener("error", () => {
         socket.close();
-        setTimeout(function () { reconnect(); }, 1000);
+        setTimeout(() => { reconnect(); }, 1000);
     });
 };
 
-bindWebsocketEvents(socket);
+bindWebsocketEvents();
 
 // ============================================================================
 // Layout Application
 // ============================================================================
 
-// Update text element content periodically for live datetime tokens
-let textUpdateInterval = null;
-function start_text_updates() {
+let textUpdateInterval: ReturnType<typeof setInterval> | null = null;
+
+function start_text_updates(): void {
     if (textUpdateInterval) clearInterval(textUpdateInterval);
     textUpdateInterval = setInterval(() => {
         if (!current_layout) return;
@@ -200,14 +221,14 @@ function start_text_updates() {
         if (textConfig && textConfig.enabled !== false && textConfig.options?.content) {
             const el = document.getElementById("attribution");
             if (el) {
-                el.innerHTML = resolve_tokens(textConfig.options.content);
+                el.innerHTML = resolve_tokens(textConfig.options.content as string);
             }
         }
     }, 1000);
 }
 start_text_updates();
 
-function apply_layout(layout) {
+function apply_layout(layout: Layout): void {
     console.log("[SNEED] Applying layout:", layout.name);
     current_layout = layout;
 
@@ -238,13 +259,11 @@ function apply_layout(layout) {
         // Apply display mode classes to chat
         const chatEl = document.getElementById('chat');
         if (chatEl) {
-            // Condensed mode (camelCase from Rust serde)
             chatEl.classList.toggle('chat--condensed', ms.condensedMode === true);
-            // Avatar visibility
             chatEl.classList.toggle('chat--no-avatars', ms.showAvatars === false);
         }
 
-        // Store badge visibility settings for message rendering (camelCase from Rust serde)
+        // Store badge visibility settings for message rendering
         window.badgeSettings = {
             owner: ms.showOwnerBadge !== false,
             staff: ms.showStaffBadge !== false,
@@ -255,18 +274,20 @@ function apply_layout(layout) {
     }
 
     // Update chat width CSS variable from chat element config
-    if (elements.chat && elements.chat.size && elements.chat.size.width) {
+    if (elements.chat?.size?.width) {
         const width = elements.chat.size.width;
         const widthStr = typeof width === 'number' ? `${width}px` : width;
-        document.documentElement.style.setProperty('--chat-width', widthStr);
+        document.documentElement.style.setProperty('--chat-width', widthStr as string);
     }
 }
 
-// Token resolver for dynamic text content (datetime, etc.)
-function resolve_tokens(text) {
+// ============================================================================
+// Token Resolver
+// ============================================================================
+
+function resolve_tokens(text: string): string {
     if (!text) return text;
 
-    // Match {{tokenName}} or {{tokenName:parameters}}
     return text.replace(/\{\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]*))?\}\}/g, (match, tokenName, params) => {
         if (tokenName === 'datetime' || tokenName === 'date' || tokenName === 'time') {
             return format_datetime(new Date(), params || get_default_format(tokenName));
@@ -274,11 +295,11 @@ function resolve_tokens(text) {
         if (tokenName === 'year') {
             return new Date().getFullYear().toString();
         }
-        return match; // Return original if unknown token
+        return match;
     });
 }
 
-function get_default_format(tokenName) {
+function get_default_format(tokenName: string): string {
     switch (tokenName) {
         case 'date': return 'MMMM d, yyyy';
         case 'time': return 'HH:mm:ss';
@@ -286,21 +307,21 @@ function get_default_format(tokenName) {
     }
 }
 
-function format_datetime(date, format) {
+function format_datetime(date: Date, format: string): string {
     const months = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
     const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const weekdaysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const pad = (n, len = 2) => n.toString().padStart(len, '0');
-    const ordinal = (n) => {
+    const pad = (n: number, len = 2): string => n.toString().padStart(len, '0');
+    const ordinal = (n: number): string => {
         const s = ['th', 'st', 'nd', 'rd'];
         const v = n % 100;
         return n + (s[(v - 20) % 10] || s[v] || s[0]);
     };
 
-    const replacements = {
+    const replacements: Record<string, string> = {
         'yyyy': date.getFullYear().toString(),
         'yy': date.getFullYear().toString().slice(-2),
         'MMMM': months[date.getMonth()],
@@ -323,10 +344,8 @@ function format_datetime(date, format) {
         'a': date.getHours() < 12 ? 'AM' : 'PM',
     };
 
-    // Sort by length descending to match longer patterns first
     const sortedKeys = Object.keys(replacements).sort((a, b) => b.length - a.length);
 
-    // Build result by scanning through format string
     let result = '';
     let i = 0;
     while (i < format.length) {
@@ -347,9 +366,12 @@ function format_datetime(date, format) {
     return result;
 }
 
-function apply_element_config(el, config, isTextElement = false) {
+// ============================================================================
+// Element Configuration
+// ============================================================================
+
+function apply_element_config(el: HTMLElement | null, config: ElementConfig | undefined, isTextElement = false): void {
     if (!el || !config) {
-        console.log("[SNEED] apply_element_config: missing el or config", el?.id, config);
         return;
     }
 
@@ -364,23 +386,21 @@ function apply_element_config(el, config, isTextElement = false) {
     }
 
     // Handle text content for text elements
-    if (isTextElement && config.options && config.options.content !== undefined) {
-        const content = resolve_tokens(config.options.content);
+    if (isTextElement && config.options?.content !== undefined) {
+        const content = resolve_tokens(config.options.content as string);
         el.innerHTML = content;
     }
 
     // Handle positioning
     if (config.position) {
         const pos = config.position;
+        const formatPos = (val: number | string | null | undefined): string =>
+            typeof val === 'number' ? `${val}px` : (val as string);
 
-        // Reset positioning first - use 'auto' to override CSS defaults
         el.style.left = 'auto';
         el.style.right = 'auto';
         el.style.top = 'auto';
         el.style.bottom = 'auto';
-
-        // Helper to format position value (preserve vw/vh/% units, add px to numbers)
-        const formatPos = (val) => typeof val === 'number' ? `${val}px` : val;
 
         if (pos.x !== null && pos.x !== undefined) {
             el.style.left = formatPos(pos.x);
@@ -401,10 +421,10 @@ function apply_element_config(el, config, isTextElement = false) {
         const size = config.size;
 
         if (size.width !== null && size.width !== undefined) {
-            el.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width;
+            el.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width as string;
         }
         if (size.height !== null && size.height !== undefined) {
-            el.style.height = typeof size.height === 'number' ? `${size.height}px` : size.height;
+            el.style.height = typeof size.height === 'number' ? `${size.height}px` : size.height as string;
         }
         if (size.maxWidth) {
             el.style.maxWidth = size.maxWidth;
@@ -427,137 +447,114 @@ function apply_element_config(el, config, isTextElement = false) {
         if (style.padding) el.style.padding = style.padding;
         if (style.margin) el.style.margin = style.margin;
         if (style.borderRadius) el.style.borderRadius = style.borderRadius;
-        if (style.opacity !== null && style.opacity !== undefined) el.style.opacity = style.opacity;
+        if (style.opacity !== null && style.opacity !== undefined) el.style.opacity = style.opacity.toString();
         if (style.transform) el.style.transform = style.transform;
-        if (style.zIndex !== null && style.zIndex !== undefined) el.style.zIndex = style.zIndex;
+        if (style.zIndex !== null && style.zIndex !== undefined) el.style.zIndex = style.zIndex.toString();
     }
 }
 
-function handle_emote(node, message) {
-    const innerEl = node.getElementsByClassName("msg-text")[0];
-    let allImages = false;
+// ============================================================================
+// Message Handling
+// ============================================================================
 
-    innerEl.children.forEach(el => {
-        if (el.tagName !== "IMG") {
-            allImages = false;
-            return false;
-        }
-    });
-
-    if (allImages) {
-        node.classList.add("msg--emote");
-    }
-}
-
-// Filter badges based on global badge settings
-function filter_badges(messageEl) {
+function filter_badges(messageEl: HTMLElement): void {
     if (!window.badgeSettings) return;
 
     const badges = messageEl.querySelectorAll('.msg-badge');
     badges.forEach(badge => {
-        // Extract badge type from class (e.g., "msg-badge--owner" -> "owner")
         const match = badge.className.match(/msg-badge--(\w+)/);
         if (match) {
-            const type = match[1];
-            if (!window.badgeSettings[type]) {
-                badge.style.display = 'none';
+            const type = match[1] as keyof BadgeSettings;
+            if (!window.badgeSettings![type]) {
+                (badge as HTMLElement).style.display = 'none';
             }
         }
     });
 }
 
-function handle_feature_message(id) {
-    // Check if message is a set or unset.
+function handle_feature_message(id: string | null): void {
+    if (!feature_message) return;
+
     if (id === null) {
         feature_message.innerHTML = "";
-    }
-    else {
-        let el = document.getElementById(id);
+    } else {
+        const el = document.getElementById(id);
         if (el !== null) {
-            let fel = el.cloneNode(true);
+            const fel = el.cloneNode(true) as HTMLElement;
             fel.id = `feature-${id}`;
             feature_message.innerHTML = fel.outerHTML;
-            console.log("SET!!!");
-        }
-        else {
+        } else {
             console.log("Featured chat message not found:", id);
         }
     }
 }
 
-function handle_message(message) {
-    // check if element already exists
+function handle_message(message: ChatMessage): HTMLElement | null {
     const existingEl = document.getElementById(message.id);
     if (existingEl !== null) {
         return existingEl;
     }
 
-    // check if message is a command
     if (handle_command(message)) {
-        // consume message if it is a command.
         return null;
     }
 
     // Premium messages (superchats) bypass the buffer for immediate display
     if (message.amount > 0) {
         processMessageImmediate(message);
-        return;
+        return null;
     }
 
     // Regular messages go through the buffer for smooth flow
     messageBuffer.push(message);
+    return null;
 }
 
-// Actually process and display a message (called by buffer or directly for premium)
-function processMessageImmediate(message) {
-    // Double-check it wasn't already added while in buffer
+function processMessageImmediate(message: ChatMessage): HTMLElement | null {
+    if (!chat_history) return null;
+
     const existingEl = document.getElementById(message.id);
     if (existingEl !== null) {
         return existingEl;
     }
 
-    // create message el
-    let el = document.createElement("div");
+    let el: HTMLElement = document.createElement("div");
     chat_history.appendChild(el);
     el.outerHTML = message.html;
-    el = document.getElementById(message.id);
+    el = document.getElementById(message.id) as HTMLElement;
 
-    // Filter badges based on visibility settings
     filter_badges(el);
 
-    // apply premium style
-    if (message.amount > 0)
+    if (message.amount > 0) {
         handle_premium(el, message);
-    // crush standard emote replies
-    //else
-    //    handle_emote(el, message);
+    }
 
-    // remove first old message that is not sticky.
+    // Remove old messages
     while (chat_history.children.length > 1000) {
         for (let i = 0; i < chat_history.children.length; i++) {
-            let classes = chat_history.childNodes[i].classList;
-            if (!classes.contains("msg--sticky") && !classes.contains("msg--t")) {
-                chat_history.childNodes[i].remove();
+            const child = chat_history.childNodes[i] as HTMLElement;
+            if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
+                child.remove();
                 break;
             }
         }
     }
 
-    // Auto-scroll to bottom to show newest messages
+    // Auto-scroll
     const chatSection = chat_history.parentElement;
     if (chatSection) {
         chatSection.scrollTop = chatSection.scrollHeight;
     }
+
+    return el;
 }
 
-function handle_premium(node, message) {
-    if (message.currency == 'USD') {
+function handle_premium(node: HTMLElement, message: ChatMessage): void {
+    if (message.currency === 'USD') {
         node.classList.add("msg--sticky");
         recalculate_premium_positions();
 
-        // 6 seconds for every dollar, 10 minutes for $100, caps 10 minutes.
-        let time = Math.min(600, message.amount * 6);
-        //console.log(message.amount, time);
+        const time = Math.min(600, message.amount * 6);
         setTimeout(() => {
             node.classList.remove("msg--sticky");
             recalculate_premium_positions();
@@ -565,16 +562,19 @@ function handle_premium(node, message) {
     }
 }
 
+// ============================================================================
+// Viewer Handling
+// ============================================================================
+
 window.livestream_viewers = {};
 
-// Calculate viewer count based on live badge options
-function calculate_viewer_count(viewers, options) {
+function calculate_viewer_count(viewers: ViewerCounts, options: LiveBadgeOptions | undefined): number {
     const mode = options?.platformMode || 'all';
     const platforms = options?.platforms || [];
 
     let total = 0;
     for (const [platform, count] of Object.entries(viewers)) {
-        const platformCount = parseInt(count, 10) || 0;
+        const platformCount = typeof count === 'number' ? count : parseInt(count as string, 10) || 0;
         if (mode === 'all') {
             total += platformCount;
         } else if (mode === 'include' && platforms.includes(platform)) {
@@ -586,155 +586,157 @@ function calculate_viewer_count(viewers, options) {
     return Math.max(0, total);
 }
 
-function handle_viewers(message) {
+function handle_viewers(message: ViewerCounts): void {
     console.log("VIEWERS", message);
 
-    // Update global viewer state
     for (const [key, value] of Object.entries(message)) {
-        window.livestream_viewers[key] = parseInt(value, 10);
+        window.livestream_viewers[key] = typeof value === 'number' ? value : parseInt(value as string, 10);
     }
 
-    // Find all live badge elements in the layout
     const elements = current_layout?.elements || {};
 
-    // Update all live badge elements
     for (const [id, config] of Object.entries(elements)) {
-        // Match 'live' or 'live-N' elements
         if (id === 'live' || id.startsWith('live-')) {
             const el = document.getElementById(id);
             const totalsEl = el?.querySelector('#live-totals') || document.getElementById('live-totals');
 
             if (totalsEl && config.enabled !== false) {
-                const options = config.options || {};
+                const options = config.options as LiveBadgeOptions | undefined;
                 const count = calculate_viewer_count(window.livestream_viewers, options);
-                totalsEl.innerHTML = count;
+                totalsEl.innerHTML = count.toString();
             }
         }
     }
 
-    // Fallback: update default live-totals if no layout or 'live' element found
     if (!current_layout || !elements.live) {
-        const total = calculate_viewer_count(window.livestream_viewers, {});
+        const total = calculate_viewer_count(window.livestream_viewers, undefined);
         const totalsEl = document.getElementById("live-totals");
         if (totalsEl) {
-            totalsEl.innerHTML = total;
+            totalsEl.innerHTML = total.toString();
         }
     }
 }
 
-function recalculate_premium_positions() {
-    let premium_messages = document.getElementsByClassName("msg--sticky");
+function recalculate_premium_positions(): void {
+    const premium_messages = document.getElementsByClassName("msg--sticky");
     let top = 5;
     for (let i = 0; i < premium_messages.length; i++) {
-        top += premium_messages[i].offsetHeight + 5;
+        top += (premium_messages[i] as HTMLElement).offsetHeight + 5;
     }
 
     let space = document.documentElement.clientHeight / 2;
     if (top > space) {
-        console.log(space, top, space - top);
         top = space - top;
-    }
-    else {
+    } else {
         top = 5;
     }
 
     for (let i = 0; i < premium_messages.length; i++) {
-        premium_messages[i].style.top = `${top}px`;
-        top += premium_messages[i].scrollHeight + 5;
+        (premium_messages[i] as HTMLElement).style.top = `${top}px`;
+        top += (premium_messages[i] as HTMLElement).scrollHeight + 5;
     }
 }
 
-//
-// Polls
-//
+// ============================================================================
+// Poll System
+// ============================================================================
 
-var active_poll = null;
+let active_poll: Poll | null = null;
 const poll_ui = document.getElementById("poll-ui");
 const superchat_ui = document.getElementById("superchat-ui");
 
-class poll {
-    constructor(question, multi_vote, options) {
+class Poll {
+    question: string;
+    options: string[];
+    votes: number[];
+    voters: string[];
+    multi_vote: boolean;
+    total_votes: number;
+
+    constructor(question: string, multi_vote: boolean, options: string[]) {
         this.question = question;
         this.options = options;
-        this.votes = [];
+        this.votes = new Array(options.length).fill(0);
         this.voters = [];
         this.multi_vote = multi_vote;
         this.total_votes = 0;
 
-        for (let i = 0; i < this.options.length; i++) {
-            this.votes.push(0);
-        }
-
         this.update();
-        poll_ui.style.display = "block";
-        poll_ui.classList.remove("fade-out");
-        poll_ui.classList.add("fade-in");
-        superchat_ui.classList.add("slide-down");
+        if (poll_ui) {
+            poll_ui.style.display = "block";
+            poll_ui.classList.remove("fade-out");
+            poll_ui.classList.add("fade-in");
+        }
+        if (superchat_ui) {
+            superchat_ui.classList.add("slide-down");
+        }
     }
 
-    end_poll() {
-        let participants = this.voters.length;
+    end_poll(): void {
+        const participants = this.voters.length;
         let html = `<strong>${this.question}</strong><br><small>${participants} participants</small><ul>`;
         let winning_option = 0;
 
         for (let i = 0; i < this.options.length; i++) {
-            if (this.votes[i] > this.votes[winning_option])
+            if (this.votes[i] > this.votes[winning_option]) {
                 winning_option = i;
+            }
         }
 
         for (let i = 0; i < this.options.length; i++) {
             let percentage = 0;
             if (this.total_votes > 0) {
                 percentage = (this.votes[i] / this.total_votes) * 100;
-                percentage = percentage.toFixed(2);
             }
-            if (i == winning_option)
-                html += `<li><strong>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentage}%)</strong></li>`;
-            else
-                html += `<li>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentage}%)</li>`;
+            const percentStr = percentage.toFixed(2);
+            if (i === winning_option) {
+                html += `<li><strong>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentStr}%)</strong></li>`;
+            } else {
+                html += `<li>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentStr}%)</li>`;
+            }
         }
 
-        poll_ui.innerHTML = html;
-
-        setTimeout(() => {
-            poll_ui.classList.remove("fade-in");
-            poll_ui.classList.add("fade-out");
-            setTimeout(() => { poll_ui.style.display = "none"; }, 500);
-        }, 10000);
+        if (poll_ui) {
+            poll_ui.innerHTML = html;
+            setTimeout(() => {
+                poll_ui.classList.remove("fade-in");
+                poll_ui.classList.add("fade-out");
+                setTimeout(() => { poll_ui.style.display = "none"; }, 500);
+            }, 10000);
+        }
         active_poll = null;
     }
 
-    update() {
-        let participants = this.voters.length;
+    update(): void {
+        if (!poll_ui) return;
+
+        const participants = this.voters.length;
         let html = `<strong>${this.question}</strong><br><small>${participants} participants</small><ul>`;
         for (let i = 0; i < this.options.length; i++) {
             let percentage = 0;
             if (this.total_votes > 0) {
                 percentage = (this.votes[i] / this.total_votes) * 100;
-                percentage = percentage.toFixed(2);
             }
-            html += `<li>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentage}%)</li>`;
+            html += `<li>!vote ${i + 1}: ${this.options[i]} - ${this.votes[i]} (${percentage.toFixed(2)}%)</li>`;
         }
-
         html += "</ul><small>use !vote [number] to vote</small>";
-
         poll_ui.innerHTML = html;
     }
 
-    handle_vote_message(data) {
-        // check if user has already voted
-        if (active_poll.voters.includes(data.username))
+    handle_vote_message(data: ChatMessage): void {
+        if (this.voters.includes(data.username)) {
             return;
+        }
 
-        let args = data.message.replace("!vote", "").replace("!", "").trim();
+        const args = data.message.replace("!vote", "").replace("!", "").trim();
         let result = false;
+
         if (this.multi_vote) {
             let votes = args.split(" ");
-            // remove duplicates
             votes = [...new Set(votes)];
-
-            for (let i = 0; i < votes.length; i++)
-                result |= this.handle_vote(votes[i]);
+            for (const vote of votes) {
+                result = this.handle_vote(vote) || result;
+            }
         } else {
             result = this.handle_vote(args);
         }
@@ -745,71 +747,69 @@ class poll {
         }
     }
 
-    handle_vote(vote_index) {
-        if (isNaN(vote_index))
+    handle_vote(vote_index: string): boolean {
+        if (isNaN(parseInt(vote_index))) {
             return false;
+        }
 
-        let i = parseInt(vote_index) - 1;
-
-        if (i < 0 || i >= this.options.length)
+        const i = parseInt(vote_index) - 1;
+        if (i < 0 || i >= this.options.length) {
             return false;
+        }
 
         this.votes[i]++;
         this.total_votes++;
         return true;
     }
 
-    is_valid_vote(message) {
-        // Allow "!vote 1"
-        if (message.startsWith("!vote"))
-            return true;
-        // Allow "1"
-        if (message.length == 1 && !isNaN(message[0]))
-            return true;
-        // Allow "!2"
-        if (message.startsWith("!") && !isNaN(message[1]))
-            return true;
+    is_valid_vote(message: string): boolean {
+        if (message.startsWith("!vote")) return true;
+        if (message.length === 1 && !isNaN(parseInt(message[0]))) return true;
+        if (message.startsWith("!") && !isNaN(parseInt(message[1]))) return true;
         return false;
     }
 }
 
-function handle_command(message) {
-    function unescape(escaped_string) {
+// ============================================================================
+// Command Handling
+// ============================================================================
+
+function handle_command(message: ChatMessage): boolean {
+    function unescape(escaped_string: string): string {
         const tmp_div = document.createElement("div");
         tmp_div.innerHTML = escaped_string;
         return tmp_div.textContent || tmp_div.innerText || "";
     }
 
-    // ignore non-commands, except if a vote is running so we can allow messages like "1" or "!2" to be counted as votes
-    if (!message.message.startsWith("!") && active_poll === null)
+    if (!message.message.startsWith("!") && active_poll === null) {
         return false;
+    }
 
-    // html escape codes use semicolons, so we need to unescape them otherwise the splitting will break
     let msg = unescape(message.message);
     const is_admin = message.is_owner;
 
     if (msg.startsWith("!poll") && is_admin) {
         msg = msg.replace("!poll", "").trim();
         let parts = msg.split(";");
-        parts = parts.filter(el => el.length != 0);
-        if (parts.length >= 3)
-            active_poll = new poll(parts[0], false, parts.slice(1));
+        parts = parts.filter(el => el.length !== 0);
+        if (parts.length >= 3) {
+            active_poll = new Poll(parts[0], false, parts.slice(1));
+        }
         return true;
-    }
-    else if (msg.startsWith("!multipoll") && is_admin) {
+    } else if (msg.startsWith("!multipoll") && is_admin) {
         msg = msg.replace("!multipoll", "").trim();
         let parts = msg.split(";");
-        parts = parts.filter(el => el.length != 0);
-        if (parts.length >= 3)
-            active_poll = new poll(parts[0], true, parts.slice(1));
+        parts = parts.filter(el => el.length !== 0);
+        if (parts.length >= 3) {
+            active_poll = new Poll(parts[0], true, parts.slice(1));
+        }
         return true;
-    }
-    else if (msg.startsWith("!endpoll") && is_admin) {
-        if (active_poll !== null)
+    } else if (msg.startsWith("!endpoll") && is_admin) {
+        if (active_poll !== null) {
             active_poll.end_poll();
+        }
         return true;
-    }
-    else if (active_poll !== null && active_poll.is_valid_vote(message.message)) {
+    } else if (active_poll !== null && active_poll.is_valid_vote(message.message)) {
         active_poll.handle_vote_message(message);
         return true;
     }
@@ -817,26 +817,30 @@ function handle_command(message) {
     return false;
 }
 
-function set_date(dateObj) {
+// ============================================================================
+// Date Display
+// ============================================================================
+
+function set_date(dateObj: Date): void {
     const day = dateObj.getDate();
     const month = dateObj.toLocaleString("default", { month: "long" });
     const year = dateObj.getFullYear();
 
-    const nthNumber = (number) => {
+    const nthNumber = (number: number): string => {
         if (number > 3 && number < 21) return "th";
         switch (number % 10) {
-            case 1:
-                return "st";
-            case 2:
-                return "nd";
-            case 3:
-                return "rd";
-            default:
-                return "th";
+            case 1: return "st";
+            case 2: return "nd";
+            case 3: return "rd";
+            default: return "th";
         }
     };
 
     const date = `${month} ${day}${nthNumber(day)}, ${year}`;
-    document.getElementById("date").innerHTML = date;
+    const el = document.getElementById("date");
+    if (el) {
+        el.innerHTML = date;
+    }
 }
+
 set_date(new Date());
