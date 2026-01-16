@@ -17,7 +17,7 @@
     {%- endif %}
 </head>
 
-<body id="overlay" data-frame="{{ view_id }}"{% if background == "physics" %} class="physics-background"{% endif %}>
+<body id="overlay" data-frame="{{ view_id }}" {% if background=="physics" %} class="physics-background" {% endif %}>
     {% if background == "physics" -%}
     <canvas id="physics-canvas"></canvas>
     {%- endif %}
@@ -52,22 +52,23 @@
         window.FRAME_CONFIG = {
             viewId: "{{ view_id }}",
             frameName: "{{ frame_name }}",
-            elements: {{ elements_json|safe }},
-            background: {% if background != "" %}"{{ background }}"{% else %}null{% endif %}
+            elements: {{ elements_json | safe }},
+        background: {% if background != "" %} "{{ background }}"{% else %} null{% endif %},
+        donationMatter: { { donation_matter_json | safe } }
         };
 
         // Hide elements not in this frame (if frame has specific elements)
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const elements = window.FRAME_CONFIG.elements;
             if (elements && elements.length > 0) {
                 // Frame specifies which elements to show
                 const allSections = ['live', 'attribution', 'chat', 'show-message'];
-                allSections.forEach(function(id) {
+                allSections.forEach(function (id) {
                     const el = document.getElementById(id);
                     if (el) {
                         // Map section IDs to element IDs
                         const elementId = id === 'show-message' ? 'featured' :
-                                         id === 'attribution' ? 'text' : id;
+                            id === 'attribution' ? 'text' : id;
                         if (!elements.includes(elementId)) {
                             el.style.display = 'none';
                         }

@@ -3,10 +3,29 @@
 
 <head>
     <title>S.N.E.E.D. Chat Background</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: transparent;
+        }
+    </style>
+    <script type="text/javascript" src="/static/matter.min.js"></script>
 </head>
 
 <body id="background">
-    <script type="text/javascript" src="/static/js/matter.js"></script>
+    <script>
+        // Default frame config for standalone background
+        window.FRAME_CONFIG = {
+            viewId: "background",
+            frameName: "Background",
+            elements: [],
+            background: "physics",
+            donationMatter: null
+        };
+    </script>
+    <script type="text/javascript" src="/static/background.js"></script>
 </body>
 
 </html>

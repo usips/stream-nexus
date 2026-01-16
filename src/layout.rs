@@ -290,6 +290,64 @@ impl Default for MessageStyle {
     }
 }
 
+/// DonationMatter configuration options for physics backgrounds
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DonationMatterOptions {
+    /// Object appearance type
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_type: Option<String>,
+    /// Object scale (0.01 - 1.0)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_scale: Option<f64>,
+    /// Object sprite paths
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub object_sprites: Option<Vec<String>>,
+
+    /// Bounciness (0-1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub restitution: Option<f64>,
+    /// Surface friction (0-1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub friction: Option<f64>,
+    /// Air resistance (0-0.1)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub friction_air: Option<f64>,
+    /// Mass per unit area
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub density: Option<f64>,
+
+    /// Show username labels
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_labels: Option<bool>,
+    /// Label color (hex)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_color: Option<String>,
+    /// Label font family
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_font: Option<String>,
+    /// Label font size in pixels
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label_size: Option<u32>,
+
+    /// Objects per dollar
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spawn_rate: Option<f64>,
+    /// Delay between spawns (ms)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub spawn_delay: Option<u32>,
+    /// Maximum objects before cleanup
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_objects: Option<u32>,
+
+    /// Show angle indicators (debug)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_angle_indicator: Option<bool>,
+    /// Wireframe mode (debug)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub wireframes: Option<bool>,
+}
+
 /// A frame is a named view that shows a subset of elements
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -299,9 +357,12 @@ pub struct Frame {
     /// Element IDs to include in this frame (empty = all elements)
     #[serde(default)]
     pub elements: Vec<String>,
-    /// Optional background color for this frame
+    /// Optional background type for this frame (e.g., "physics")
     #[serde(skip_serializing_if = "Option::is_none")]
     pub background: Option<String>,
+    /// DonationMatter configuration (for physics backgrounds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub donation_matter: Option<DonationMatterOptions>,
 }
 
 impl Default for Frame {
@@ -310,6 +371,7 @@ impl Default for Frame {
             name: "default".to_string(),
             elements: vec![],
             background: None,
+            donation_matter: None,
         }
     }
 }
@@ -330,6 +392,32 @@ pub struct Layout {
     pub frames: HashMap<String, Frame>,
 }
 
+fn default_donation_matter() -> DonationMatterOptions {
+    DonationMatterOptions {
+        object_type: Some("ammo".to_string()),
+        object_scale: Some(0.1),
+        object_sprites: Some(vec![
+            "/static/img/ammo_556_round_a.png".to_string(),
+            "/static/img/ammo_556_round_b.png".to_string(),
+            "/static/img/ammo_556_round_c.png".to_string(),
+            "/static/img/ammo_556_round_d.png".to_string(),
+        ]),
+        restitution: Some(0.1),
+        friction: Some(0.8),
+        friction_air: Some(0.02),
+        density: Some(0.008),
+        show_labels: Some(true),
+        label_color: Some("#ffff00".to_string()),
+        label_font: Some("Verlag".to_string()),
+        label_size: Some(12),
+        spawn_rate: Some(2.0),
+        spawn_delay: Some(50),
+        max_objects: Some(500),
+        show_angle_indicator: Some(false),
+        wireframes: Some(false),
+    }
+}
+
 fn default_frames() -> HashMap<String, Frame> {
     let mut frames = HashMap::new();
     // Default "overlay" frame shows all elements
@@ -339,6 +427,7 @@ fn default_frames() -> HashMap<String, Frame> {
             name: "Overlay".to_string(),
             elements: vec![],
             background: None,
+            donation_matter: None,
         },
     );
     // Default "background" frame for physics background
@@ -348,6 +437,7 @@ fn default_frames() -> HashMap<String, Frame> {
             name: "Background".to_string(),
             elements: vec![],
             background: Some("physics".to_string()),
+            donation_matter: Some(default_donation_matter()),
         },
     );
     frames
@@ -566,8 +656,10 @@ impl LayoutManager {
     pub fn new(layouts_dir: &str) -> Result<Self> {
         // Create layouts directory if it doesn't exist
         if !Path::new(layouts_dir).exists() {
-            fs::create_dir_all(layouts_dir)
-                .context(format!("Failed to create layouts directory: {}", layouts_dir))?;
+            fs::create_dir_all(layouts_dir).context(format!(
+                "Failed to create layouts directory: {}",
+                layouts_dir
+            ))?;
         }
 
         let manager = Self {
@@ -606,8 +698,8 @@ impl LayoutManager {
     /// Load a layout by name
     pub fn load(&self, name: &str) -> Result<Layout> {
         let path = format!("{}/{}.json", self.layouts_dir, name);
-        let content = fs::read_to_string(&path)
-            .context(format!("Failed to read layout file: {}", path))?;
+        let content =
+            fs::read_to_string(&path).context(format!("Failed to read layout file: {}", path))?;
         let layout: Layout = serde_json::from_str(&content)
             .context(format!("Failed to parse layout file: {}", path))?;
         Ok(layout)
@@ -620,10 +712,9 @@ impl LayoutManager {
         layout.compile_scss();
 
         let path = format!("{}/{}.json", self.layouts_dir, layout.name);
-        let content = serde_json::to_string_pretty(&layout)
-            .context("Failed to serialize layout")?;
-        fs::write(&path, content)
-            .context(format!("Failed to write layout file: {}", path))?;
+        let content =
+            serde_json::to_string_pretty(&layout).context("Failed to serialize layout")?;
+        fs::write(&path, content).context(format!("Failed to write layout file: {}", path))?;
         log::info!("Saved layout: {}", layout.name);
         Ok(())
     }
@@ -631,8 +722,7 @@ impl LayoutManager {
     /// Delete a layout
     pub fn delete(&self, name: &str) -> Result<()> {
         let path = format!("{}/{}.json", self.layouts_dir, name);
-        fs::remove_file(&path)
-            .context(format!("Failed to delete layout file: {}", path))?;
+        fs::remove_file(&path).context(format!("Failed to delete layout file: {}", path))?;
         log::info!("Deleted layout: {}", name);
         Ok(())
     }

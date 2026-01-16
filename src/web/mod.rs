@@ -43,7 +43,8 @@ struct FrameTemplate {
     view_id: String,
     frame_name: String,
     elements_json: String,
-    background: String,  // Empty string means no background
+    background: String,           // Empty string means no background
+    donation_matter_json: String, // DonationMatter configuration JSON
 }
 
 /// Query parameters for frame endpoint
@@ -65,26 +66,26 @@ pub async fn frame(req: HttpRequest, query: web::Query<FrameQuery>) -> impl Resp
     let layout = chat_server.send(message::RequestLayout).await.unwrap();
     let frame_config = layout.frames.get(&view_id);
 
-    let (frame_name, elements, bg) = match frame_config {
+    let (frame_name, elements, bg, donation_matter) = match frame_config {
         Some(f) => (
             f.name.clone(),
             f.elements.clone(),
             f.background.clone().unwrap_or_default(),
+            f.donation_matter.clone(),
         ),
-        None => (
-            view_id.clone(),
-            vec![],
-            String::new(),
-        ),
+        None => (view_id.clone(), vec![], String::new(), None),
     };
 
     let elements_json = serde_json::to_string(&elements).unwrap_or_else(|_| "[]".to_string());
+    let donation_matter_json =
+        serde_json::to_string(&donation_matter).unwrap_or_else(|_| "null".to_string());
 
     FrameTemplate {
         view_id,
         frame_name,
         elements_json,
         background: bg,
+        donation_matter_json,
     }
 }
 
