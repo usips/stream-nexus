@@ -913,6 +913,7 @@ export function EditorCanvas({
 
                 // Get display options from messageStyle
                 const showAvatars = layout.messageStyle?.showAvatars !== false;
+                const showUsernames = layout.messageStyle?.showUsernames !== false;
                 const condensedMode = layout.messageStyle?.condensedMode === true;
 
                 // Badge visibility settings
@@ -927,6 +928,7 @@ export function EditorCanvas({
                     'preview-chat',
                     condensedMode && 'preview-chat--condensed',
                     !showAvatars && 'preview-chat--no-avatars',
+                    !showUsernames && 'preview-chat--no-usernames',
                 ].filter(Boolean).join(' ');
 
                 // Apply message style settings as CSS custom properties

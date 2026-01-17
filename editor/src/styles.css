@@ -889,6 +889,13 @@
     display: none;
 }
 
+/* Username Visibility Toggle */
+.preview-chat--no-usernames .msg-user,
+.preview-chat--no-usernames .msg-username,
+.preview-chat--no-usernames .msg-badges {
+    display: none;
+}
+
 .preview-live {
     display: flex;
     align-items: center;
