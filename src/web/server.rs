@@ -12,6 +12,9 @@ pub struct Connection {
     #[allow(dead_code)] // Stored in HashMap key; field useful for debugging
     pub id: usize,
     pub recipient: Recipient<message::Reply>,
+    /// If set, this client only receives updates for this specific layout.
+    /// If None, the client receives updates for any layout (e.g., editor clients).
+    pub subscribed_layout: Option<String>,
 }
 
 /// Define HTTP actor
@@ -86,7 +89,9 @@ impl ChatServer {
         }
     }
 
-    /// Broadcast the current layout to all connected clients
+    /// Broadcast a layout update to relevant connected clients.
+    /// - Clients with no subscription (None) receive all layout updates (e.g., editor)
+    /// - Clients subscribed to a specific layout only receive updates for that layout
     fn broadcast_layout(&self, layout: &Layout) {
         let reply = serde_json::to_string(&message::ReplyInner {
             tag: "layout_update".to_owned(),
@@ -95,7 +100,17 @@ impl ChatServer {
         .expect("Failed to serialize layout ReplyInner");
 
         for (_, conn) in &self.clients {
-            conn.recipient.do_send(message::Reply(reply.clone()));
+            // Send to clients that:
+            // 1. Have no subscription (editor clients want all updates)
+            // 2. Are subscribed to this specific layout
+            let should_send = match &conn.subscribed_layout {
+                None => true, // No subscription = receive all updates
+                Some(subscribed) => subscribed == &layout.name,
+            };
+
+            if should_send {
+                conn.recipient.do_send(message::Reply(reply.clone()));
+            }
         }
     }
 }
@@ -125,6 +140,7 @@ impl Handler<message::Connect> for ChatServer {
             Connection {
                 id,
                 recipient: msg.recipient,
+                subscribed_layout: None,
             },
         );
         id
@@ -395,10 +411,8 @@ impl Handler<message::SaveLayout> for ChatServer {
         let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
         lm.save(&msg.layout).map_err(|e| e.to_string())?;
 
-        // If this is the active layout, broadcast the update
-        if msg.layout.name == self.active_layout {
-            self.broadcast_layout(&msg.layout);
-        }
+        // Broadcast to clients subscribed to this layout (and unsubscribed clients like editors)
+        self.broadcast_layout(&msg.layout);
 
         Ok(())
     }
@@ -459,5 +473,21 @@ impl Handler<message::RequestLayoutList> for ChatServer {
             layouts,
             active: self.active_layout.clone(),
         })
+    }
+}
+
+/// Handler for subscribing a client to a specific layout
+impl Handler<message::SubscribeLayout> for ChatServer {
+    type Result = ();
+
+    fn handle(&mut self, msg: message::SubscribeLayout, _: &mut Context<Self>) -> Self::Result {
+        log::info!(
+            "[ChatServer] Client {} subscribing to layout: {}",
+            msg.client_id,
+            msg.layout_name
+        );
+        if let Some(conn) = self.clients.get_mut(&msg.client_id) {
+            conn.subscribed_layout = Some(msg.layout_name);
+        }
     }
 }

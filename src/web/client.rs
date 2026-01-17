@@ -267,12 +267,20 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                     // Handle subscribe to specific layout
                     if let Some(name) = cmd.subscribe_layout {
                         log::info!("[ChatClient] Client subscribing to layout: {}", name);
+                        let client_id = self.id;
+                        let server = self.server.clone();
                         self.server
                             .send(message::RequestLayoutByName { name: name.clone() })
                             .into_actor(self)
                             .then(move |res, _, ctx| {
                                 match res {
                                     Ok(Some(layout)) => {
+                                        // Register the subscription with the server
+                                        server.do_send(message::SubscribeLayout {
+                                            client_id,
+                                            layout_name: name.clone(),
+                                        });
+
                                         let reply = serde_json::to_string(&message::ReplyInner {
                                             tag: "layout_update".to_owned(),
                                             message: serde_json::to_string(&layout).unwrap(),

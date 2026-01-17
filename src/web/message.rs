@@ -157,3 +157,13 @@ pub struct LayoutListResponse {
 impl Message for RequestLayoutList {
     type Result = LayoutListResponse;
 }
+
+/// Subscribe a client to a specific layout (only receives updates for that layout)
+pub struct SubscribeLayout {
+    pub client_id: usize,
+    pub layout_name: String,
+}
+
+impl Message for SubscribeLayout {
+    type Result = ();
+}
