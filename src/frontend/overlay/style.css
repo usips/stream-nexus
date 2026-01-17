@@ -37,31 +37,28 @@ body {
  * Live Viewers
  * Position controlled by layout config
  */
-section#live {
-    position: absolute;
-    /* Position controlled by layout config */
-    padding: 15px;
-}
-
+/**
+ * Live Badge Element
+ * Position controlled by layout config
+ */
 .live-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    float: left;
     background-color: rgba(0, 0, 0, 0.66);
     color: #fff;
     border-radius: 3px;
     font-size: 0.8em;
     padding: 0 0.5em;
-    margin: 1px;
     margin-right: 0.3em;
-    opacity: 0.75;
     line-height: 1;
     height: 1.6em;
     font-family: 'Open Sans', Arial, Helvetica, sans-serif;
 }
 
-.live-badge#live-icon {
+/* LIVE label and icon get red background */
+.live-icon.live-badge,
+.live-label.live-badge {
     background-color: rgba(255, 0, 0, 0.66);
 }
 
@@ -575,9 +572,7 @@ section#chat::-webkit-scrollbar {
     flex-direction: column-reverse;
 }
 
-.element--live {
-    padding: 15px;
-}
+/* Position controlled by layout config - no default padding */
 
 .element--text {
     color: #fff;
