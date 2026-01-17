@@ -52,9 +52,9 @@
         window.FRAME_CONFIG = {
             viewId: "{{ view_id }}",
             frameName: "{{ frame_name }}",
-            elements: {{ elements_json | safe }},
+            elements: {{ elements_json|safe }},
         background: {% if background != "" %} "{{ background }}"{% else %} null{% endif %},
-        donationMatter: { { donation_matter_json | safe } }
+        donationMatter: {{ donation_matter_json|safe }}
         };
 
         // Hide elements not in this frame (if frame has specific elements)
