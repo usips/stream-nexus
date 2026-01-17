@@ -192,6 +192,9 @@ pub struct Style {
 #[serde(rename_all = "camelCase")]
 pub struct ElementConfig {
     pub enabled: bool,
+    /// Prevents selection/manipulation in editor (editor-only, not used by overlay)
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub locked: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
     #[serde(default)]
@@ -209,6 +212,7 @@ impl Default for ElementConfig {
     fn default() -> Self {
         Self {
             enabled: true,
+            locked: false,
             display_name: None,
             position: Position::default(),
             size: Size::default(),
@@ -326,6 +330,7 @@ impl Layout {
             "chat".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: None,
@@ -353,6 +358,7 @@ impl Layout {
             "live".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.0)),
@@ -372,6 +378,7 @@ impl Layout {
             "text".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.78)),
@@ -398,6 +405,7 @@ impl Layout {
             "featured".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.0)),
@@ -425,6 +433,7 @@ impl Layout {
             "poll".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: None,
@@ -444,6 +453,7 @@ impl Layout {
             "superchat".to_string(),
             ElementConfig {
                 enabled: true,
+                locked: false,
                 display_name: None,
                 position: Position {
                     x: None,
