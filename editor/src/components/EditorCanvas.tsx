@@ -967,6 +967,41 @@ export function EditorCanvas({
         return style as React.CSSProperties;
     };
 
+    // Convert vw/vh units in a style value to pixels for canvas display
+    const convertViewportUnits = (value: string | number | undefined): string | number | undefined => {
+        if (value === undefined || typeof value === 'number') return value;
+        const str = value.toString();
+
+        // Handle simple vw values
+        if (str.endsWith('vw')) {
+            const num = parseFloat(str);
+            if (!isNaN(num)) {
+                return `${(num / 100) * CANVAS_WIDTH}px`;
+            }
+        }
+        // Handle simple vh values
+        if (str.endsWith('vh')) {
+            const num = parseFloat(str);
+            if (!isNaN(num)) {
+                return `${(num / 100) * CANVAS_HEIGHT}px`;
+            }
+        }
+        return value;
+    };
+
+    // Convert all vw/vh units in a style object to pixels
+    const convertStyleUnits = (style: React.CSSProperties): React.CSSProperties => {
+        const converted: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(style)) {
+            if (typeof value === 'string') {
+                converted[key] = convertViewportUnits(value);
+            } else {
+                converted[key] = value;
+            }
+        }
+        return converted as React.CSSProperties;
+    };
+
     const getElementStyle = (elementId: string, config: ElementConfig): React.CSSProperties => {
         const style: React.CSSProperties = {
             position: 'absolute',
@@ -1008,7 +1043,7 @@ export function EditorCanvas({
         // Apply custom CSS (use compiledCss if available, otherwise parse customCss)
         const cssToApply = config.style.compiledCss || config.style.customCss;
         if (cssToApply) {
-            Object.assign(style, parseCustomCss(cssToApply));
+            Object.assign(style, convertStyleUnits(parseCustomCss(cssToApply)));
         }
 
         return style;
@@ -1195,7 +1230,7 @@ export function EditorCanvas({
                 const resolvedContent = resolveTokens(textContent);
                 content = (
                     <div className="element--text" style={{
-                        ...config.style,
+                        ...convertStyleUnits(config.style as React.CSSProperties),
                         width: '100%',
                         height: '100%',
                     }}>
