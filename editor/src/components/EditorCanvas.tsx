@@ -572,6 +572,11 @@ export function EditorCanvas({
             newPosition.y = pxToVh(newTopPx);
         }
 
+        // Preserve z-index
+        if (element.position.zIndex !== undefined) {
+            newPosition.zIndex = element.position.zIndex;
+        }
+
         updateElementConfig(dragState.elementId, { position: newPosition });
     }, [dragState, scale, layout.elements, updateElementConfig]);
 
@@ -628,6 +633,11 @@ export function EditorCanvas({
                     newPosition.bottom = pxToVh(Math.max(0, bottomPx));
                 } else {
                     newPosition.y = pxToVh(topPx);
+                }
+
+                // Preserve z-index
+                if (pos.zIndex !== undefined) {
+                    newPosition.zIndex = pos.zIndex;
                 }
 
                 updateElementConfig(dragState.elementId, { position: newPosition });
@@ -930,6 +940,11 @@ export function EditorCanvas({
             newPosition.bottom = pxToVh(newBottomPx);
         } else if (newTopPx !== null) {
             newPosition.y = pxToVh(newTopPx);
+        }
+
+        // Preserve z-index
+        if (element.position.zIndex !== undefined) {
+            newPosition.zIndex = element.position.zIndex;
         }
 
         // Convert size to vw/vh
