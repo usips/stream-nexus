@@ -72,42 +72,11 @@ export interface MessageStyle {
     showSubBadge?: boolean;
 }
 
-// DonationMatter configuration options
-export interface DonationMatterOptions {
-    // Object appearance
-    objectType?: 'ammo' | 'coin' | 'custom';
-    objectScale?: number;
-    objectSprites?: string[];
-
-    // Physics properties
-    restitution?: number;            // Bounciness (0-1)
-    friction?: number;               // Surface friction (0-1)
-    frictionAir?: number;            // Air resistance (0-0.1)
-    density?: number;                // Mass per unit area
-
-    // Label display
-    showLabels?: boolean;
-    labelColor?: string;
-    labelFont?: string;
-    labelSize?: number;
-
-    // Spawn behavior
-    spawnRate?: number;              // Objects per dollar
-    spawnDelay?: number;             // Delay between spawns (ms)
-    maxObjects?: number;             // Maximum objects before cleanup
-
-    // Renderer options
-    showAngleIndicator?: boolean;
-    wireframes?: boolean;
-}
-
 export interface Layout {
     name: string;
     version: number;
     elements: Record<string, ElementConfig>;
     messageStyle: MessageStyle;
-    background?: string;             // Special background type (e.g., "physics")
-    donationMatter?: DonationMatterOptions;  // Configuration for physics background
 }
 
 // ============================================================================
@@ -177,10 +146,5 @@ declare global {
     interface Window {
         badgeSettings?: BadgeSettings;
         livestream_viewers: ViewerCounts;
-        FRAME_CONFIG?: {
-            layoutName: string;
-            background: string | null;
-            donationMatter?: Record<string, unknown> | null;
-        };
     }
 }

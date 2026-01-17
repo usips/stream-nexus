@@ -290,64 +290,6 @@ impl Default for MessageStyle {
     }
 }
 
-/// DonationMatter configuration options for physics backgrounds
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct DonationMatterOptions {
-    /// Object appearance type
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_type: Option<String>,
-    /// Object scale (0.01 - 1.0)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_scale: Option<f64>,
-    /// Object sprite paths
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub object_sprites: Option<Vec<String>>,
-
-    /// Bounciness (0-1)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub restitution: Option<f64>,
-    /// Surface friction (0-1)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub friction: Option<f64>,
-    /// Air resistance (0-0.1)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub friction_air: Option<f64>,
-    /// Mass per unit area
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub density: Option<f64>,
-
-    /// Show username labels
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub show_labels: Option<bool>,
-    /// Label color (hex)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub label_color: Option<String>,
-    /// Label font family
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub label_font: Option<String>,
-    /// Label font size in pixels
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub label_size: Option<u32>,
-
-    /// Objects per dollar
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub spawn_rate: Option<f64>,
-    /// Delay between spawns (ms)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub spawn_delay: Option<u32>,
-    /// Maximum objects before cleanup
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_objects: Option<u32>,
-
-    /// Show angle indicators (debug)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub show_angle_indicator: Option<bool>,
-    /// Wireframe mode (debug)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub wireframes: Option<bool>,
-}
-
 /// Complete layout configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -359,12 +301,6 @@ pub struct Layout {
     pub elements: HashMap<String, ElementConfig>,
     #[serde(default)]
     pub message_style: MessageStyle,
-    /// Optional background type for this layout (e.g., "physics")
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub background: Option<String>,
-    /// DonationMatter configuration (for physics backgrounds)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub donation_matter: Option<DonationMatterOptions>,
 }
 
 fn default_version() -> u32 {
@@ -518,8 +454,6 @@ impl Layout {
             version: 1,
             elements,
             message_style: MessageStyle::default(),
-            background: None,
-            donation_matter: None,
         }
     }
 

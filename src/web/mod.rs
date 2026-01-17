@@ -41,8 +41,6 @@ pub async fn home() -> impl Responder {
 #[template(path = "frame.html")]
 struct FrameTemplate {
     layout_name: String,
-    background: String,           // Empty string means no background
-    donation_matter_json: String, // DonationMatter configuration JSON
 }
 
 /// GET /overlay - Main overlay view (uses active layout)
@@ -55,14 +53,8 @@ pub async fn overlay(req: HttpRequest) -> impl Responder {
 
     let layout = chat_server.send(message::RequestLayout).await.unwrap();
 
-    let background = layout.background.clone().unwrap_or_default();
-    let donation_matter_json =
-        serde_json::to_string(&layout.donation_matter).unwrap_or_else(|_| "null".to_string());
-
     FrameTemplate {
         layout_name: layout.name.clone(),
-        background,
-        donation_matter_json,
     }
 }
 

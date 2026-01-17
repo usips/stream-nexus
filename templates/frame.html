@@ -12,16 +12,9 @@
         rel="stylesheet" />
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
-    {% if background == "physics" -%}
-    <script type="text/javascript" src="/static/matter.min.js"></script>
-    {%- endif %}
 </head>
 
-<body id="overlay" {% if background=="physics" %} class="physics-background" {% endif %}>
-    {% if background == "physics" -%}
-    <canvas id="physics-canvas"></canvas>
-    {%- endif %}
-
+<body id="overlay">
     <section id="live">
         <span id="live-icon" class="live-badge">LIVE</span>
         <span id="live-totals" class="live-badge">0</span>
@@ -44,17 +37,6 @@
     <section id="show-message"></section>
 
     <script type="text/javascript" src="/static/script.js"></script>
-    {% if background == "physics" -%}
-    <script type="text/javascript" src="/static/background.js"></script>
-    {%- endif %}
-    <script>
-        // Layout configuration
-        window.FRAME_CONFIG = {
-            layoutName: "{{ layout_name }}",
-            background: {% if background != "" %}"{{ background }}"{% else %}null{% endif %},
-            donationMatter: {{ donation_matter_json|safe }}
-        };
-    </script>
 </body>
 
 </html>
