@@ -9,6 +9,7 @@ import {
     pxToVh,
     positionToPx,
     sizeToPx,
+    defaultFrames,
 } from '../types/layout';
 import { resolveTokens } from '../utils/tokens';
 
@@ -1258,8 +1259,9 @@ export function EditorCanvas({
                 >
                     {Object.entries(layout.elements).map(([id, config]) => {
                         // Filter by frame if one is selected
-                        if (selectedFrame && layout.frames) {
-                            const frame = layout.frames[selectedFrame];
+                        if (selectedFrame) {
+                            const frames = layout.frames || defaultFrames();
+                            const frame = frames[selectedFrame];
                             if (frame) {
                                 // Empty elements array means show all
                                 if (frame.elements && frame.elements.length > 0) {
