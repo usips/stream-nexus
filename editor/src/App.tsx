@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Layout, defaultLayout, defaultElementConfig, defaultChatOptions } from './types/layout';
+import { Layout, ElementConfig, defaultLayout, defaultElementConfig, defaultChatOptions } from './types/layout';
 import { TopBar } from './components/TopBar';
 import { Toolbox } from './components/Toolbox';
 import { SettingsPanel } from './components/SettingsPanel';
 import { EditorCanvas } from './components/EditorCanvas';
+import { LayerPanel } from './components/LayerPanel';
 import {
     ChatPanel,
     LiveBadge,
@@ -19,6 +20,43 @@ import {
 import './styles.css';
 
 const MAX_UNDO_HISTORY = 50;
+
+// Ensure all elements have unique z-index values
+function ensureUniqueZIndexes(layout: Layout): Layout {
+    const elements = Object.entries(layout.elements);
+
+    // Check if z-indexes are already unique and properly set
+    const zIndexes = elements.map(([, config]) => config.position.zIndex);
+    const hasAllZIndexes = zIndexes.every(z => z !== undefined);
+    const allUnique = new Set(zIndexes).size === zIndexes.length;
+
+    if (hasAllZIndexes && allUnique) {
+        return layout; // Already good
+    }
+
+    // Assign unique z-indexes based on current order, preserving any existing z-index ordering
+    const sortedElements = [...elements].sort((a, b) => {
+        const zA = a[1].position.zIndex ?? 0;
+        const zB = b[1].position.zIndex ?? 0;
+        return zB - zA; // Higher z-index first
+    });
+
+    const updatedElements: Record<string, ElementConfig> = {};
+    sortedElements.forEach(([id, config], index) => {
+        updatedElements[id] = {
+            ...config,
+            position: {
+                ...config.position,
+                zIndex: (sortedElements.length - 1 - index) * 10,
+            },
+        };
+    });
+
+    return {
+        ...layout,
+        elements: updatedElements,
+    };
+}
 
 function App() {
     const {
@@ -51,7 +89,9 @@ function App() {
             const isNewLayout = currentLayoutNameRef.current !== currentLayout.name;
             if (isNewLayout) {
                 console.log('[Editor] Switching to layout:', currentLayout.name);
-                setLocalLayout(currentLayout);
+                // Ensure all elements have unique z-indexes
+                const layoutWithZIndexes = ensureUniqueZIndexes(currentLayout);
+                setLocalLayout(layoutWithZIndexes);
                 // Clear history when switching layouts
                 setUndoHistory([]);
                 setRedoHistory([]);
@@ -266,13 +306,19 @@ function App() {
             counter++;
         }
 
+        // Find the highest z-index to place new element on top
+        const maxZIndex = Math.max(
+            0,
+            ...Object.values(localLayout.elements).map(el => el.position.zIndex ?? 0)
+        );
+
         // Create default config for the new element
         const baseConfig = defaultElementConfig();
         const newElement: typeof baseConfig = {
             ...baseConfig,
             position: dropPosition
-                ? { x: `${(dropPosition.x / 1920 * 100).toFixed(2)}vw`, y: `${(dropPosition.y / 1080 * 100).toFixed(2)}vh` }
-                : { x: '10vw', y: '10vh' },
+                ? { x: `${(dropPosition.x / 1920 * 100).toFixed(2)}vw`, y: `${(dropPosition.y / 1080 * 100).toFixed(2)}vh`, zIndex: maxZIndex + 10 }
+                : { x: '10vw', y: '10vh', zIndex: maxZIndex + 10 },
         };
 
         // Add element-specific defaults (only if not dropped at specific position)
@@ -362,7 +408,18 @@ function App() {
                     onAutoSaveChange={setAutoSave}
                 />
                 <div className="editor-main">
-                    <Toolbox onAddElement={handleAddElement} />
+                    <div className="left-panels">
+                        <Toolbox onAddElement={handleAddElement} />
+                        <LayerPanel
+                            layout={localLayout}
+                            onLayoutChange={(newLayout) => {
+                                setLocalLayout(newLayout);
+                                broadcastLayout(newLayout);
+                            }}
+                            selectedElement={selectedElement}
+                            onSelectElement={setSelectedElement}
+                        />
+                    </div>
                     <EditorCanvas
                         layout={localLayout}
                         onLayoutChange={(newLayout) => {
