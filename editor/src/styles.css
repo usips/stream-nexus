@@ -637,6 +637,14 @@
     display: flex;
     flex-direction: column;
     font-family: "Open Sans", Arial, Helvetica, sans-serif;
+
+    /* Hide scrollbar - matches overlay */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.element--chat::-webkit-scrollbar {
+    display: none;
 }
 
 /* Inner messages container - matches overlay structure */
