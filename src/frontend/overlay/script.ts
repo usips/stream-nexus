@@ -682,13 +682,8 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
 
         const el = document.createElement("div");
 
-        if (isTopFirst) {
-            // Insert at the beginning for top-first mode
-            container.insertBefore(el, container.firstChild);
-        } else {
-            // Append at the end for bottom-first mode (default)
-            container.appendChild(el);
-        }
+        // Always append to end - CSS flex-direction handles visual order
+        container.appendChild(el);
 
         // Use a unique ID for each instance (original ID for first, suffixed for others)
         const instanceId = i === 0 ? message.id : `${message.id}-${i}`;
@@ -707,25 +702,32 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
             }
         }
 
-        // Remove old messages (keep max 1000 per container)
+        // Remove old messages from beginning (oldest first in DOM)
         while (container.children.length > 1000) {
-            // Remove from opposite end based on direction
-            const removeIndex = isTopFirst ? container.children.length - 1 : 0;
-            for (let j = removeIndex; isTopFirst ? j >= 0 : j < container.children.length; isTopFirst ? j-- : j++) {
-                const child = container.children[j] as HTMLElement;
-                if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
-                    child.remove();
-                    break;
+            const child = container.children[0] as HTMLElement;
+            if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
+                child.remove();
+            } else if (container.children.length > 1) {
+                // Skip sticky/premium messages, try next
+                const next = container.children[1] as HTMLElement;
+                if (next && !next.classList.contains("msg--sticky") && !next.classList.contains("msg--t")) {
+                    next.remove();
+                } else {
+                    break; // Avoid infinite loop
                 }
+            } else {
+                break;
             }
         }
 
-        // Auto-scroll based on direction
+        // Auto-scroll to show newest messages
         const chatSection = container.parentElement;
         if (chatSection) {
             if (isTopFirst) {
+                // column-reverse: newest at top, scroll to top
                 chatSection.scrollTop = 0;
             } else {
+                // column: newest at bottom, scroll to bottom
                 chatSection.scrollTop = chatSection.scrollHeight;
             }
         }

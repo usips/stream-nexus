@@ -896,6 +896,12 @@
     display: none;
 }
 
+/* Chat Direction - Top First (new messages at top) */
+.preview-chat--top-first {
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+}
+
 .preview-live {
     display: flex;
     align-items: center;

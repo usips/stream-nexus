@@ -544,10 +544,11 @@ section#chat::-webkit-scrollbar {
 /**
  * Chat Direction - Top First (new messages at top)
  * Applied via chat--top-first class on chat container
- * Uses normal column direction with flex-start to align messages to top
+ * Uses column-reverse so appended messages appear at top
  */
 .chat--top-first .chat-messages {
-    justify-content: flex-start;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
 }
 
 /**

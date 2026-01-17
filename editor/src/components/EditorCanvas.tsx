@@ -1058,6 +1058,7 @@ export function EditorCanvas({
                 const showAvatars = chatOpts.showAvatars !== undefined ? chatOpts.showAvatars !== false : ms.showAvatars !== false;
                 const showUsernames = chatOpts.showUsernames !== undefined ? chatOpts.showUsernames !== false : ms.showUsernames !== false;
                 const condensedMode = chatOpts.condensedMode !== undefined ? chatOpts.condensedMode === true : ms.condensedMode === true;
+                const direction = (chatOpts.direction as string) || (ms.direction as string) || 'bottom';
 
                 // Badge visibility settings (per-element with fallback)
                 const showOwnerBadge = chatOpts.showOwnerBadge !== undefined ? chatOpts.showOwnerBadge !== false : ms.showOwnerBadge !== false;
@@ -1072,6 +1073,7 @@ export function EditorCanvas({
                     condensedMode && 'preview-chat--condensed',
                     !showAvatars && 'preview-chat--no-avatars',
                     !showUsernames && 'preview-chat--no-usernames',
+                    direction === 'top' && 'preview-chat--top-first',
                 ].filter(Boolean).join(' ');
 
                 // Apply message style settings as CSS custom properties
