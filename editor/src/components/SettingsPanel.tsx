@@ -205,8 +205,8 @@ export function SettingsPanel({
                     </div>
                 </div>
 
-                {/* Element Section (Global Message Style) - Always open by default */}
-                <CollapsibleSection title="Element" defaultOpen={true}>
+                {/* Global Message Style Section */}
+                <CollapsibleSection title="Message Style" defaultOpen={false}>
                     <div className="settings-row">
                         <label>Avatar Size</label>
                         <input
@@ -239,96 +239,9 @@ export function SettingsPanel({
                             onChange={(e) => updateMessageStyle('borderRadius', e.target.value)}
                         />
                     </div>
-
-                    {/* Display Options */}
-                    <div className="settings-row">
-                        <label>Display Options</label>
-                        <div className="settings-checkbox-group">
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showAvatars !== false}
-                                    onChange={(e) => updateMessageStyle('showAvatars', e.target.checked)}
-                                />
-                                <span>Show Avatars</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showUsernames !== false}
-                                    onChange={(e) => updateMessageStyle('showUsernames', e.target.checked)}
-                                />
-                                <span>Show Usernames</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.condensedMode === true}
-                                    onChange={(e) => updateMessageStyle('condensedMode', e.target.checked)}
-                                />
-                                <span>Condensed Mode</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    {/* Chat Direction */}
-                    <div className="settings-row">
-                        <label>Chat Direction</label>
-                        <select
-                            value={layout.messageStyle.direction || 'bottom'}
-                            onChange={(e) => updateMessageStyle('direction', e.target.value as 'bottom' | 'top')}
-                        >
-                            <option value="bottom">Bottom-first (new messages at bottom)</option>
-                            <option value="top">Top-first (new messages at top)</option>
-                        </select>
-                    </div>
-
-                    {/* Badge Visibility */}
-                    <div className="settings-row">
-                        <label>Visible Badges</label>
-                        <div className="settings-checkbox-group">
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showOwnerBadge !== false}
-                                    onChange={(e) => updateMessageStyle('showOwnerBadge', e.target.checked)}
-                                />
-                                <span style={{ color: '#ffd700' }}>Owner</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showStaffBadge !== false}
-                                    onChange={(e) => updateMessageStyle('showStaffBadge', e.target.checked)}
-                                />
-                                <span style={{ color: '#ff3434' }}>Staff</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showModBadge !== false}
-                                    onChange={(e) => updateMessageStyle('showModBadge', e.target.checked)}
-                                />
-                                <span style={{ color: '#197ce3' }}>Mod</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showVerifiedBadge !== false}
-                                    onChange={(e) => updateMessageStyle('showVerifiedBadge', e.target.checked)}
-                                />
-                                <span style={{ color: '#a80da8' }}>Verified</span>
-                            </label>
-                            <label className="settings-checkbox-inline">
-                                <input
-                                    type="checkbox"
-                                    checked={layout.messageStyle.showSubBadge !== false}
-                                    onChange={(e) => updateMessageStyle('showSubBadge', e.target.checked)}
-                                />
-                                <span style={{ color: '#2f8d15' }}>Sub</span>
-                            </label>
-                        </div>
-                    </div>
+                    <small style={{ color: '#666', display: 'block', marginTop: '8px' }}>
+                        These settings apply to all chat elements. Use the Chat Options section below for per-element settings.
+                    </small>
                 </CollapsibleSection>
 
                 {/* Element-specific Options Section */}

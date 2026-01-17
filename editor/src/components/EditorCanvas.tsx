@@ -634,6 +634,146 @@ export function EditorCanvas({
         setResizeState(null);
     }, [dragState, layout.elements, updateElementConfig]);
 
+    // Helper to nudge a position value by 1 pixel while keeping its original unit
+    const nudgePositionValue = useCallback((value: number | string | null | undefined, deltaPx: number, isHorizontal: boolean): string => {
+        if (value === null || value === undefined) {
+            // No position set, start at 0 in vw/vh
+            return isHorizontal ? pxToVw(Math.max(0, deltaPx)) : pxToVh(Math.max(0, deltaPx));
+        }
+
+        if (typeof value === 'number') {
+            // Pixel value - just add the delta
+            return `${Math.max(0, value + deltaPx)}px`;
+        }
+
+        const str = value.toString();
+
+        // Parse the value and its unit
+        if (str.endsWith('vw')) {
+            const num = parseFloat(str);
+            // 1px = (1/CANVAS_WIDTH) * 100 vw
+            const deltaVw = (deltaPx / CANVAS_WIDTH) * 100;
+            const newVal = Math.max(0, num + deltaVw);
+            return `${newVal.toFixed(2)}vw`;
+        }
+        if (str.endsWith('vh')) {
+            const num = parseFloat(str);
+            // 1px = (1/CANVAS_HEIGHT) * 100 vh
+            const deltaVh = (deltaPx / CANVAS_HEIGHT) * 100;
+            const newVal = Math.max(0, num + deltaVh);
+            return `${newVal.toFixed(2)}vh`;
+        }
+        if (str.endsWith('%')) {
+            const num = parseFloat(str);
+            // Treat % like vw/vh based on axis
+            const deltaPercent = isHorizontal
+                ? (deltaPx / CANVAS_WIDTH) * 100
+                : (deltaPx / CANVAS_HEIGHT) * 100;
+            const newVal = Math.max(0, num + deltaPercent);
+            return `${newVal.toFixed(2)}%`;
+        }
+        if (str.endsWith('px')) {
+            const num = parseFloat(str);
+            return `${Math.max(0, num + deltaPx)}px`;
+        }
+
+        // Try to parse as bare number (pixels)
+        const num = parseFloat(str);
+        if (!isNaN(num)) {
+            return `${Math.max(0, num + deltaPx)}px`;
+        }
+
+        // Complex value (calc, etc.) - convert to vw/vh
+        const currentPx = positionToPx(value, isHorizontal);
+        return isHorizontal ? pxToVw(Math.max(0, currentPx + deltaPx)) : pxToVh(Math.max(0, currentPx + deltaPx));
+    }, []);
+
+    // Handle arrow key nudging
+    const handleNudge = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+        if (!selectedElement || !layout.elements[selectedElement]) return;
+
+        const element = layout.elements[selectedElement];
+        const pos = element.position;
+
+        const newPosition: Position = { ...pos };
+
+        switch (direction) {
+            case 'left':
+                if (pos.right !== null && pos.right !== undefined) {
+                    // Right-anchored: increase right value to move left
+                    newPosition.right = nudgePositionValue(pos.right, 1, true);
+                } else {
+                    // Left-anchored: decrease x value to move left
+                    newPosition.x = nudgePositionValue(pos.x, -1, true);
+                }
+                break;
+            case 'right':
+                if (pos.right !== null && pos.right !== undefined) {
+                    // Right-anchored: decrease right value to move right
+                    newPosition.right = nudgePositionValue(pos.right, -1, true);
+                } else {
+                    // Left-anchored: increase x value to move right
+                    newPosition.x = nudgePositionValue(pos.x, 1, true);
+                }
+                break;
+            case 'up':
+                if (pos.bottom !== null && pos.bottom !== undefined) {
+                    // Bottom-anchored: increase bottom value to move up
+                    newPosition.bottom = nudgePositionValue(pos.bottom, 1, false);
+                } else {
+                    // Top-anchored: decrease y value to move up
+                    newPosition.y = nudgePositionValue(pos.y, -1, false);
+                }
+                break;
+            case 'down':
+                if (pos.bottom !== null && pos.bottom !== undefined) {
+                    // Bottom-anchored: decrease bottom value to move down
+                    newPosition.bottom = nudgePositionValue(pos.bottom, -1, false);
+                } else {
+                    // Top-anchored: increase y value to move down
+                    newPosition.y = nudgePositionValue(pos.y, 1, false);
+                }
+                break;
+        }
+
+        updateElementConfig(selectedElement, { position: newPosition });
+    }, [selectedElement, layout.elements, nudgePositionValue, updateElementConfig]);
+
+    // Arrow key event handler
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't trigger when typing in inputs
+            if (e.target instanceof HTMLInputElement ||
+                e.target instanceof HTMLTextAreaElement ||
+                e.target instanceof HTMLSelectElement) {
+                return;
+            }
+
+            // Arrow keys for nudging
+            switch (e.key) {
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    handleNudge('left');
+                    break;
+                case 'ArrowRight':
+                    e.preventDefault();
+                    handleNudge('right');
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    handleNudge('up');
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    handleNudge('down');
+                    break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleNudge]);
+
     // Resize handlers
     const handleResizeStart = useCallback((e: React.MouseEvent, elementId: string, handle: ResizeState['handle']) => {
         e.preventDefault();
