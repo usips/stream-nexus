@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>S.N.E.E.D. - {{ frame_name }}</title>
+    <title>S.N.E.E.D. - {{ layout_name }}</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css" />
     <link rel="stylesheet" type="text/css" href="/static/user-colors.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,7 @@
     {%- endif %}
 </head>
 
-<body id="overlay" data-frame="{{ view_id }}" {% if background=="physics" %} class="physics-background" {% endif %}>
+<body id="overlay" {% if background=="physics" %} class="physics-background" {% endif %}>
     {% if background == "physics" -%}
     <canvas id="physics-canvas"></canvas>
     {%- endif %}
@@ -48,34 +48,12 @@
     <script type="text/javascript" src="/static/background.js"></script>
     {%- endif %}
     <script>
-        // Frame configuration
+        // Layout configuration
         window.FRAME_CONFIG = {
-            viewId: "{{ view_id }}",
-            frameName: "{{ frame_name }}",
-            elements: {{ elements_json|safe }},
-        background: {% if background != "" %} "{{ background }}"{% else %} null{% endif %},
-        donationMatter: {{ donation_matter_json|safe }}
+            layoutName: "{{ layout_name }}",
+            background: {% if background != "" %}"{{ background }}"{% else %}null{% endif %},
+            donationMatter: {{ donation_matter_json|safe }}
         };
-
-        // Hide elements not in this frame (if frame has specific elements)
-        document.addEventListener('DOMContentLoaded', function () {
-            const elements = window.FRAME_CONFIG.elements;
-            if (elements && elements.length > 0) {
-                // Frame specifies which elements to show
-                const allSections = ['live', 'attribution', 'chat', 'show-message'];
-                allSections.forEach(function (id) {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        // Map section IDs to element IDs
-                        const elementId = id === 'show-message' ? 'featured' :
-                            id === 'attribution' ? 'text' : id;
-                        if (!elements.includes(elementId)) {
-                            el.style.display = 'none';
-                        }
-                    }
-                });
-            }
-        });
     </script>
 </body>
 

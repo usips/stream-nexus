@@ -101,19 +101,13 @@ export interface DonationMatterOptions {
     wireframes?: boolean;
 }
 
-export interface Frame {
-    name: string;
-    elements: string[];
-    background?: string;
-    donationMatter?: DonationMatterOptions;  // Configuration for physics background
-}
-
 export interface Layout {
     name: string;
     version: number;
     elements: Record<string, ElementConfig>;
     messageStyle: MessageStyle;
-    frames: Record<string, Frame>;
+    background?: string;             // Special background type (e.g., "physics")
+    donationMatter?: DonationMatterOptions;  // Configuration for physics background
 }
 
 // ============================================================================
@@ -184,9 +178,7 @@ declare global {
         badgeSettings?: BadgeSettings;
         livestream_viewers: ViewerCounts;
         FRAME_CONFIG?: {
-            viewId: string;
-            frameName: string;
-            elements: string[];
+            layoutName: string;
             background: string | null;
             donationMatter?: Record<string, unknown> | null;
         };

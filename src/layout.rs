@@ -348,34 +348,6 @@ pub struct DonationMatterOptions {
     pub wireframes: Option<bool>,
 }
 
-/// A frame is a named view that shows a subset of elements
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Frame {
-    /// Display name for the frame
-    pub name: String,
-    /// Element IDs to include in this frame (empty = all elements)
-    #[serde(default)]
-    pub elements: Vec<String>,
-    /// Optional background type for this frame (e.g., "physics")
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub background: Option<String>,
-    /// DonationMatter configuration (for physics backgrounds)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub donation_matter: Option<DonationMatterOptions>,
-}
-
-impl Default for Frame {
-    fn default() -> Self {
-        Self {
-            name: "default".to_string(),
-            elements: vec![],
-            background: None,
-            donation_matter: None,
-        }
-    }
-}
-
 /// Complete layout configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -387,60 +359,12 @@ pub struct Layout {
     pub elements: HashMap<String, ElementConfig>,
     #[serde(default)]
     pub message_style: MessageStyle,
-    /// Named frames (views) for this layout
-    #[serde(default = "default_frames")]
-    pub frames: HashMap<String, Frame>,
-}
-
-fn default_donation_matter() -> DonationMatterOptions {
-    DonationMatterOptions {
-        object_type: Some("ammo".to_string()),
-        object_scale: Some(0.1),
-        object_sprites: Some(vec![
-            "/static/img/ammo_556_round_a.png".to_string(),
-            "/static/img/ammo_556_round_b.png".to_string(),
-            "/static/img/ammo_556_round_c.png".to_string(),
-            "/static/img/ammo_556_round_d.png".to_string(),
-        ]),
-        restitution: Some(0.1),
-        friction: Some(0.8),
-        friction_air: Some(0.02),
-        density: Some(0.008),
-        show_labels: Some(true),
-        label_color: Some("#ffff00".to_string()),
-        label_font: Some("Verlag".to_string()),
-        label_size: Some(12),
-        spawn_rate: Some(2.0),
-        spawn_delay: Some(50),
-        max_objects: Some(500),
-        show_angle_indicator: Some(false),
-        wireframes: Some(false),
-    }
-}
-
-fn default_frames() -> HashMap<String, Frame> {
-    let mut frames = HashMap::new();
-    // Default "overlay" frame shows all elements
-    frames.insert(
-        "overlay".to_string(),
-        Frame {
-            name: "Overlay".to_string(),
-            elements: vec![],
-            background: None,
-            donation_matter: None,
-        },
-    );
-    // Default "background" frame for physics background
-    frames.insert(
-        "background".to_string(),
-        Frame {
-            name: "Background".to_string(),
-            elements: vec![],
-            background: Some("physics".to_string()),
-            donation_matter: Some(default_donation_matter()),
-        },
-    );
-    frames
+    /// Optional background type for this layout (e.g., "physics")
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background: Option<String>,
+    /// DonationMatter configuration (for physics backgrounds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub donation_matter: Option<DonationMatterOptions>,
 }
 
 fn default_version() -> u32 {
@@ -594,7 +518,8 @@ impl Layout {
             version: 1,
             elements,
             message_style: MessageStyle::default(),
-            frames: default_frames(),
+            background: None,
+            donation_matter: None,
         }
     }
 

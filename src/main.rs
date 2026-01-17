@@ -36,8 +36,8 @@ async fn main() -> Result<(), std::io::Error> {
             .app_data(chat_for_server.clone())
             // Views
             .service(web::home)
-            .service(web::frame)
-            .service(web::overlay_redirect)
+            .service(web::overlay)
+            .service(web::frame_redirect)
             .service(web::background_redirect)
             .service(web::chat)
             .service(web::dashboard)

@@ -40,68 +40,45 @@ pub async fn home() -> impl Responder {
 #[derive(Template)]
 #[template(path = "frame.html")]
 struct FrameTemplate {
-    view_id: String,
-    frame_name: String,
-    elements_json: String,
+    layout_name: String,
     background: String,           // Empty string means no background
     donation_matter_json: String, // DonationMatter configuration JSON
 }
 
-/// Query parameters for frame endpoint
-#[derive(serde::Deserialize)]
-pub struct FrameQuery {
-    view: Option<String>,
-}
-
-#[actix_web::get("/frame")]
-pub async fn frame(req: HttpRequest, query: web::Query<FrameQuery>) -> impl Responder {
-    let view_id = query.view.clone().unwrap_or_else(|| "overlay".to_string());
-
-    // Get frame config from the active layout
+/// GET /overlay - Main overlay view (uses active layout)
+#[actix_web::get("/overlay")]
+pub async fn overlay(req: HttpRequest) -> impl Responder {
     let chat_server = req
         .app_data::<Addr<ChatServer>>()
         .expect("ChatServer missing in app data!")
         .clone();
 
     let layout = chat_server.send(message::RequestLayout).await.unwrap();
-    let frame_config = layout.frames.get(&view_id);
 
-    let (frame_name, elements, bg, donation_matter) = match frame_config {
-        Some(f) => (
-            f.name.clone(),
-            f.elements.clone(),
-            f.background.clone().unwrap_or_default(),
-            f.donation_matter.clone(),
-        ),
-        None => (view_id.clone(), vec![], String::new(), None),
-    };
-
-    let elements_json = serde_json::to_string(&elements).unwrap_or_else(|_| "[]".to_string());
+    let background = layout.background.clone().unwrap_or_default();
     let donation_matter_json =
-        serde_json::to_string(&donation_matter).unwrap_or_else(|_| "null".to_string());
+        serde_json::to_string(&layout.donation_matter).unwrap_or_else(|_| "null".to_string());
 
     FrameTemplate {
-        view_id,
-        frame_name,
-        elements_json,
-        background: bg,
+        layout_name: layout.name.clone(),
+        background,
         donation_matter_json,
     }
 }
 
-/// Backward compatibility: /overlay redirects to /frame?view=overlay
-#[actix_web::get("/overlay")]
-pub async fn overlay_redirect() -> impl Responder {
+/// Backward compatibility: /frame redirects to /overlay
+#[actix_web::get("/frame")]
+pub async fn frame_redirect() -> impl Responder {
     HttpResponse::TemporaryRedirect()
-        .insert_header((header::LOCATION, "/frame?view=overlay"))
+        .insert_header((header::LOCATION, "/overlay"))
         .finish()
 }
 
-/// Backward compatibility: /background redirects to /frame?view=background
+/// Backward compatibility: /background redirects to /overlay
 #[actix_web::get("/background")]
 pub async fn background_redirect() -> impl Responder {
     HttpResponse::TemporaryRedirect()
-        .insert_header((header::LOCATION, "/frame?view=background"))
+        .insert_header((header::LOCATION, "/overlay"))
         .finish()
 }
 

@@ -167,20 +167,13 @@ export interface DonationMatterOptions {
     wireframes?: boolean;
 }
 
-/// A frame is a named view that shows a subset of elements
-export interface Frame {
-    name: string;
-    elements: string[];  // Element IDs to include (empty = all)
-    background?: string; // Special background type (e.g., "physics")
-    donationMatter?: DonationMatterOptions;  // Configuration for physics background
-}
-
 export interface Layout {
     name: string;
     version: number;
     elements: Record<string, ElementConfig>;
     messageStyle: MessageStyle;
-    frames: Record<string, Frame>;
+    background?: string;             // Special background type (e.g., "physics")
+    donationMatter?: DonationMatterOptions;  // Configuration for physics background
 }
 
 export interface LayoutListResponse {
@@ -235,20 +228,6 @@ export const defaultDonationMatterOptions = (): DonationMatterOptions => ({
     wireframes: false,
 });
 
-export const defaultFrames = (): Record<string, Frame> => ({
-    overlay: {
-        name: 'Overlay',
-        elements: [],  // Empty means all elements
-        background: undefined,
-    },
-    background: {
-        name: 'Background',
-        elements: [],
-        background: 'physics',
-        donationMatter: defaultDonationMatterOptions(),
-    },
-});
-
 export const defaultLayout = (): Layout => ({
     name: 'default',
     version: 1,
@@ -292,5 +271,4 @@ export const defaultLayout = (): Layout => ({
         },
     },
     messageStyle: defaultMessageStyle(),
-    frames: defaultFrames(),
 });

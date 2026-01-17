@@ -9,7 +9,6 @@ import {
     pxToVh,
     positionToPx,
     sizeToPx,
-    defaultFrames,
 } from '../types/layout';
 import { resolveTokens } from '../utils/tokens';
 
@@ -23,7 +22,6 @@ interface EditorCanvasProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
-    selectedFrame: string | null;
 }
 
 interface DragState {
@@ -206,7 +204,6 @@ export function EditorCanvas({
     onRedo,
     canUndo,
     canRedo,
-    selectedFrame,
 }: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
     const [autoScale, setAutoScale] = useState(true);
@@ -1257,39 +1254,7 @@ export function EditorCanvas({
                         }
                     }}
                 >
-                    {/* Frame indicator banner */}
-                    {selectedFrame && (() => {
-                        const frames = layout.frames || defaultFrames();
-                        const frame = frames[selectedFrame];
-                        if (!frame) return null;
-                        const elementCount = frame.elements?.length || 0;
-                        const showingAll = elementCount === 0;
-                        return (
-                            <div className="frame-indicator">
-                                <span className="frame-indicator-name">{frame.name}</span>
-                                {frame.background && (
-                                    <span className="frame-indicator-badge">{frame.background}</span>
-                                )}
-                                <span className="frame-indicator-info">
-                                    {showingAll ? 'Showing all elements' : `${elementCount} element${elementCount !== 1 ? 's' : ''}`}
-                                </span>
-                            </div>
-                        );
-                    })()}
                     {Object.entries(layout.elements).map(([id, config]) => {
-                        // Filter by frame if one is selected
-                        if (selectedFrame) {
-                            const frames = layout.frames || defaultFrames();
-                            const frame = frames[selectedFrame];
-                            if (frame) {
-                                // Empty elements array means show all
-                                if (frame.elements && frame.elements.length > 0) {
-                                    if (!frame.elements.includes(id)) {
-                                        return null;
-                                    }
-                                }
-                            }
-                        }
                         return renderElement(id, config);
                     })}
                 </div>
