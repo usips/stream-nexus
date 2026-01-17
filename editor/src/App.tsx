@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Layout, defaultLayout } from './types/layout';
+import { Layout, defaultLayout, defaultElementConfig } from './types/layout';
 import { TopBar } from './components/TopBar';
 import { Toolbox } from './components/Toolbox';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -256,6 +256,84 @@ function App() {
         switchLayout(name);
     }, [switchLayout]);
 
+    // Add a new element to the layout
+    const handleAddElement = useCallback((elementType: string, dropPosition?: { x: number; y: number }) => {
+        // Generate unique ID if element already exists
+        let elementId = elementType;
+        let counter = 1;
+        while (localLayout.elements[elementId]) {
+            elementId = `${elementType}-${counter}`;
+            counter++;
+        }
+
+        // Create default config for the new element
+        const baseConfig = defaultElementConfig();
+        const newElement: typeof baseConfig = {
+            ...baseConfig,
+            position: dropPosition
+                ? { x: `${(dropPosition.x / 1920 * 100).toFixed(2)}vw`, y: `${(dropPosition.y / 1080 * 100).toFixed(2)}vh` }
+                : { x: '10vw', y: '10vh' },
+        };
+
+        // Add element-specific defaults (only if not dropped at specific position)
+        if (!dropPosition) {
+            switch (elementType) {
+                case 'chat':
+                    newElement.size = { width: '15.63vw', height: '100vh' };
+                    newElement.position = { y: '0vh', right: '0vw' };
+                    break;
+                case 'live':
+                    newElement.position = { x: '0vw', y: '0vh' };
+                    break;
+                case 'text':
+                    newElement.position = { x: '0.78vw', bottom: '0.65vh' };
+                    newElement.style = { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' };
+                    newElement.options = { content: 'New Text Element' };
+                    break;
+                case 'featured':
+                    newElement.position = { x: '0vw', bottom: '47.41vh' };
+                    newElement.size = { maxWidth: 'calc(100vw - 16.41vw)' };
+                    newElement.style = { fontSize: '32px' };
+                    break;
+                case 'poll':
+                case 'superchat':
+                    newElement.position = { y: '0vh' };
+                    break;
+            }
+        } else {
+            // When dropped, still apply element-specific size/style defaults
+            switch (elementType) {
+                case 'chat':
+                    newElement.size = { width: '15.63vw', height: '100vh' };
+                    break;
+                case 'text':
+                    newElement.style = { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' };
+                    newElement.options = { content: 'New Text Element' };
+                    break;
+                case 'featured':
+                    newElement.size = { maxWidth: 'calc(100vw - 16.41vw)' };
+                    newElement.style = { fontSize: '32px' };
+                    break;
+            }
+        }
+
+        // Push current state to history
+        pushToHistory(localLayout);
+
+        // Add the new element
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...localLayout.elements,
+                [elementId]: newElement,
+            },
+        };
+
+        setLocalLayout(newLayout);
+        setSelectedElement(elementId);
+        broadcastLayout(newLayout, false); // Don't add to history again
+    }, [localLayout, pushToHistory, broadcastLayout]);
+
     return (
         <div className="editor-app">
             <Editor
@@ -282,7 +360,7 @@ function App() {
                     onAutoSaveChange={setAutoSave}
                 />
                 <div className="editor-main">
-                    <Toolbox />
+                    <Toolbox onAddElement={handleAddElement} />
                     <EditorCanvas
                         layout={localLayout}
                         onLayoutChange={(newLayout) => {
@@ -296,6 +374,7 @@ function App() {
                         onRedo={handleRedo}
                         canUndo={undoHistory.length > 0}
                         canRedo={redoHistory.length > 0}
+                        onAddElement={handleAddElement}
                     />
                     <SettingsPanel
                         layout={localLayout}

@@ -22,6 +22,7 @@ interface EditorCanvasProps {
     onRedo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    onAddElement?: (elementId: string, position?: { x: number; y: number }) => void;
 }
 
 interface DragState {
@@ -204,6 +205,7 @@ export function EditorCanvas({
     onRedo,
     canUndo,
     canRedo,
+    onAddElement,
 }: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
     const [autoScale, setAutoScale] = useState(true);
@@ -1251,6 +1253,25 @@ export function EditorCanvas({
                         // Only deselect if clicking on the canvas itself, not an element
                         if (e.target === e.currentTarget) {
                             // Keep current selection - don't clear it
+                        }
+                    }}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = 'copy';
+                    }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        const elementId = e.dataTransfer.getData('element-id');
+                        if (elementId && onAddElement) {
+                            // Calculate drop position relative to canvas
+                            const rect = canvasRef.current?.getBoundingClientRect();
+                            if (rect) {
+                                const x = (e.clientX - rect.left) / scale;
+                                const y = (e.clientY - rect.top) / scale;
+                                onAddElement(elementId, { x, y });
+                            } else {
+                                onAddElement(elementId);
+                            }
                         }
                     }}
                 >

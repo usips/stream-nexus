@@ -4,13 +4,15 @@ interface ToolboxItemProps {
     label: string;
     icon: string;
     elementId: string;
+    onAddElement: (elementId: string) => void;
 }
 
-function ToolboxItem({ label, icon, elementId }: ToolboxItemProps) {
+function ToolboxItem({ label, icon, elementId, onAddElement }: ToolboxItemProps) {
     return (
         <div
             className="toolbox-item"
             draggable
+            onClick={() => onAddElement(elementId)}
             onDragStart={(e) => {
                 e.dataTransfer.setData('element-id', elementId);
             }}
@@ -21,7 +23,11 @@ function ToolboxItem({ label, icon, elementId }: ToolboxItemProps) {
     );
 }
 
-export function Toolbox() {
+interface ToolboxProps {
+    onAddElement: (elementId: string) => void;
+}
+
+export function Toolbox({ onAddElement }: ToolboxProps) {
     return (
         <div className="toolbox">
             <h3>Elements</h3>
@@ -30,36 +36,42 @@ export function Toolbox() {
                 label="Chat Panel"
                 icon="💬"
                 elementId="chat"
+                onAddElement={onAddElement}
             />
 
             <ToolboxItem
                 label="Live Badge"
                 icon="🔴"
                 elementId="live"
+                onAddElement={onAddElement}
             />
 
             <ToolboxItem
                 label="Text"
                 icon="📝"
                 elementId="text"
+                onAddElement={onAddElement}
             />
 
             <ToolboxItem
                 label="Featured Message"
                 icon="⭐"
                 elementId="featured"
+                onAddElement={onAddElement}
             />
 
             <ToolboxItem
                 label="Poll Display"
                 icon="📊"
                 elementId="poll"
+                onAddElement={onAddElement}
             />
 
             <ToolboxItem
                 label="Superchat Display"
                 icon="💰"
                 elementId="superchat"
+                onAddElement={onAddElement}
             />
 
             <h3 style={{ marginTop: '24px' }}>Background</h3>
