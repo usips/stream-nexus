@@ -435,6 +435,19 @@ impl Handler<message::RequestLayout> for ChatServer {
     }
 }
 
+/// Handler for requesting a specific layout by name
+impl Handler<message::RequestLayoutByName> for ChatServer {
+    type Result = MessageResult<message::RequestLayoutByName>;
+
+    fn handle(&mut self, msg: message::RequestLayoutByName, _: &mut Context<Self>) -> Self::Result {
+        let lm = self.layout_manager.lock().unwrap();
+        match lm.load(&msg.name) {
+            Ok(layout) => MessageResult(Some(layout)),
+            Err(_) => MessageResult(None),
+        }
+    }
+}
+
 /// Handler for requesting layout list
 impl Handler<message::RequestLayoutList> for ChatServer {
     type Result = MessageResult<message::RequestLayoutList>;

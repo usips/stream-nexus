@@ -146,5 +146,6 @@ declare global {
     interface Window {
         badgeSettings?: BadgeSettings;
         livestream_viewers: ViewerCounts;
+        LAYOUT_NAME?: string;
     }
 }

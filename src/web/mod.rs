@@ -39,39 +39,55 @@ pub async fn home() -> impl Responder {
 
 #[derive(Template)]
 #[template(path = "frame.html")]
-struct FrameTemplate {
+struct LayoutTemplate {
     layout_name: String,
 }
 
-/// GET /overlay - Main overlay view (uses active layout)
-#[actix_web::get("/overlay")]
-pub async fn overlay(req: HttpRequest) -> impl Responder {
+/// Query parameters for /layout endpoint
+#[derive(serde::Deserialize)]
+pub struct LayoutQuery {
+    name: Option<String>,
+}
+
+/// GET /layout?name= - Load a specific layout by name
+#[actix_web::get("/layout")]
+pub async fn layout_view(req: HttpRequest, query: web::Query<LayoutQuery>) -> impl Responder {
     let chat_server = req
         .app_data::<Addr<ChatServer>>()
         .expect("ChatServer missing in app data!")
         .clone();
 
-    let layout = chat_server.send(message::RequestLayout).await.unwrap();
+    // If name is provided, try to load that layout; otherwise use active layout
+    let layout_name = if let Some(name) = &query.name {
+        // Verify the layout exists
+        match chat_server
+            .send(message::RequestLayoutByName {
+                name: name.clone(),
+            })
+            .await
+        {
+            Ok(Some(_)) => name.clone(),
+            Ok(None) => {
+                return HttpResponse::NotFound().body(format!("Layout '{}' not found", name));
+            }
+            Err(e) => {
+                return HttpResponse::InternalServerError().body(format!("Error: {}", e));
+            }
+        }
+    } else {
+        // No name provided, use active layout
+        let layout = chat_server.send(message::RequestLayout).await.unwrap();
+        layout.name.clone()
+    };
 
-    FrameTemplate {
-        layout_name: layout.name.clone(),
-    }
-}
-
-/// Backward compatibility: /frame redirects to /overlay
-#[actix_web::get("/frame")]
-pub async fn frame_redirect() -> impl Responder {
-    HttpResponse::TemporaryRedirect()
-        .insert_header((header::LOCATION, "/overlay"))
-        .finish()
-}
-
-/// Backward compatibility: /background redirects to /overlay
-#[actix_web::get("/background")]
-pub async fn background_redirect() -> impl Responder {
-    HttpResponse::TemporaryRedirect()
-        .insert_header((header::LOCATION, "/overlay"))
-        .finish()
+    HttpResponse::Ok()
+        .content_type("text/html; charset=utf-8")
+        .body(
+            LayoutTemplate {
+                layout_name,
+            }
+            .to_string(),
+        )
 }
 
 #[actix_web::get("/chat")]

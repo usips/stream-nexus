@@ -26,6 +26,9 @@ struct LayoutCommand {
     request_layout: Option<bool>,
     #[serde(default)]
     request_layouts: Option<bool>,
+    /// Subscribe to a specific layout by name (used by overlay views)
+    #[serde(default)]
+    subscribe_layout: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -254,6 +257,35 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                     })
                                     .unwrap();
                                     ctx.text(reply);
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+                        return;
+                    }
+
+                    // Handle subscribe to specific layout
+                    if let Some(name) = cmd.subscribe_layout {
+                        log::info!("[ChatClient] Client subscribing to layout: {}", name);
+                        self.server
+                            .send(message::RequestLayoutByName { name: name.clone() })
+                            .into_actor(self)
+                            .then(move |res, _, ctx| {
+                                match res {
+                                    Ok(Some(layout)) => {
+                                        let reply = serde_json::to_string(&message::ReplyInner {
+                                            tag: "layout_update".to_owned(),
+                                            message: serde_json::to_string(&layout).unwrap(),
+                                        })
+                                        .unwrap();
+                                        ctx.text(reply);
+                                    }
+                                    Ok(None) => {
+                                        log::warn!("[ChatClient] Layout not found: {}", name);
+                                    }
+                                    Err(e) => {
+                                        log::error!("[ChatClient] Error fetching layout: {:?}", e);
+                                    }
                                 }
                                 fut::ready(())
                             })

@@ -165,7 +165,14 @@ const reconnect = (): boolean => {
 const bindWebsocketEvents = (): void => {
     socket.addEventListener("open", () => {
         console.log("[SNEED] Connection established.");
-        socket.send(JSON.stringify({ request_layout: true }));
+        // Subscribe to specific layout if set, otherwise request active layout
+        const layoutName = window.LAYOUT_NAME;
+        if (layoutName) {
+            console.log("[SNEED] Subscribing to layout:", layoutName);
+            socket.send(JSON.stringify({ subscribe_layout: layoutName }));
+        } else {
+            socket.send(JSON.stringify({ request_layout: true }));
+        }
     });
 
     socket.addEventListener("message", (event: MessageEvent) => {

@@ -8,6 +8,7 @@ interface TopBarProps {
     onLayoutChange: (name: string) => void;
     onSave: () => void;
     onSaveAs: (name: string) => void;
+    onCreateNew: (name: string) => void;
     autoSave: boolean;
     onAutoSaveChange: (enabled: boolean) => void;
 }
@@ -19,16 +20,26 @@ export function TopBar({
     onLayoutChange,
     onSave,
     onSaveAs,
+    onCreateNew,
     autoSave,
     onAutoSaveChange,
 }: TopBarProps) {
     const [showSaveAs, setShowSaveAs] = useState(false);
+    const [showCreateNew, setShowCreateNew] = useState(false);
     const [newLayoutName, setNewLayoutName] = useState('');
 
     const handleSaveAs = () => {
         if (newLayoutName.trim()) {
             onSaveAs(newLayoutName.trim());
             setShowSaveAs(false);
+            setNewLayoutName('');
+        }
+    };
+
+    const handleCreateNew = () => {
+        if (newLayoutName.trim()) {
+            onCreateNew(newLayoutName.trim());
+            setShowCreateNew(false);
             setNewLayoutName('');
         }
     };
@@ -71,6 +82,9 @@ export function TopBar({
                         Auto-save
                     </label>
 
+                    <button className="btn btn-secondary" onClick={() => setShowCreateNew(true)}>
+                        New
+                    </button>
                     <button className="btn btn-secondary" onClick={() => setShowSaveAs(true)}>
                         Save As...
                     </button>
@@ -101,6 +115,33 @@ export function TopBar({
                             </button>
                             <button className="btn btn-primary" onClick={handleSaveAs}>
                                 Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCreateNew && (
+                <div className="modal-overlay" onClick={() => setShowCreateNew(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <h3>Create New Layout</h3>
+                        <input
+                            type="text"
+                            placeholder="Layout name..."
+                            value={newLayoutName}
+                            onChange={(e) => setNewLayoutName(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleCreateNew()}
+                            autoFocus
+                        />
+                        <div className="modal-buttons">
+                            <button
+                                className="btn btn-secondary"
+                                onClick={() => setShowCreateNew(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button className="btn btn-primary" onClick={handleCreateNew}>
+                                Create
                             </button>
                         </div>
                     </div>

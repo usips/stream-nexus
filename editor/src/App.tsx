@@ -238,6 +238,20 @@ function App() {
         setTimeout(requestLayouts, 500);
     }, [localLayout, saveLayout, requestLayouts]);
 
+    const handleCreateNew = useCallback((newName: string) => {
+        // Create a fresh layout with default values
+        const newLayout = { ...defaultLayout(), name: newName };
+        setLocalLayout(newLayout);
+        currentLayoutNameRef.current = newName;
+        // Clear history for the new layout
+        setUndoHistory([]);
+        setRedoHistory([]);
+        // Save and broadcast
+        saveLayout(newName, newLayout);
+        sendLayoutUpdate(newLayout);
+        setTimeout(requestLayouts, 500);
+    }, [saveLayout, sendLayoutUpdate, requestLayouts]);
+
     const handleLayoutChange = useCallback((name: string) => {
         switchLayout(name);
     }, [switchLayout]);
@@ -263,6 +277,7 @@ function App() {
                     onLayoutChange={handleLayoutChange}
                     onSave={handleSave}
                     onSaveAs={handleSaveAs}
+                    onCreateNew={handleCreateNew}
                     autoSave={autoSave}
                     onAutoSaveChange={setAutoSave}
                 />

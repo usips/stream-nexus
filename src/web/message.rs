@@ -135,6 +135,15 @@ impl Message for RequestLayout {
     type Result = Layout;
 }
 
+/// Request a specific layout by name
+pub struct RequestLayoutByName {
+    pub name: String,
+}
+
+impl Message for RequestLayoutByName {
+    type Result = Option<Layout>;
+}
+
 /// Request list of all available layouts
 pub struct RequestLayoutList;
 
