@@ -96,6 +96,7 @@ export interface Style {
 
 export interface ElementConfig {
     enabled: boolean;
+    locked?: boolean;  // Prevents selection/manipulation in editor
     displayName?: string;
     position: Position;
     size: Size;

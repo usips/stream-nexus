@@ -460,10 +460,14 @@ export function EditorCanvas({
     const handleMouseDown = useCallback((e: React.MouseEvent, elementId: string) => {
         e.preventDefault();
         e.stopPropagation();
-        onSelectElement(elementId);
 
         const element = layout.elements[elementId];
         if (!element) return;
+
+        // Locked elements cannot be selected or dragged from canvas
+        if (element.locked) return;
+
+        onSelectElement(elementId);
 
         // Get current position in pixels
         const pos = element.position;
@@ -778,10 +782,14 @@ export function EditorCanvas({
     const handleResizeStart = useCallback((e: React.MouseEvent, elementId: string, handle: ResizeState['handle']) => {
         e.preventDefault();
         e.stopPropagation();
-        onSelectElement(elementId);
 
         const element = layout.elements[elementId];
         if (!element) return;
+
+        // Locked elements cannot be resized
+        if (element.locked) return;
+
+        onSelectElement(elementId);
 
         const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
         const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
@@ -1297,17 +1305,21 @@ export function EditorCanvas({
                 content = <div>Unknown element: {elementId}</div>;
         }
 
+        const isLocked = config.locked === true;
+
         return (
             <div
                 key={elementId}
-                className={`element-wrapper ${isSelected ? 'selected' : ''}`}
+                className={`element-wrapper ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
                 style={style}
                 onMouseDown={(e) => handleMouseDown(e, elementId)}
             >
-                <span className="element-label">{getDisplayName(elementId, config)}</span>
+                <span className="element-label">
+                    {isLocked && '🔒 '}{getDisplayName(elementId, config)}
+                </span>
                 {content}
-                {/* Resize handles - only show when selected */}
-                {isSelected && (
+                {/* Resize handles - only show when selected and not locked */}
+                {isSelected && !isLocked && (
                     <>
                         <div className="resize-handle resize-n" onMouseDown={(e) => handleResizeStart(e, elementId, 'n')} />
                         <div className="resize-handle resize-s" onMouseDown={(e) => handleResizeStart(e, elementId, 's')} />

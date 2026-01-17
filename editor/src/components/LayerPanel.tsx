@@ -149,58 +149,6 @@ export function LayerPanel({
         dragNode.current = null;
     }, []);
 
-    // Move element up (increase z-index)
-    const moveUp = useCallback((elementId: string) => {
-        const index = sortedElements.findIndex(el => el.id === elementId);
-        if (index <= 0) return; // Already at top
-
-        const newOrder = [...sortedElements];
-        [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
-
-        const updatedElements: Record<string, ElementConfig> = {};
-        newOrder.forEach((item, idx) => {
-            const newZIndex = (newOrder.length - 1 - idx) * 10;
-            updatedElements[item.id] = {
-                ...item.config,
-                position: {
-                    ...item.config.position,
-                    zIndex: newZIndex,
-                },
-            };
-        });
-
-        onLayoutChange({
-            ...layout,
-            elements: updatedElements,
-        });
-    }, [sortedElements, layout, onLayoutChange]);
-
-    // Move element down (decrease z-index)
-    const moveDown = useCallback((elementId: string) => {
-        const index = sortedElements.findIndex(el => el.id === elementId);
-        if (index === -1 || index >= sortedElements.length - 1) return; // Already at bottom
-
-        const newOrder = [...sortedElements];
-        [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
-
-        const updatedElements: Record<string, ElementConfig> = {};
-        newOrder.forEach((item, idx) => {
-            const newZIndex = (newOrder.length - 1 - idx) * 10;
-            updatedElements[item.id] = {
-                ...item.config,
-                position: {
-                    ...item.config.position,
-                    zIndex: newZIndex,
-                },
-            };
-        });
-
-        onLayoutChange({
-            ...layout,
-            elements: updatedElements,
-        });
-    }, [sortedElements, layout, onLayoutChange]);
-
     // Toggle element visibility
     const toggleEnabled = useCallback((elementId: string, e: React.MouseEvent) => {
         e.stopPropagation();
@@ -219,17 +167,34 @@ export function LayerPanel({
         });
     }, [layout, onLayoutChange]);
 
+    // Toggle element locked state
+    const toggleLocked = useCallback((elementId: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const config = layout.elements[elementId];
+        if (!config) return;
+
+        onLayoutChange({
+            ...layout,
+            elements: {
+                ...layout.elements,
+                [elementId]: {
+                    ...config,
+                    locked: !config.locked,
+                },
+            },
+        });
+    }, [layout, onLayoutChange]);
+
     return (
         <div className="layer-panel">
             <div className="layer-panel-header">
                 <h3>Layers</h3>
-                <span className="layer-count">{sortedElements.length}</span>
             </div>
             <div className="layer-list">
-                {sortedElements.map(({ id, config, zIndex }, index) => (
+                {sortedElements.map(({ id, config }) => (
                     <div
                         key={id}
-                        className={`layer-item ${selectedElement === id ? 'selected' : ''} ${!config.enabled ? 'disabled' : ''} ${dragOverItem === id ? 'drag-over' : ''} ${draggedItem === id ? 'dragging' : ''}`}
+                        className={`layer-item ${selectedElement === id ? 'selected' : ''} ${!config.enabled ? 'disabled' : ''} ${config.locked ? 'locked' : ''} ${dragOverItem === id ? 'drag-over' : ''} ${draggedItem === id ? 'dragging' : ''}`}
                         draggable
                         onClick={() => onSelectElement(id)}
                         onDragStart={(e) => handleDragStart(e, id)}
@@ -243,20 +208,11 @@ export function LayerPanel({
                         <span className="layer-name">{getDisplayName(id, config)}</span>
                         <div className="layer-actions">
                             <button
-                                className="layer-btn"
-                                onClick={(e) => { e.stopPropagation(); moveUp(id); }}
-                                disabled={index === 0}
-                                title="Move forward"
+                                className={`layer-btn layer-lock ${config.locked ? 'is-locked' : ''}`}
+                                onClick={(e) => toggleLocked(id, e)}
+                                title={config.locked ? 'Unlock' : 'Lock'}
                             >
-                                ▲
-                            </button>
-                            <button
-                                className="layer-btn"
-                                onClick={(e) => { e.stopPropagation(); moveDown(id); }}
-                                disabled={index === sortedElements.length - 1}
-                                title="Move backward"
-                            >
-                                ▼
+                                {config.locked ? '🔒' : '🔓'}
                             </button>
                             <button
                                 className={`layer-btn layer-visibility ${config.enabled ? 'visible' : 'hidden'}`}
@@ -268,9 +224,6 @@ export function LayerPanel({
                         </div>
                     </div>
                 ))}
-            </div>
-            <div className="layer-panel-footer">
-                <small>Drag to reorder • Click to select</small>
             </div>
         </div>
     );

@@ -408,18 +408,7 @@ function App() {
                     onAutoSaveChange={setAutoSave}
                 />
                 <div className="editor-main">
-                    <div className="left-panels">
-                        <Toolbox onAddElement={handleAddElement} />
-                        <LayerPanel
-                            layout={localLayout}
-                            onLayoutChange={(newLayout) => {
-                                setLocalLayout(newLayout);
-                                broadcastLayout(newLayout);
-                            }}
-                            selectedElement={selectedElement}
-                            onSelectElement={setSelectedElement}
-                        />
-                    </div>
+                    <Toolbox onAddElement={handleAddElement} />
                     <EditorCanvas
                         layout={localLayout}
                         onLayoutChange={(newLayout) => {
@@ -435,17 +424,28 @@ function App() {
                         canRedo={redoHistory.length > 0}
                         onAddElement={handleAddElement}
                     />
-                    <SettingsPanel
-                        layout={localLayout}
-                        onLayoutChange={(newLayout) => {
-                            setLocalLayout(newLayout);
-                            broadcastLayout(newLayout);
-                        }}
-                        selectedElement={selectedElement}
-                        onSelectElement={setSelectedElement}
-                        onDeleteElement={handleDeleteElement}
-                        canDelete={Object.keys(localLayout.elements).length > 1}
-                    />
+                    <div className="right-panels">
+                        <LayerPanel
+                            layout={localLayout}
+                            onLayoutChange={(newLayout) => {
+                                setLocalLayout(newLayout);
+                                broadcastLayout(newLayout);
+                            }}
+                            selectedElement={selectedElement}
+                            onSelectElement={setSelectedElement}
+                        />
+                        <SettingsPanel
+                            layout={localLayout}
+                            onLayoutChange={(newLayout) => {
+                                setLocalLayout(newLayout);
+                                broadcastLayout(newLayout);
+                            }}
+                            selectedElement={selectedElement}
+                            onSelectElement={setSelectedElement}
+                            onDeleteElement={handleDeleteElement}
+                            canDelete={Object.keys(localLayout.elements).length > 1}
+                        />
+                    </div>
                 </div>
             </Editor>
         </div>
