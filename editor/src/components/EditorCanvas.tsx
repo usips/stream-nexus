@@ -1257,6 +1257,25 @@ export function EditorCanvas({
                         }
                     }}
                 >
+                    {/* Frame indicator banner */}
+                    {selectedFrame && (() => {
+                        const frames = layout.frames || defaultFrames();
+                        const frame = frames[selectedFrame];
+                        if (!frame) return null;
+                        const elementCount = frame.elements?.length || 0;
+                        const showingAll = elementCount === 0;
+                        return (
+                            <div className="frame-indicator">
+                                <span className="frame-indicator-name">{frame.name}</span>
+                                {frame.background && (
+                                    <span className="frame-indicator-badge">{frame.background}</span>
+                                )}
+                                <span className="frame-indicator-info">
+                                    {showingAll ? 'Showing all elements' : `${elementCount} element${elementCount !== 1 ? 's' : ''}`}
+                                </span>
+                            </div>
+                        );
+                    })()}
                     {Object.entries(layout.elements).map(([id, config]) => {
                         // Filter by frame if one is selected
                         if (selectedFrame) {
