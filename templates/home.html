@@ -121,7 +121,7 @@
             transform: translateY(-2px);
         }
 
-        .frame-list {
+        .layout-list {
             max-height: 200px;
             overflow-y: auto;
             display: flex;
@@ -129,25 +129,25 @@
             gap: 8px;
         }
 
-        .frame-list::-webkit-scrollbar {
+        .layout-list::-webkit-scrollbar {
             width: 6px;
         }
 
-        .frame-list::-webkit-scrollbar-track {
+        .layout-list::-webkit-scrollbar-track {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 3px;
         }
 
-        .frame-list::-webkit-scrollbar-thumb {
+        .layout-list::-webkit-scrollbar-thumb {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 3px;
         }
 
-        .frame-list::-webkit-scrollbar-thumb:hover {
+        .layout-list::-webkit-scrollbar-thumb:hover {
             background: rgba(255, 255, 255, 0.3);
         }
 
-        .frame-item {
+        .layout-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -159,27 +159,27 @@
             transition: all 0.2s ease;
         }
 
-        .frame-item:hover {
+        .layout-item:hover {
             background: rgba(255, 255, 255, 0.1);
         }
 
-        .frame-info {
+        .layout-info {
             display: flex;
             flex-direction: column;
             gap: 2px;
         }
 
-        .frame-name {
+        .layout-name {
             font-weight: 600;
             font-size: 14px;
         }
 
-        .frame-id {
+        .layout-status {
             font-size: 12px;
             color: rgba(255, 255, 255, 0.5);
         }
 
-        .frame-arrow {
+        .layout-arrow {
             color: rgba(255, 255, 255, 0.3);
             font-size: 18px;
         }
@@ -228,56 +228,48 @@
             </div>
 
             <div class="section">
-                <div class="section-title">Frames</div>
-                <div class="frame-list" id="frame-list">
-                    <div class="empty-state">Loading frames...</div>
+                <div class="section-title">Layouts</div>
+                <div class="layout-list" id="layout-list">
+                    <div class="empty-state">Loading layouts...</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        async function loadFrames() {
+        async function loadLayouts() {
             try {
                 const response = await fetch('/api/layouts');
                 const data = await response.json();
 
-                // Load the active layout to get frames
-                const layoutResponse = await fetch(`/api/layouts/${data.active}`);
-                const layout = await layoutResponse.json();
+                const layoutList = document.getElementById('layout-list');
+                const layouts = data.layouts || [];
 
-                const frameList = document.getElementById('frame-list');
-                const frames = layout.frames || {};
-                const frameIds = Object.keys(frames);
-
-                if (frameIds.length === 0) {
-                    frameList.innerHTML = '<div class="empty-state">No frames configured</div>';
+                if (layouts.length === 0) {
+                    layoutList.innerHTML = '<div class="empty-state">No layouts configured</div>';
                     return;
                 }
 
-                frameList.innerHTML = frameIds.map(id => {
-                    const frame = frames[id];
-                    const elementCount = frame.elements && frame.elements.length > 0
-                        ? `${frame.elements.length} elements`
-                        : 'All elements';
+                layoutList.innerHTML = layouts.map(name => {
+                    const isActive = name === data.active;
                     return `
-                        <a href="/frame?view=${encodeURIComponent(id)}" class="frame-item">
-                            <div class="frame-info">
-                                <span class="frame-name">${frame.name || id}</span>
-                                <span class="frame-id">${elementCount}${frame.background ? ' · ' + frame.background : ''}</span>
+                        <a href="/layout?name=${encodeURIComponent(name)}" class="layout-item">
+                            <div class="layout-info">
+                                <span class="layout-name">${name}</span>
+                                <span class="layout-status">${isActive ? 'Active' : 'Click to view'}</span>
                             </div>
-                            <span class="frame-arrow">&rarr;</span>
+                            <span class="layout-arrow">&rarr;</span>
                         </a>
                     `;
                 }).join('');
             } catch (error) {
-                console.error('Failed to load frames:', error);
-                document.getElementById('frame-list').innerHTML =
-                    '<div class="empty-state">Failed to load frames</div>';
+                console.error('Failed to load layouts:', error);
+                document.getElementById('layout-list').innerHTML =
+                    '<div class="empty-state">Failed to load layouts</div>';
             }
         }
 
-        loadFrames();
+        loadLayouts();
     </script>
 </body>
 </html>
