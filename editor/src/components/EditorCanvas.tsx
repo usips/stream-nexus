@@ -125,6 +125,76 @@ const MOCK_MESSAGES = [
 // Maximum messages to keep in chat history
 const MAX_CHAT_MESSAGES = 100;
 
+// ============================================================================
+// Alignment Icons - SVG components matching the alignment toolbar style
+// ============================================================================
+
+const AlignLeftIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="4" x2="4" y2="20" />
+        <rect x="7" y="6" width="10" height="4" fill="currentColor" stroke="none" />
+        <rect x="7" y="14" width="6" height="4" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AlignCenterHIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="12" y1="4" x2="12" y2="20" />
+        <rect x="5" y="6" width="14" height="4" fill="currentColor" stroke="none" />
+        <rect x="7" y="14" width="10" height="4" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AlignRightIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="20" y1="4" x2="20" y2="20" />
+        <rect x="7" y="6" width="10" height="4" fill="currentColor" stroke="none" />
+        <rect x="11" y="14" width="6" height="4" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AlignTopIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="4" x2="20" y2="4" />
+        <rect x="6" y="7" width="4" height="10" fill="currentColor" stroke="none" />
+        <rect x="14" y="7" width="4" height="6" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AlignCenterVIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="12" x2="20" y2="12" />
+        <rect x="6" y="5" width="4" height="14" fill="currentColor" stroke="none" />
+        <rect x="14" y="7" width="4" height="10" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const AlignBottomIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="20" x2="20" y2="20" />
+        <rect x="6" y="7" width="4" height="10" fill="currentColor" stroke="none" />
+        <rect x="14" y="11" width="4" height="6" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const DistributeHIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="4" x2="4" y2="20" />
+        <line x1="20" y1="4" x2="20" y2="20" />
+        <rect x="7" y="8" width="3" height="8" fill="currentColor" stroke="none" />
+        <rect x="14" y="8" width="3" height="8" fill="currentColor" stroke="none" />
+    </svg>
+);
+
+const DistributeVIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="4" y1="4" x2="20" y2="4" />
+        <line x1="4" y1="20" x2="20" y2="20" />
+        <rect x="8" y="7" width="8" height="3" fill="currentColor" stroke="none" />
+        <rect x="8" y="14" width="8" height="3" fill="currentColor" stroke="none" />
+    </svg>
+);
+
 export function EditorCanvas({
     layout,
     onLayoutChange,
@@ -271,6 +341,121 @@ export function EditorCanvas({
         };
         onLayoutChange(newLayout);
     }, [layout, onLayoutChange]);
+
+    // Alignment handler for toolbar buttons
+    const handleAlign = useCallback((alignment: 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom' | 'distribute-h' | 'distribute-v') => {
+        if (!selectedElement || !layout.elements[selectedElement]) return;
+
+        const element = layout.elements[selectedElement];
+        const baseId = selectedElement.replace(/-\d+$/, '');
+
+        // Default sizes for elements (same as used elsewhere in the component)
+        const defaultSizesMap: Record<string, { width: number | string; height: number | string }> = {
+            chat: { width: 300, height: CANVAS_HEIGHT },
+            live: { width: 200, height: 40 },
+            text: { width: 400, height: 60 },
+            featured: { width: 600, height: 150 },
+            poll: { width: 300, height: 200 },
+            superchat: { width: 300, height: 150 },
+        };
+
+        const defaults = defaultSizesMap[baseId] || { width: 200, height: 100 };
+        const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
+        const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+
+        const newPosition: Position = {};
+
+        switch (alignment) {
+            case 'left':
+                newPosition.x = pxToVw(0);
+                // Preserve vertical position
+                if (element.position.bottom !== null && element.position.bottom !== undefined) {
+                    newPosition.bottom = element.position.bottom;
+                } else {
+                    newPosition.y = element.position.y ?? pxToVh(0);
+                }
+                break;
+
+            case 'center-h':
+                newPosition.x = pxToVw((CANVAS_WIDTH - widthPx) / 2);
+                // Preserve vertical position
+                if (element.position.bottom !== null && element.position.bottom !== undefined) {
+                    newPosition.bottom = element.position.bottom;
+                } else {
+                    newPosition.y = element.position.y ?? pxToVh(0);
+                }
+                break;
+
+            case 'right':
+                newPosition.right = pxToVw(0);
+                // Preserve vertical position
+                if (element.position.bottom !== null && element.position.bottom !== undefined) {
+                    newPosition.bottom = element.position.bottom;
+                } else {
+                    newPosition.y = element.position.y ?? pxToVh(0);
+                }
+                break;
+
+            case 'top':
+                newPosition.y = pxToVh(0);
+                // Preserve horizontal position
+                if (element.position.right !== null && element.position.right !== undefined) {
+                    newPosition.right = element.position.right;
+                } else {
+                    newPosition.x = element.position.x ?? pxToVw(0);
+                }
+                break;
+
+            case 'center-v':
+                newPosition.y = pxToVh((CANVAS_HEIGHT - heightPx) / 2);
+                // Preserve horizontal position
+                if (element.position.right !== null && element.position.right !== undefined) {
+                    newPosition.right = element.position.right;
+                } else {
+                    newPosition.x = element.position.x ?? pxToVw(0);
+                }
+                break;
+
+            case 'bottom':
+                newPosition.bottom = pxToVh(0);
+                // Preserve horizontal position
+                if (element.position.right !== null && element.position.right !== undefined) {
+                    newPosition.right = element.position.right;
+                } else {
+                    newPosition.x = element.position.x ?? pxToVw(0);
+                }
+                break;
+
+            case 'distribute-h':
+                // Center horizontally with left anchor
+                newPosition.x = pxToVw((CANVAS_WIDTH - widthPx) / 2);
+                // Preserve vertical position
+                if (element.position.bottom !== null && element.position.bottom !== undefined) {
+                    newPosition.bottom = element.position.bottom;
+                } else {
+                    newPosition.y = element.position.y ?? pxToVh(0);
+                }
+                break;
+
+            case 'distribute-v':
+                // Center vertically with top anchor
+                newPosition.y = pxToVh((CANVAS_HEIGHT - heightPx) / 2);
+                // Preserve horizontal position
+                if (element.position.right !== null && element.position.right !== undefined) {
+                    newPosition.right = element.position.right;
+                } else {
+                    newPosition.x = element.position.x ?? pxToVw(0);
+                }
+                break;
+        }
+
+        // Preserve z-index
+        if (element.position.zIndex !== undefined) {
+            newPosition.zIndex = element.position.zIndex;
+        }
+
+        updateElementConfig(selectedElement, { position: newPosition });
+    }, [selectedElement, layout.elements, updateElementConfig]);
 
     const handleMouseDown = useCallback((e: React.MouseEvent, elementId: string) => {
         e.preventDefault();
@@ -959,6 +1144,61 @@ export function EditorCanvas({
                 >
                     🗑 Delete
                 </button>
+
+                <div className="toolbar-separator" />
+
+                {/* Alignment buttons */}
+                <div className="toolbar-align-group">
+                    <span className="toolbar-label">Align:</span>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('left')}
+                        disabled={!selectedElement}
+                        title="Align Left"
+                    >
+                        <AlignLeftIcon />
+                    </button>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('center-h')}
+                        disabled={!selectedElement}
+                        title="Align Center Horizontal"
+                    >
+                        <AlignCenterHIcon />
+                    </button>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('right')}
+                        disabled={!selectedElement}
+                        title="Align Right"
+                    >
+                        <AlignRightIcon />
+                    </button>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('top')}
+                        disabled={!selectedElement}
+                        title="Align Top"
+                    >
+                        <AlignTopIcon />
+                    </button>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('center-v')}
+                        disabled={!selectedElement}
+                        title="Align Center Vertical"
+                    >
+                        <AlignCenterVIcon />
+                    </button>
+                    <button
+                        className="toolbar-btn toolbar-btn-icon"
+                        onClick={() => handleAlign('bottom')}
+                        disabled={!selectedElement}
+                        title="Align Bottom"
+                    >
+                        <AlignBottomIcon />
+                    </button>
+                </div>
 
                 <div className="toolbar-separator" />
 

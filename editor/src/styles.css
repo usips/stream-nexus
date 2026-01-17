@@ -235,6 +235,33 @@
     margin: 0 8px;
 }
 
+/* Alignment toolbar group */
+.toolbar-align-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.toolbar-label {
+    font-size: 12px;
+    color: #aaa;
+    margin-right: 6px;
+}
+
+.toolbar-btn-icon {
+    padding: 5px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.toolbar-btn-icon svg {
+    width: 16px;
+    height: 16px;
+}
+
 .canvas-container {
     flex: 1;
     position: relative;
