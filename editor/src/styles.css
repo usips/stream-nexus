@@ -908,52 +908,101 @@
     display: none;
 }
 
-.preview-live {
-    display: flex;
+/**
+ * Live Badge - matches overlay/style.css
+ */
+.element--live {
+    padding: 15px;
+}
+
+.live-badge {
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    justify-content: center;
+    float: left;
+    background-color: rgba(0, 0, 0, 0.66);
+    color: #fff;
+    border-radius: 3px;
+    font-size: 0.8em;
+    padding: 0 0.5em;
+    margin: 1px;
+    margin-right: 0.3em;
+    opacity: 0.75;
+    line-height: 1;
+    height: 1.6em;
+    font-family: 'Open Sans', Arial, Helvetica, sans-serif;
 }
 
-.preview-live-icon {
-    font-size: 16px;
-    margin-right: 4px;
+.live-icon.live-badge,
+.live-label.live-badge {
+    background-color: rgba(255, 0, 0, 0.66);
 }
 
-.preview-live-badge {
-    padding: 4px 8px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    font-size: 11px;
-}
-
-.preview-live-badge.live {
-    background: rgba(255, 0, 0, 0.6);
-}
-
-.preview-text {
-    font-family: "Open Sans", Arial, Helvetica, sans-serif;
-    font-size: 24px;
-    font-weight: bold;
-    font-style: italic;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+/**
+ * Text Element - matches overlay/style.css
+ */
+.element--text {
+    color: #fff;
+    text-shadow: 2px 2px 2px #000;
+    -webkit-text-stroke: 2px #000;
     white-space: pre-wrap;
     word-break: break-word;
 }
 
-.preview-featured {
-    background: rgba(0, 0, 0, 0.8);
-    padding: 12px;
+/**
+ * Featured Message - matches overlay/style.css
+ */
+.element--featured {
+    width: auto;
+    font-size: var(--message-text-size, 32px);
+    background: var(--message-bg, rgba(0, 0, 0, 0.9));
+    color: var(--message-color, #ccc);
+    padding: 0.5em;
     border-radius: 0;
-    font-size: 18px;
 }
 
-.preview-poll,
-.preview-superchat {
-    background: rgba(0, 0, 0, 0.9);
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 12px;
+/**
+ * Poll UI - matches overlay/style.css
+ */
+.element--poll,
+.poll-ui {
+    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
+    color: var(--msg-url, #ccc);
+    padding: 0.5em 0.8em 1em 0.8em;
+    border-radius: 0 0 0.8em 0.8em;
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+}
+
+.poll-ui ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0.5em;
+}
+
+.poll-ui li+li {
+    margin-top: 0.5em;
+}
+
+/**
+ * Superchat UI - matches overlay/style.css
+ */
+.element--superchat,
+.superchat {
+    width: 100%;
+    border-radius: 0.8em 0 0 0.8em;
+    background: var(--superchat-bg, rgba(92, 42, 42, 0.95));
+    color: var(--msg-url, #ccc);
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+    font-family: "Open Sans", Arial, Helvetica, sans-serif;
+}
+
+.superchat-message {
+    padding: 0.5em;
+}
+
+.superchat-message p {
+    margin: 0;
 }
 
 /* Save As Modal */

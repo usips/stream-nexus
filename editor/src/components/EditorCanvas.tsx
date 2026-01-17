@@ -1168,35 +1168,34 @@ export function EditorCanvas({
                 break;
             }
             case 'live': {
+                // Matches overlay structure: .element--live > .live-badge spans
                 const options = config.options || {};
                 const showIcon = options.showIcon === true;
                 const showLabel = options.showLabel !== false;
                 const showCount = options.showCount !== false;
                 content = (
-                    <div className="preview-live">
-                        {showIcon && <span className="preview-live-icon">📺</span>}
-                        {showLabel && <span className="preview-live-badge live">LIVE</span>}
-                        {showCount && <span className="preview-live-badge">{mockData.viewerCount.toLocaleString()}</span>}
+                    <div className="element--live">
+                        {showIcon && <span className="live-icon live-badge">📺</span>}
+                        {showLabel && <span className="live-label live-badge">LIVE</span>}
+                        {showCount && <span className="live-totals live-badge">{mockData.viewerCount.toLocaleString()}</span>}
                         {!showIcon && !showLabel && !showCount && (
-                            <span className="preview-live-badge" style={{ opacity: 0.5 }}>No display options</span>
+                            <span className="live-badge" style={{ opacity: 0.5 }}>No display options</span>
                         )}
                     </div>
                 );
                 break;
             }
             case 'text':
-            case 'attribution': { // Backward compatibility
+            case 'attribution': {
+                // Matches overlay structure: .element--text with text content
                 const options = config.options || {};
                 const textContent = (options.content as string) || 'Text Element';
-                // Resolve any tokens in the content
                 const resolvedContent = resolveTokens(textContent);
                 content = (
-                    <div className="preview-text" style={{
+                    <div className="element--text" style={{
                         ...config.style,
                         width: '100%',
                         height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
                     }}>
                         {resolvedContent}
                     </div>
@@ -1204,29 +1203,36 @@ export function EditorCanvas({
                 break;
             }
             case 'featured':
+                // Matches overlay structure: .element--featured
                 content = (
-                    <div className="preview-featured" style={{ opacity: mockData.featuredMessage ? 1 : 0.5 }}>
+                    <div className="element--featured" style={{ opacity: mockData.featuredMessage ? 1 : 0.5 }}>
                         {mockData.featuredMessage || 'Featured message appears here...'}
                     </div>
                 );
                 break;
             case 'poll': {
+                // Matches overlay structure: .element--poll
                 const totalVotes = mockData.pollVotes.reduce((a, b) => a + b, 0);
                 content = (
-                    <div className="preview-poll">
+                    <div className="element--poll poll-ui">
                         <strong>Which is better?</strong>
-                        <div>Option A - {totalVotes ? Math.round(mockData.pollVotes[0] / totalVotes * 100) : 50}%</div>
-                        <div>Option B - {totalVotes ? Math.round(mockData.pollVotes[1] / totalVotes * 100) : 50}%</div>
-                        <small>{totalVotes} votes</small>
+                        <ul>
+                            <li>!vote 1: Option A - {mockData.pollVotes[0]} ({totalVotes ? Math.round(mockData.pollVotes[0] / totalVotes * 100) : 50}%)</li>
+                            <li>!vote 2: Option B - {mockData.pollVotes[1]} ({totalVotes ? Math.round(mockData.pollVotes[1] / totalVotes * 100) : 50}%)</li>
+                        </ul>
+                        <small>{totalVotes} votes · use !vote [number] to vote</small>
                     </div>
                 );
                 break;
             }
             case 'superchat':
+                // Matches overlay structure: .element--superchat
                 content = (
-                    <div className="preview-superchat">
-                        <strong>${mockData.superchatAmount} Superchat</strong>
-                        <div>Thank you for the stream!</div>
+                    <div className="element--superchat superchat">
+                        <div className="superchat-message">
+                            <strong>${mockData.superchatAmount} Superchat</strong>
+                            <p>Thank you for the stream!</p>
+                        </div>
                     </div>
                 );
                 break;
