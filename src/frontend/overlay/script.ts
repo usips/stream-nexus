@@ -705,7 +705,6 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
 
     // If no chat containers, nothing to do
     if (chat_containers.length === 0) {
-        console.warn("[SNEED] No chat containers available for message");
         return null;
     }
 
