@@ -371,7 +371,13 @@ function format_datetime(date: Date, format: string): string {
 // ============================================================================
 
 function apply_element_config(el: HTMLElement | null, config: ElementConfig | undefined, isTextElement = false): void {
-    if (!el || !config) {
+    if (!el) {
+        return;
+    }
+
+    // If no config exists for this element, hide it
+    if (!config) {
+        el.style.display = 'none';
         return;
     }
 
