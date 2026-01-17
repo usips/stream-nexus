@@ -771,3 +771,16 @@ section#show-message .msg {
         background-image: url(/logo/youtube.svg);
     }
     */
+
+/**
+ * Donation Matter Element
+ * Physics-based donation visualization
+ */
+.element--matter {
+    overflow: hidden;
+    background: transparent;
+}
+
+.element--matter canvas {
+    display: block;
+}

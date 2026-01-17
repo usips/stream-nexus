@@ -943,6 +943,7 @@ export function EditorCanvas({
         featured: { width: 600, height: 100 },
         poll: { width: 300, height: 150 },
         superchat: { width: 300, height: 100 },
+        matter: { width: '100%', height: '100%' },
     };
 
     // Parse CSS string into style object
@@ -1025,6 +1026,7 @@ export function EditorCanvas({
             featured: 'Featured',
             poll: 'Poll',
             superchat: 'Superchat',
+            matter: 'Donation Matter',
         };
         return names[baseId] || elementId;
     };
@@ -1232,6 +1234,26 @@ export function EditorCanvas({
                         <div className="superchat-message">
                             <strong>${mockData.superchatAmount} Superchat</strong>
                             <p>Thank you for the stream!</p>
+                        </div>
+                    </div>
+                );
+                break;
+            case 'matter':
+                // Preview for physics-based donation visualization
+                content = (
+                    <div className="element--matter preview-donation-matter">
+                        <div className="matter-preview">
+                            <div className="matter-bullets">
+                                <span className="bullet" style={{ transform: 'rotate(-15deg)', top: '10%', left: '20%' }}>🔫</span>
+                                <span className="bullet" style={{ transform: 'rotate(25deg)', top: '30%', left: '45%' }}>🔫</span>
+                                <span className="bullet" style={{ transform: 'rotate(-5deg)', top: '15%', left: '70%' }}>🔫</span>
+                                <span className="bullet" style={{ transform: 'rotate(10deg)', bottom: '20%', left: '30%' }}>🔫</span>
+                                <span className="bullet" style={{ transform: 'rotate(-20deg)', bottom: '15%', left: '60%' }}>🔫</span>
+                            </div>
+                            <div className="matter-label">
+                                <strong>Donation Matter</strong>
+                                <small>Physics objects spawn on donations</small>
+                            </div>
                         </div>
                     </div>
                 );

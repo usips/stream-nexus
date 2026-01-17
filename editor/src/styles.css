@@ -1061,11 +1061,58 @@
 }
 
 /* Preview for DonationMatter element */
+.element--matter,
 .preview-donation-matter {
-    padding: 12px;
-    text-align: center;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
 }
 
+.matter-preview {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.matter-bullets {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.matter-bullets .bullet {
+    position: absolute;
+    font-size: 32px;
+    opacity: 0.7;
+}
+
+.matter-label {
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 16px 24px;
+    border-radius: 8px;
+    z-index: 1;
+}
+
+.matter-label strong {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 4px;
+}
+
+.matter-label small {
+    color: #888;
+    font-size: 12px;
+}
+
+/* Old preview in Craft.js components (if used) */
 .preview-donation-matter .physics-preview {
     display: flex;
     justify-content: center;
@@ -1100,9 +1147,4 @@
     50% {
         transform: translateY(5px);
     }
-}
-
-.preview-donation-matter small {
-    color: #888;
-    font-size: 10px;
 }

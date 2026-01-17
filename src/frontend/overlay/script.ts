@@ -8,6 +8,10 @@ import type {
     LiveBadgeOptions,
     ChatOptions,
 } from '../types';
+import { DonationMatter, DonationMatterConfig } from '../background/DonationMatter';
+
+// Matter.js is loaded as an external via script tag
+declare const Matter: typeof import('matter-js') | undefined;
 
 // ============================================================================
 // DOM Elements
@@ -23,6 +27,13 @@ interface ChatContainerInfo {
     options: ChatOptions;
 }
 let chat_containers: ChatContainerInfo[] = [];
+
+// Track DonationMatter instances
+interface MatterInfo {
+    instance: DonationMatter;
+    elementId: string;
+}
+let matter_instances: MatterInfo[] = [];
 
 // Current layout state
 let current_layout: Layout | null = null;
@@ -259,6 +270,12 @@ function apply_layout(layout: Layout): void {
 
     const elements = layout.elements || {};
 
+    // Clean up existing matter instances
+    for (const info of matter_instances) {
+        info.instance.destroy();
+    }
+    matter_instances = [];
+
     // Clear old dynamic elements and reset chat containers
     elements_container.innerHTML = '';
     chat_containers = [];
@@ -304,6 +321,27 @@ function apply_layout(layout: Layout): void {
                     el.classList.toggle('chat--no-avatars', options.showAvatars === false);
                     el.classList.toggle('chat--no-usernames', options.showUsernames === false);
                     el.classList.toggle('chat--top-first', options.direction === 'top');
+                }
+            }
+
+            // Initialize DonationMatter for matter elements
+            if (baseType === 'matter') {
+                // Check if Matter.js is available
+                if (typeof Matter !== 'undefined') {
+                    try {
+                        const matterConfig = (config.options || {}) as Partial<DonationMatterConfig>;
+                        const matterInstance = new DonationMatter(el, matterConfig);
+                        matterInstance.start();
+                        matter_instances.push({
+                            instance: matterInstance,
+                            elementId,
+                        });
+                        console.log('[SNEED] DonationMatter initialized for element:', elementId);
+                    } catch (e) {
+                        console.error('[SNEED] Failed to initialize DonationMatter:', e);
+                    }
+                } else {
+                    console.warn('[SNEED] Matter.js not loaded, cannot initialize DonationMatter');
                 }
             }
         }
@@ -386,6 +424,12 @@ function create_element_for_type(elementId: string, baseType: string, config: El
 
         case 'superchat':
             el.className += ' superchat-ui';
+            break;
+
+        case 'matter':
+            // Matter element is a container for the physics canvas
+            // DonationMatter will be initialized after the element is added to DOM
+            el.style.overflow = 'hidden';
             break;
 
         default:
@@ -746,6 +790,11 @@ function handle_premium(node: HTMLElement, message: ChatMessage): void {
             node.classList.remove("msg--sticky");
             recalculate_premium_positions();
         }, time * 1000);
+
+        // Spawn objects in all matter instances for donations
+        for (const info of matter_instances) {
+            info.instance.handleDonation(message.amount, message.username);
+        }
     }
 }
 
