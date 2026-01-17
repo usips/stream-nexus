@@ -541,15 +541,6 @@ section#chat::-webkit-scrollbar {
     display: none;
 }
 
-/**
- * Chat Direction - Top First (new messages at top)
- * Applied via chat--top-first class on chat container
- * Uses column-reverse so appended messages appear at top
- */
-.chat--top-first .chat-messages {
-    flex-direction: column-reverse;
-    justify-content: flex-end;
-}
 
 /**
  * Dynamic Element Support
@@ -577,6 +568,11 @@ section#chat::-webkit-scrollbar {
     flex-direction: column;
     justify-content: flex-end;
     min-height: 100%;
+}
+
+/* Top-first direction - must come after base .chat-messages styles */
+.element--chat.chat--top-first .chat-messages {
+    flex-direction: column-reverse;
 }
 
 .element--live {
