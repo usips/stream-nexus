@@ -4,8 +4,78 @@ import type { ChatMessage, WebSocketMessage, ViewerCounts } from '../types';
 // DOM Elements
 // ============================================================================
 
-const chat_history = document.querySelector<HTMLElement>("#chat-history");
-const donation_history = document.querySelector<HTMLElement>("#donation-history");
+const chatHistory = document.querySelector<HTMLElement>("#chat-history");
+const donationHistory = document.querySelector<HTMLElement>("#donation-history");
+const connectionStatus = document.querySelector<HTMLElement>("#connection-status");
+
+// ============================================================================
+// State
+// ============================================================================
+
+// Track if user has scrolled up (disable auto-scroll)
+let chatAutoScroll = true;
+let donationAutoScroll = true;
+
+// Track featured message IDs
+const featuredMessageIds = new Set<string>();
+
+// ============================================================================
+// Auto-scroll Management
+// ============================================================================
+
+function setupScrollListener(container: HTMLElement | null, setAutoScroll: (val: boolean) => void): void {
+    if (!container) return;
+
+    container.addEventListener('scroll', () => {
+        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        setAutoScroll(isAtBottom);
+    });
+}
+
+function scrollToBottom(container: HTMLElement | null, autoScroll: boolean): void {
+    if (!container || !autoScroll) return;
+    container.scrollTop = container.scrollHeight;
+}
+
+// Initialize scroll listeners
+setupScrollListener(chatHistory, (val) => { chatAutoScroll = val; });
+setupScrollListener(donationHistory, (val) => { donationAutoScroll = val; });
+
+// ============================================================================
+// Relative Time Formatting
+// ============================================================================
+
+function formatRelativeTime(timestamp: number): string {
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - timestamp;
+
+    if (diff < 60) {
+        return 'just now';
+    } else if (diff < 3600) {
+        const mins = Math.floor(diff / 60);
+        return `${mins}m ago`;
+    } else if (diff < 86400) {
+        const hours = Math.floor(diff / 3600);
+        const mins = Math.floor((diff % 3600) / 60);
+        return mins > 0 ? `${hours}h ${mins}m ago` : `${hours}h ago`;
+    } else {
+        const days = Math.floor(diff / 86400);
+        const hours = Math.floor((diff % 86400) / 3600);
+        return hours > 0 ? `${days}d ${hours}h ago` : `${days}d ago`;
+    }
+}
+
+function updateRelativeTimes(): void {
+    document.querySelectorAll<HTMLElement>('[data-timestamp]').forEach((el) => {
+        const timestamp = parseInt(el.dataset.timestamp || '0', 10);
+        if (timestamp > 0) {
+            el.textContent = formatRelativeTime(timestamp);
+        }
+    });
+}
+
+// Update relative times every 30 seconds
+setInterval(updateRelativeTimes, 30000);
 
 // ============================================================================
 // Chat Message Class
@@ -62,6 +132,13 @@ const wsUrl = `${wsProtocol}//${window.location.host}/chat.ws`;
 
 let socket: WebSocket | null = null;
 
+function updateConnectionStatus(connected: boolean): void {
+    if (connectionStatus) {
+        connectionStatus.classList.toggle('connected', connected);
+        connectionStatus.textContent = connected ? 'Connected' : 'Disconnected';
+    }
+}
+
 (function () {
     socket = new WebSocket(wsUrl);
 
@@ -78,7 +155,8 @@ let socket: WebSocket | null = null;
         if (!socket) return;
 
         socket.addEventListener("open", () => {
-            console.log("[SNEED] Connection established.");
+            console.log("[Dashboard] Connection established.");
+            updateConnectionStatus(true);
         });
 
         socket.addEventListener("message", (event: MessageEvent) => {
@@ -87,13 +165,13 @@ let socket: WebSocket | null = null;
 
             switch (data.tag) {
                 case "chat_message":
-                    handle_message(message as ChatMessage);
+                    handleMessage(message as ChatMessage);
                     break;
                 case "feature_message":
-                    handle_feature_message(message as string | null);
+                    handleFeatureMessage(message as string | null);
                     break;
                 case "viewers":
-                    handle_viewers(message as ViewerCounts);
+                    handleViewers(message as ViewerCounts);
                     break;
                 default:
                     console.log("Unknown tag:", data.tag);
@@ -102,12 +180,14 @@ let socket: WebSocket | null = null;
         });
 
         socket.addEventListener("close", (event: CloseEvent) => {
-            console.log("[SNEED] Socket has closed. Attempting reconnect.", event.reason);
+            console.log("[Dashboard] Socket closed. Attempting reconnect.", event.reason);
+            updateConnectionStatus(false);
             setTimeout(() => { reconnect(); }, 3000);
         });
 
         socket.addEventListener("error", () => {
             socket?.close();
+            updateConnectionStatus(false);
             setTimeout(() => { reconnect(); }, 3000);
         });
     };
@@ -119,38 +199,38 @@ let socket: WebSocket | null = null;
 // Poll UI Functions
 // ============================================================================
 
-function new_poll_option(count = 1): void {
-    const poll_options = document.querySelector<HTMLElement>("#poll-options");
-    if (!poll_options) return;
+function newPollOption(count = 1): void {
+    const pollOptions = document.querySelector<HTMLElement>("#poll-options");
+    if (!pollOptions) return;
 
     for (let i = 0; i < count; i++) {
         const opt = document.createElement("input");
         opt.setAttribute("type", "text");
         opt.setAttribute("placeholder", "Poll option");
         opt.setAttribute("class", "poll-option");
-        opt.setAttribute("onkeydown", "on_poll_option_type(event)");
-        opt.setAttribute("onblur", "on_poll_option_change(event)");
-        poll_options.appendChild(opt);
+        opt.addEventListener("keydown", onPollOptionType);
+        opt.addEventListener("blur", onPollOptionChange);
+        pollOptions.appendChild(opt);
     }
 }
 
-function on_poll_option_type(_event: KeyboardEvent): void {
-    const poll_options = document.querySelectorAll<HTMLInputElement>(".poll-option");
+function onPollOptionType(_event: KeyboardEvent): void {
+    const pollOptions = document.querySelectorAll<HTMLInputElement>(".poll-option");
 
-    if (poll_options.length >= 15) {
+    if (pollOptions.length >= 15) {
         return;
     }
 
-    const last_option = poll_options[poll_options.length - 1];
-    if (last_option && last_option.value !== "") {
-        new_poll_option();
+    const lastOption = pollOptions[pollOptions.length - 1];
+    if (lastOption && lastOption.value !== "") {
+        newPollOption();
     }
 }
 
-function on_poll_option_change(event: FocusEvent): void {
-    const poll_options = document.querySelectorAll<HTMLInputElement>(".poll-option");
+function onPollOptionChange(event: FocusEvent): void {
+    const pollOptions = document.querySelectorAll<HTMLInputElement>(".poll-option");
 
-    if (poll_options.length <= 2) {
+    if (pollOptions.length <= 2) {
         return;
     }
 
@@ -160,28 +240,28 @@ function on_poll_option_change(event: FocusEvent): void {
     }
 }
 
-function clear_poll(): void {
-    const pollquestion = document.getElementById("pollquestion") as HTMLInputElement | null;
-    if (pollquestion) {
-        pollquestion.value = "";
+function clearPoll(): void {
+    const pollQuestion = document.getElementById("pollquestion") as HTMLInputElement | null;
+    if (pollQuestion) {
+        pollQuestion.value = "";
     }
 
     document.querySelectorAll(".poll-option").forEach((opt) => {
         opt.remove();
     });
-    new_poll_option(2);
+    newPollOption(2);
 }
 
-function on_poll_create(): void {
-    const multiplechoice = document.getElementById("multiplechoice") as HTMLInputElement | null;
-    const pollquestion = document.getElementById("pollquestion") as HTMLInputElement | null;
+function onPollCreate(): void {
+    const multipleChoice = document.getElementById("multiplechoice") as HTMLInputElement | null;
+    const pollQuestion = document.getElementById("pollquestion") as HTMLInputElement | null;
 
-    const poll_type = multiplechoice?.checked ? "multipoll" : "poll";
-    const poll_options = document.querySelectorAll<HTMLInputElement>(".poll-option");
+    const pollType = multipleChoice?.checked ? "multipoll" : "poll";
+    const pollOptions = document.querySelectorAll<HTMLInputElement>(".poll-option");
     const options: string[] = [];
-    const poll_question = pollquestion?.value || "";
+    const questionText = pollQuestion?.value || "";
 
-    poll_options.forEach((option) => {
+    pollOptions.forEach((option) => {
         if (option.value !== "") {
             options.push(option.value);
         }
@@ -192,34 +272,41 @@ function on_poll_create(): void {
         return;
     }
 
-    if (poll_question === "") {
+    if (questionText === "") {
         alert("You need a poll question.");
         return;
     }
 
-    const poll_command = `!${poll_type} ${poll_question}; ${options.join("; ")}`;
-    send_simple_message(poll_command);
+    const pollCommand = `!${pollType} ${questionText}; ${options.join("; ")}`;
+    sendSimpleMessage(pollCommand);
 
-    clear_poll();
+    clearPoll();
 }
 
-function on_poll_end(): void {
-    send_simple_message("!endpoll", true);
+function onPollEnd(): void {
+    sendSimpleMessage("!endpoll", true);
 }
 
 // ============================================================================
 // Message Handling
 // ============================================================================
 
-function on_click_message(this: HTMLElement): void {
+function onClickMessage(this: HTMLElement): void {
+    const id = this.id;
+
     if (this.classList.contains("msg--sticky")) {
-        send_feature_message(null);
+        // Unfeature
+        sendFeatureMessage(null);
     } else {
-        send_feature_message(this.id);
+        // Feature this message
+        sendFeatureMessage(id);
+        // Track that this message was featured
+        featuredMessageIds.add(id);
+        this.classList.add("msg--was-featured");
     }
 }
 
-function send_feature_message(id: string | null): void {
+function sendFeatureMessage(id: string | null): void {
     console.log("Featuring message:", id);
     const message = { "feature_message": id };
     socket?.send(JSON.stringify(message));
@@ -233,12 +320,12 @@ function uuidv4(): string {
     });
 }
 
-function send_message(msg: ChatMessage): void {
+function sendMessage(msg: ChatMessage): void {
     const data = { "platform": "none", "messages": [msg] };
     socket?.send(JSON.stringify(data));
 }
 
-function send_paid_message(): void {
+function sendPaidMessage(): void {
     const msg = new DashboardChatMessage(uuidv4(), "none", "none");
     const platformEl = document.getElementById("donation-platform") as HTMLSelectElement | null;
     const usernameEl = document.getElementById("donation-username") as HTMLInputElement | null;
@@ -259,31 +346,34 @@ function send_paid_message(): void {
             break;
     }
 
-    send_message(msg);
+    sendMessage(msg);
 }
 
-function send_simple_message(text: string, is_owner = false): void {
+function sendSimpleMessage(text: string, isOwner = false): void {
     const msg = new DashboardChatMessage(uuidv4(), "none", "none");
     msg.message = text;
-    msg.is_owner = is_owner;
-    send_message(msg);
+    msg.is_owner = isOwner;
+    sendMessage(msg);
 }
 
-function handle_feature_message(id: string | null): void {
-    const sticky_messages = document.querySelectorAll(".msg--sticky");
-    sticky_messages.forEach((msg) => {
+function handleFeatureMessage(id: string | null): void {
+    // Remove sticky from all messages
+    document.querySelectorAll(".msg--sticky").forEach((msg) => {
         msg.classList.remove("msg--sticky");
     });
 
     if (id) {
-        const featured_message = document.getElementById(id);
-        if (featured_message !== null) {
-            featured_message.classList.add("msg--sticky");
+        const featuredMessage = document.getElementById(id);
+        if (featuredMessage !== null) {
+            featuredMessage.classList.add("msg--sticky");
+            // Track as featured
+            featuredMessageIds.add(id);
+            featuredMessage.classList.add("msg--was-featured");
         }
     }
 }
 
-function handle_message(message: ChatMessage): HTMLElement | null {
+function handleMessage(message: ChatMessage): HTMLElement | null {
     if (message.is_placeholder) {
         return null;
     }
@@ -293,67 +383,124 @@ function handle_message(message: ChatMessage): HTMLElement | null {
         return existingEl;
     }
 
-    let el: HTMLElement = document.createElement("div");
+    const el: HTMLElement = document.createElement("div");
 
     if (message.amount > 0) {
-        if (donation_history) {
-            donation_history.appendChild(el);
-            el.outerHTML = message.html;
-        }
-    } else {
-        if (chat_history) {
-            chat_history.appendChild(el);
+        // Superchat/donation
+        if (donationHistory) {
+            donationHistory.appendChild(el);
             el.outerHTML = message.html;
 
-            while (chat_history.children.length > 1000) {
-                for (let i = 0; i < chat_history.children.length; i++) {
-                    const child = chat_history.childNodes[i] as HTMLElement;
-                    if (!child.classList.contains("msg--sticky")) {
-                        child.remove();
-                        break;
-                    }
+            // Add relative timestamp to the new element
+            const newEl = document.getElementById(message.id);
+            if (newEl) {
+                addTimestampToSuperchat(newEl, message.sent_at);
+                newEl.addEventListener("click", onClickMessage);
+
+                // Check if this was previously featured
+                if (featuredMessageIds.has(message.id)) {
+                    newEl.classList.add("msg--was-featured");
                 }
             }
+
+            // Scroll to bottom if auto-scroll is enabled
+            scrollToBottom(donationHistory, donationAutoScroll);
+
+            return newEl || null;
+        }
+    } else {
+        // Regular chat message
+        if (chatHistory) {
+            chatHistory.appendChild(el);
+            el.outerHTML = message.html;
+
+            // Limit chat history
+            while (chatHistory.children.length > 500) {
+                const child = chatHistory.firstElementChild;
+                if (child && !child.classList.contains("msg--sticky")) {
+                    child.remove();
+                } else {
+                    break;
+                }
+            }
+
+            const newEl = document.getElementById(message.id);
+            if (newEl) {
+                newEl.addEventListener("click", onClickMessage);
+
+                // Check if this was previously featured
+                if (featuredMessageIds.has(message.id)) {
+                    newEl.classList.add("msg--was-featured");
+                }
+            }
+
+            // Scroll to bottom if auto-scroll is enabled
+            scrollToBottom(chatHistory, chatAutoScroll);
+
+            return newEl || null;
         }
     }
 
-    const newEl = document.getElementById(message.id);
-    if (newEl) {
-        newEl.addEventListener("click", on_click_message);
-    }
-
-    return newEl;
+    return null;
 }
 
-function handle_viewers(_message: ViewerCounts): void {
-    // Do nothing in dashboard
+function addTimestampToSuperchat(el: HTMLElement, timestamp: number): void {
+    // Create timestamp element
+    const timeEl = document.createElement("span");
+    timeEl.className = "superchat-time";
+    timeEl.dataset.timestamp = timestamp.toString();
+    timeEl.textContent = formatRelativeTime(timestamp);
+
+    // Insert at the start of the message
+    const container = el.querySelector(".msg-container") || el;
+    container.insertBefore(timeEl, container.firstChild);
+}
+
+function handleViewers(_message: ViewerCounts): void {
+    // Could display viewer counts in dashboard header
 }
 
 // ============================================================================
 // Initialize Event Listeners
 // ============================================================================
 
+// Add click listeners to any existing messages
 document.querySelectorAll<HTMLElement>(".msg").forEach((el) => {
-    el.addEventListener("click", on_click_message);
+    el.addEventListener("click", onClickMessage);
+
+    // Add timestamps to existing superchats
+    if (el.closest("#donation-history")) {
+        const timestamp = parseInt(el.dataset.sentAt || '0', 10) || Math.floor(Date.now() / 1000);
+        addTimestampToSuperchat(el, timestamp);
+    }
 });
 
+// Initialize poll options
+document.querySelectorAll<HTMLInputElement>(".poll-option").forEach((opt) => {
+    opt.addEventListener("keydown", onPollOptionType);
+    opt.addEventListener("blur", onPollOptionChange);
+});
+
+// ============================================================================
 // Export functions for HTML onclick handlers
+// ============================================================================
+
 declare global {
     interface Window {
-        new_poll_option: typeof new_poll_option;
-        on_poll_option_type: typeof on_poll_option_type;
-        on_poll_option_change: typeof on_poll_option_change;
-        on_poll_create: typeof on_poll_create;
-        on_poll_end: typeof on_poll_end;
-        send_paid_message: typeof send_paid_message;
-        send_simple_message: typeof send_simple_message;
+        newPollOption: typeof newPollOption;
+        onPollOptionType: typeof onPollOptionType;
+        onPollOptionChange: typeof onPollOptionChange;
+        onPollCreate: typeof onPollCreate;
+        onPollEnd: typeof onPollEnd;
+        sendPaidMessage: typeof sendPaidMessage;
+        sendSimpleMessage: typeof sendSimpleMessage;
     }
 }
 
-window.new_poll_option = new_poll_option;
-window.on_poll_option_type = on_poll_option_type;
-window.on_poll_option_change = on_poll_option_change;
-window.on_poll_create = on_poll_create;
-window.on_poll_end = on_poll_end;
-window.send_paid_message = send_paid_message;
-window.send_simple_message = send_simple_message;
+window.newPollOption = newPollOption;
+window.onPollOptionType = onPollOptionType;
+window.onPollOptionChange = onPollOptionChange;
+window.onPollCreate = onPollCreate;
+window.onPollEnd = onPollEnd;
+window.sendPaidMessage = sendPaidMessage;
+window.sendSimpleMessage = sendSimpleMessage;

@@ -1,134 +1,415 @@
-.theme-dark {
-    --background: #383838;
-    --background-accent: #4f4f4f;
-    --dashboard-header: #747474;
-    --foreground: #ffffff;
-    --foreground-inactive: #d1d1d1;
+/* ============================================================================
+   Dashboard Styles - Unified with Stream Nexus Theme
+   ============================================================================ */
+
+* {
+    box-sizing: border-box;
 }
 
 html,
 body {
-    background: none;
-    border: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: Arial, Helvetica, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff;
+    font-family: 'Open Sans', Arial, sans-serif;
 }
 
-.msg {
-    border-radius: 2em;
-    max-height: none;
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.dashboard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-title {
+    font-size: 20px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.dashboard-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#connection-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #888;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+}
+
+#connection-status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff4444;
+}
+
+#connection-status.connected::before {
+    background: #44ff44;
+}
+
+#connection-status.connected {
+    color: #aaa;
+}
+
+/* ============================================================================
+   Grid Layout
+   ============================================================================ */
+
+.dashboard-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
 }
 
 .grid-container {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-gap: 10px;
-    padding: 10px;
-    height: 100%;
-    max-width: max(1000px, 70vw);
+    gap: 16px;
+    padding: 16px;
+    flex: 1;
+    min-height: 0;
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
 }
+
+/* ============================================================================
+   Dashboard Columns/Panels
+   ============================================================================ */
 
 .dashboard-column {
     display: flex;
     flex-direction: column;
-
-    background-color: var(--background-accent);
-    border-radius: 5px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-color: var(--foreground-inactive) var(--background);
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    min-height: 0;
 }
 
 .dashboard-column-header {
-    border-radius: 5px 5px 0px 0px;
-    font-size: 1.2em;
-    font-weight: bold;
-    text-align: center;
-    padding: 5px 0px 5px;
-    background: var(--dashboard-header);
-    filter: drop-shadow(0px 0px 5px rgba(0, 0, 0, 0.5));
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 .dashboard-column-content {
-    flex-grow: 1;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    min-height: 0;
 }
+
+/* Custom scrollbar */
+.dashboard-column-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.dashboard-column-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.dashboard-column-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.dashboard-column-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================================================
+   Message Styles (Dashboard-specific overrides)
+   ============================================================================ */
+
+.dashboard-column-content .msg {
+    margin-bottom: 4px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-column-content .msg:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(233, 69, 96, 0.3);
+}
+
+/* Currently featured message */
+.dashboard-column-content .msg.msg--sticky {
+    background: rgba(233, 69, 96, 0.2);
+    border-color: #e94560;
+    box-shadow: 0 0 10px rgba(233, 69, 96, 0.3);
+}
+
+/* Previously featured message indicator */
+.dashboard-column-content .msg.msg--was-featured {
+    position: relative;
+}
+
+.dashboard-column-content .msg.msg--was-featured::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: #e94560;
+    border-radius: 50%;
+    opacity: 0.6;
+}
+
+.dashboard-column-content .msg.msg--was-featured:not(.msg--sticky)::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #e94560;
+    opacity: 0.5;
+    border-radius: 3px 0 0 3px;
+}
+
+/* ============================================================================
+   Superchat Time Badge
+   ============================================================================ */
+
+.superchat-time {
+    display: inline-block;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 4px;
+}
+
+/* ============================================================================
+   Forms
+   ============================================================================ */
 
 .dashboard-form {
     display: flex;
     flex-direction: column;
-    max-width: 100%;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .dashboard-form-row {
     display: flex;
-    flex-direction: row;
-    max-width: 100%;
+    gap: 8px;
 }
 
-.dashboard-form-row textarea,
-.dashboard-form-row button {
-    width: 100%;
+.dashboard-form input,
+.dashboard-form select,
+.dashboard-form textarea {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s;
 }
 
-/* for chrome */
-::-webkit-scrollbar {
-    height: 12px;
-    width: 5px;
-    border-radius: 5px;
-    background: var(--background-accent);
+.dashboard-form input:focus,
+.dashboard-form select:focus,
+.dashboard-form textarea:focus {
+    outline: none;
+    border-color: #e94560;
 }
 
-::-webkit-scrollbar-thumb {
-    background: var(--foreground-inactive);
-    border-radius: 5px;
+.dashboard-form input::placeholder,
+.dashboard-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
-/**
- * Message History
- */
-
-/**
- * Donation History
- */
-#donation-history {
-    overflow-y: auto;
-}
-
-.dashboard-column-content .msg {
-    border: none;
-    border-radius: 0;
-}
-
-/**
- * Polls
- */
-#pollquestion {
+.dashboard-form textarea {
     resize: vertical;
-    height: 5em;
-    max-height: 10em;
-    border-radius: 0.3em;
+    min-height: 60px;
 }
 
-#poll-controls,
-#poll-options {
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-gap: 10px;
-    padding: 10px;
-    width: 100%;
+.dashboard-form button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: white;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-#poll-options {
-    grid-template-rows: min-content;
-    grid-auto-rows: min-content;
+.dashboard-form button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(233, 69, 96, 0.4);
 }
+
+.dashboard-form button:active {
+    transform: translateY(0);
+}
+
+/* ============================================================================
+   Poll Controls
+   ============================================================================ */
 
 #poll-controls {
-    grid-template-rows: min-content min-content;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+}
+
+#pollquestion {
+    resize: vertical;
+    min-height: 80px;
+    max-height: 150px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+}
+
+#pollquestion:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+#pollquestion::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+#poll-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+#poll-buttons label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+}
+
+#poll-buttons input[type="checkbox"] {
+    width: auto;
+    accent-color: #e94560;
+}
+
+#poll-buttons button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#poll-buttons button:first-of-type {
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    color: white;
+}
+
+#poll-buttons button:last-of-type {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#poll-buttons button:hover {
+    transform: translateY(-1px);
+}
+
+#poll-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.poll-option {
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    transition: border-color 0.2s;
+}
+
+.poll-option:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+.poll-option::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
+@media (max-width: 1200px) {
+    .grid-container {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-container {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard-header {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
 }

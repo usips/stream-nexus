@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>S.N.E.E.D. Dashboard</title>
+    <title>Stream Nexus - Dashboard</title>
     <link rel="stylesheet" type="text/css" href="/static/style.css" />
     <link rel="stylesheet" type="text/css" href="/static/dashboard.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -14,59 +14,77 @@
     <link href="https://use.fontawesome.com/releases/v6.5.1/css/all.css" rel="stylesheet" />
 </head>
 
-<body class="theme-dark">
-
-    <div class="grid-container">
-        <div id="chat-column" class="dashboard-column">
-            <div class="dashboard-column-header">Chat</div>
-            <div class="dashboard-column-content" id="chat-history"></div>
-        </div>
-        <div id="donation-column" class="dashboard-column">
-            <div class="dashboard-column-header">Superchats</div>
-            <form class="dashboard-form" id="donation-manual">
-                <div class="dashboard-form-row">
-                    <input type="text" id="donation-platform" name="donation-platform" value="mail" />
-                    <input type="text" id="donation-username" name="donation-username" value="Anonymous" />
-                </div>
-                <div class="dashboard-form-row">
-                    <input type="text" id="donation-amount" name="donation-amount" placeholder="Amount" />
-                    <input type="text" id="donation-currency" name="donation-currency" value="USD" />
-                </div>
-                <div class="dashboard-form-row">
-                    <textarea id="donation-message" name="donation-message"></textarea>
-                </div>
-                <div class="dashboard-form-row">
-                    <button id="donation-send" onclick="send_paid_message(); return false">Send</button>
-                </div>
-            </form>
-            <div class="dashboard-column-content" id="donation-history">
-                {% for sc in super_chats %}
-                {% let h = sc.to_html() %}
-                {{ h|safe }}
-                {% endfor %}
+<body>
+    <div class="dashboard-container">
+        <header class="dashboard-header">
+            <div class="dashboard-title">Stream Nexus</div>
+            <div class="dashboard-status">
+                <span id="connection-status">Disconnected</span>
             </div>
-        </div>
+        </header>
 
-        <div id="poll-column" class="dashboard-column">
-            <div class="dashboard-column-header">Polls</div>
-            <div class="dashboard-column-content" id="poll-controls">
-                <textarea id="pollquestion" placeholder="Poll Question"></textarea>
-                <div id="poll-buttons">
-                    <input type="checkbox" id="multiplechoice" />
-                    <label for="multiplechoice">Allow multiple choice</label>
-                    <button onclick="on_poll_create()">Create Poll</button>
-                    <button onclick="on_poll_end()">End Poll</button>
-                </div>
-
-                <div id="poll-options">
-                    <input type="text" onkeydown="on_poll_option_type(event)" onblur="on_poll_option_change(event)"
-                        class="poll-option" placeholder="Poll option" />
-                    <input type="text" onkeydown="on_poll_option_type(event)" onblur="on_poll_option_change(event)"
-                        class="poll-option" placeholder="Poll option" />
-                </div>
-
+        <div class="grid-container">
+            <div id="chat-column" class="dashboard-column">
+                <div class="dashboard-column-header">Chat</div>
+                <div class="dashboard-column-content" id="chat-history"></div>
             </div>
 
+            <div id="donation-column" class="dashboard-column">
+                <div class="dashboard-column-header">Superchats</div>
+                <form class="dashboard-form" id="donation-manual">
+                    <div class="dashboard-form-row">
+                        <select id="donation-platform" name="donation-platform">
+                            <option value="mail">Mail</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="twitch">Twitch</option>
+                            <option value="kick">Kick</option>
+                            <option value="rumble">Rumble</option>
+                        </select>
+                        <input type="text" id="donation-username" name="donation-username" placeholder="Username" value="Anonymous" />
+                    </div>
+                    <div class="dashboard-form-row">
+                        <input type="number" id="donation-amount" name="donation-amount" placeholder="Amount" step="0.01" />
+                        <select id="donation-currency" name="donation-currency">
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="GBP">GBP</option>
+                            <option value="CAD">CAD</option>
+                            <option value="AUD">AUD</option>
+                        </select>
+                    </div>
+                    <div class="dashboard-form-row">
+                        <textarea id="donation-message" name="donation-message" placeholder="Message (optional)"></textarea>
+                    </div>
+                    <div class="dashboard-form-row">
+                        <button id="donation-send" onclick="sendPaidMessage(); return false">Send Donation</button>
+                    </div>
+                </form>
+                <div class="dashboard-column-content" id="donation-history">
+                    {% for sc in super_chats %}
+                    {% let h = sc.to_html() %}
+                    {{ h|safe }}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div id="poll-column" class="dashboard-column">
+                <div class="dashboard-column-header">Polls</div>
+                <div id="poll-controls">
+                    <textarea id="pollquestion" placeholder="Poll Question"></textarea>
+                    <div id="poll-options">
+                        <input type="text" class="poll-option" placeholder="Option 1" />
+                        <input type="text" class="poll-option" placeholder="Option 2" />
+                    </div>
+                    <div id="poll-buttons">
+                        <label>
+                            <input type="checkbox" id="multiplechoice" />
+                            Multiple choice
+                        </label>
+                        <button onclick="onPollCreate()">Create Poll</button>
+                        <button onclick="onPollEnd()">End Poll</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <script type="text/javascript" src="/static/dashboard.js"></script>
