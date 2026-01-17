@@ -1067,13 +1067,13 @@ export function EditorCanvas({
                 const showVerifiedBadge = chatOpts.showVerifiedBadge !== undefined ? chatOpts.showVerifiedBadge !== false : ms.showVerifiedBadge !== false;
                 const showSubBadge = chatOpts.showSubBadge !== undefined ? chatOpts.showSubBadge !== false : ms.showSubBadge !== false;
 
-                // Build chat container classes
-                const chatClasses = [
-                    'preview-chat',
-                    condensedMode && 'preview-chat--condensed',
-                    !showAvatars && 'preview-chat--no-avatars',
-                    !showUsernames && 'preview-chat--no-usernames',
-                    direction === 'top' && 'preview-chat--top-first',
+                // Build chat container classes - matches overlay structure
+                const chatContainerClasses = [
+                    'element--chat',
+                    condensedMode && 'chat--condensed',
+                    !showAvatars && 'chat--no-avatars',
+                    !showUsernames && 'chat--no-usernames',
+                    direction === 'top' && 'chat--top-first',
                 ].filter(Boolean).join(' ');
 
                 // Apply message style settings as CSS custom properties
@@ -1131,35 +1131,38 @@ export function EditorCanvas({
                     return badges.length > 0 ? <span className="msg-badges">{badges}</span> : null;
                 };
 
+                // Render with same structure as overlay: .element--chat > .chat-messages > .msg
                 content = (
-                    <div className={chatClasses} style={chatStyle}>
-                        {visibleMessages.map((msg) => {
-                            const platformColor = PLATFORM_COLORS[msg.platform] || '#ffffff';
-                            // Build message classes for platform
-                            const msgClasses = [
-                                'msg',
-                                `msg--p-${msg.platform}`,
-                            ].join(' ');
+                    <div className={chatContainerClasses} style={chatStyle}>
+                        <div className="chat-messages">
+                            {visibleMessages.map((msg) => {
+                                const platformColor = PLATFORM_COLORS[msg.platform] || '#ffffff';
+                                // Build message classes for platform
+                                const msgClasses = [
+                                    'msg',
+                                    `msg--p-${msg.platform}`,
+                                ].join(' ');
 
-                            return (
-                                <div key={msg.id} className={msgClasses}>
-                                    <div className="msg-avatar-border" style={{ borderColor: platformColor }}>
-                                        <span className="msg-letter" style={{ color: platformColor }}>
-                                            {msg.user.charAt(0).toUpperCase()}
-                                        </span>
-                                    </div>
-                                    <div className="msg-container">
-                                        <div className="msg-user">
-                                            <span className="msg-username" style={{ color: platformColor }}>
-                                                {msg.user}
+                                return (
+                                    <div key={msg.id} className={msgClasses}>
+                                        <div className="msg-avatar-border" style={{ borderColor: platformColor }}>
+                                            <span className="msg-letter" style={{ color: platformColor }}>
+                                                {msg.user.charAt(0).toUpperCase()}
                                             </span>
-                                            {renderBadges(msg.roles)}
                                         </div>
-                                        <div className="msg-text">{msg.message}</div>
+                                        <div className="msg-container">
+                                            <div className="msg-user">
+                                                <span className="msg-username" style={{ color: platformColor }}>
+                                                    {msg.user}
+                                                </span>
+                                                {renderBadges(msg.roles)}
+                                            </div>
+                                            <div className="msg-text">{msg.message}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 );
                 break;
