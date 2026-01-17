@@ -255,12 +255,32 @@ export function SettingsPanel({
                             <label className="settings-checkbox-inline">
                                 <input
                                     type="checkbox"
+                                    checked={layout.messageStyle.showUsernames !== false}
+                                    onChange={(e) => updateMessageStyle('showUsernames', e.target.checked)}
+                                />
+                                <span>Show Usernames</span>
+                            </label>
+                            <label className="settings-checkbox-inline">
+                                <input
+                                    type="checkbox"
                                     checked={layout.messageStyle.condensedMode === true}
                                     onChange={(e) => updateMessageStyle('condensedMode', e.target.checked)}
                                 />
                                 <span>Condensed Mode</span>
                             </label>
                         </div>
+                    </div>
+
+                    {/* Chat Direction */}
+                    <div className="settings-row">
+                        <label>Chat Direction</label>
+                        <select
+                            value={layout.messageStyle.direction || 'bottom'}
+                            onChange={(e) => updateMessageStyle('direction', e.target.value as 'bottom' | 'top')}
+                        >
+                            <option value="bottom">Bottom-first (new messages at bottom)</option>
+                            <option value="top">Top-first (new messages at top)</option>
+                        </select>
                     </div>
 
                     {/* Badge Visibility */}

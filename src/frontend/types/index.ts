@@ -64,7 +64,9 @@ export interface MessageStyle {
     backgroundColor?: string;
     textColor?: string;
     showAvatars?: boolean;
+    showUsernames?: boolean;
     condensedMode?: boolean;
+    direction?: 'bottom' | 'top';
     showOwnerBadge?: boolean;
     showStaffBadge?: boolean;
     showModBadge?: boolean;

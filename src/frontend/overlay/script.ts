@@ -12,8 +12,11 @@ import type {
 // DOM Elements
 // ============================================================================
 
-const chat_history = document.querySelector<HTMLElement>("#chat-messages");
+const elements_container = document.querySelector<HTMLElement>("#elements-container");
 const feature_message = document.querySelector<HTMLElement>("#show-message");
+
+// Track all chat message containers for message dispatch
+let chat_containers: HTMLElement[] = [];
 
 // Current layout state
 let current_layout: Layout | null = null;
@@ -224,11 +227,15 @@ function start_text_updates(): void {
     if (textUpdateInterval) clearInterval(textUpdateInterval);
     textUpdateInterval = setInterval(() => {
         if (!current_layout) return;
-        const textConfig = current_layout.elements?.text || current_layout.elements?.attribution;
-        if (textConfig && textConfig.enabled !== false && textConfig.options?.content) {
-            const el = document.getElementById("attribution");
-            if (el) {
-                el.innerHTML = resolve_tokens(textConfig.options.content as string);
+
+        // Update all text/attribution elements
+        for (const [elementId, config] of Object.entries(current_layout.elements || {})) {
+            const baseType = elementId.replace(/-\d+$/, '');
+            if ((baseType === 'text' || baseType === 'attribution') && config.enabled !== false && config.options?.content) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.innerHTML = resolve_tokens(config.options.content as string);
+                }
             }
         }
     }, 1000);
@@ -239,17 +246,36 @@ function apply_layout(layout: Layout): void {
     console.log("[SNEED] Applying layout:", layout.name);
     current_layout = layout;
 
+    if (!elements_container) {
+        console.error("[SNEED] Elements container not found!");
+        return;
+    }
+
     const elements = layout.elements || {};
 
-    // Apply each element's configuration
-    apply_element_config(document.getElementById("chat"), elements.chat);
-    apply_element_config(document.getElementById("live"), elements.live);
-    // Support both "text" (new) and "attribution" (legacy) element names
-    const textConfig = elements.text || elements.attribution;
-    apply_element_config(document.getElementById("attribution"), textConfig, true);
-    apply_element_config(document.getElementById("show-message"), elements.featured);
-    apply_element_config(document.getElementById("poll-ui"), elements.poll);
-    apply_element_config(document.getElementById("superchat-ui"), elements.superchat);
+    // Clear old dynamic elements and reset chat containers
+    elements_container.innerHTML = '';
+    chat_containers = [];
+
+    // Create/update elements dynamically based on layout config
+    for (const [elementId, config] of Object.entries(elements)) {
+        if (!config || config.enabled === false) continue;
+
+        const baseType = elementId.replace(/-\d+$/, ''); // Remove -N suffix to get base type
+        const el = create_element_for_type(elementId, baseType, config);
+        if (el) {
+            elements_container.appendChild(el);
+            apply_element_config(el, config, baseType === 'text' || baseType === 'attribution');
+
+            // Track chat containers for message dispatch
+            if (baseType === 'chat') {
+                const messagesContainer = el.querySelector('.chat-messages') as HTMLElement;
+                if (messagesContainer) {
+                    chat_containers.push(messagesContainer);
+                }
+            }
+        }
+    }
 
     // Apply message styling via CSS custom properties
     if (layout.messageStyle) {
@@ -263,11 +289,18 @@ function apply_layout(layout: Layout): void {
         if (ms.backgroundColor) root.style.setProperty('--message-bg', ms.backgroundColor);
         if (ms.textColor) root.style.setProperty('--message-color', ms.textColor);
 
-        // Apply display mode classes to chat
-        const chatEl = document.getElementById('chat');
-        if (chatEl) {
-            chatEl.classList.toggle('chat--condensed', ms.condensedMode === true);
-            chatEl.classList.toggle('chat--no-avatars', ms.showAvatars === false);
+        // Apply display mode classes to all chat elements
+        for (const [elementId, config] of Object.entries(elements)) {
+            const baseType = elementId.replace(/-\d+$/, '');
+            if (baseType === 'chat') {
+                const chatEl = document.getElementById(elementId);
+                if (chatEl) {
+                    chatEl.classList.toggle('chat--condensed', ms.condensedMode === true);
+                    chatEl.classList.toggle('chat--no-avatars', ms.showAvatars === false);
+                    chatEl.classList.toggle('chat--no-usernames', ms.showUsernames === false);
+                    chatEl.classList.toggle('chat--top-first', ms.direction === 'top');
+                }
+            }
         }
 
         // Store badge visibility settings for message rendering
@@ -280,12 +313,69 @@ function apply_layout(layout: Layout): void {
         };
     }
 
-    // Update chat width CSS variable from chat element config
-    if (elements.chat?.size?.width) {
-        const width = elements.chat.size.width;
+    // Update chat width CSS variable from first chat element config
+    const firstChatConfig = Object.entries(elements).find(([id]) => id === 'chat' || id.startsWith('chat-'))?.[1];
+    if (firstChatConfig?.size?.width) {
+        const width = firstChatConfig.size.width;
         const widthStr = typeof width === 'number' ? `${width}px` : width;
         document.documentElement.style.setProperty('--chat-width', widthStr as string);
     }
+}
+
+// Create DOM element for a specific element type
+function create_element_for_type(elementId: string, baseType: string, config: ElementConfig): HTMLElement | null {
+    const el = document.createElement('section');
+    el.id = elementId;
+    el.className = `element element--${baseType}`;
+
+    switch (baseType) {
+        case 'chat':
+            el.innerHTML = `
+                <div class="chat-messages"></div>
+                <div class="flyout">
+                    <div class="poll-ui"></div>
+                    <div class="superchat-ui"></div>
+                </div>
+            `;
+            break;
+
+        case 'live':
+            const options = config.options as LiveBadgeOptions | undefined;
+            const showIcon = options?.showIcon === true;
+            const showLabel = options?.showLabel !== false;
+            const showCount = options?.showCount !== false;
+            el.innerHTML = `
+                ${showIcon ? '<span class="live-icon live-badge">📺</span>' : ''}
+                ${showLabel ? '<span class="live-label live-badge">LIVE</span>' : ''}
+                ${showCount ? '<span class="live-totals live-badge">0</span>' : ''}
+            `;
+            break;
+
+        case 'text':
+        case 'attribution':
+            const content = (config.options?.content as string) || '';
+            el.innerHTML = resolve_tokens(content);
+            break;
+
+        case 'featured':
+            // Featured message container - content is set dynamically
+            el.className += ' show-message';
+            break;
+
+        case 'poll':
+            el.className += ' poll-ui';
+            break;
+
+        case 'superchat':
+            el.className += ' superchat-ui';
+            break;
+
+        default:
+            console.warn(`[SNEED] Unknown element type: ${baseType}`);
+            return null;
+    }
+
+    return el;
 }
 
 // ============================================================================
@@ -524,42 +614,85 @@ function handle_message(message: ChatMessage): HTMLElement | null {
 }
 
 function processMessageImmediate(message: ChatMessage): HTMLElement | null {
-    if (!chat_history) return null;
-
+    // Check if message already exists anywhere
     const existingEl = document.getElementById(message.id);
     if (existingEl !== null) {
         return existingEl;
     }
 
-    let el: HTMLElement = document.createElement("div");
-    chat_history.appendChild(el);
-    el.outerHTML = message.html;
-    el = document.getElementById(message.id) as HTMLElement;
-
-    filter_badges(el);
-
-    if (message.amount > 0) {
-        handle_premium(el, message);
+    // If no chat containers, nothing to do
+    if (chat_containers.length === 0) {
+        console.warn("[SNEED] No chat containers available for message");
+        return null;
     }
 
-    // Remove old messages
-    while (chat_history.children.length > 1000) {
-        for (let i = 0; i < chat_history.children.length; i++) {
-            const child = chat_history.childNodes[i] as HTMLElement;
-            if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
-                child.remove();
-                break;
+    // Get direction setting from current layout
+    const direction = current_layout?.messageStyle?.direction || 'bottom';
+    const isTopFirst = direction === 'top';
+
+    // Process message HTML to handle username visibility
+    let messageHtml = message.html;
+    if (current_layout?.messageStyle?.showUsernames === false) {
+        // Add a class to hide usernames via CSS
+        messageHtml = messageHtml.replace('class="msg', 'class="msg msg--hide-username');
+    }
+
+    let firstEl: HTMLElement | null = null;
+
+    // Add message to all chat containers
+    for (let i = 0; i < chat_containers.length; i++) {
+        const container = chat_containers[i];
+        const el = document.createElement("div");
+
+        if (isTopFirst) {
+            // Insert at the beginning for top-first mode
+            container.insertBefore(el, container.firstChild);
+        } else {
+            // Append at the end for bottom-first mode (default)
+            container.appendChild(el);
+        }
+
+        // Use a unique ID for each instance (original ID for first, suffixed for others)
+        const instanceId = i === 0 ? message.id : `${message.id}-${i}`;
+        el.outerHTML = messageHtml.replace(`id="${message.id}"`, `id="${instanceId}"`);
+
+        const insertedEl = document.getElementById(instanceId) as HTMLElement;
+        if (insertedEl) {
+            filter_badges(insertedEl);
+
+            if (i === 0) {
+                firstEl = insertedEl;
+                if (message.amount > 0) {
+                    handle_premium(insertedEl, message);
+                }
+            }
+        }
+
+        // Remove old messages (keep max 1000 per container)
+        while (container.children.length > 1000) {
+            // Remove from opposite end based on direction
+            const removeIndex = isTopFirst ? container.children.length - 1 : 0;
+            for (let j = removeIndex; isTopFirst ? j >= 0 : j < container.children.length; isTopFirst ? j-- : j++) {
+                const child = container.children[j] as HTMLElement;
+                if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
+                    child.remove();
+                    break;
+                }
+            }
+        }
+
+        // Auto-scroll based on direction
+        const chatSection = container.parentElement;
+        if (chatSection) {
+            if (isTopFirst) {
+                chatSection.scrollTop = 0;
+            } else {
+                chatSection.scrollTop = chatSection.scrollHeight;
             }
         }
     }
 
-    // Auto-scroll
-    const chatSection = chat_history.parentElement;
-    if (chatSection) {
-        chatSection.scrollTop = chatSection.scrollHeight;
-    }
-
-    return el;
+    return firstEl;
 }
 
 function handle_premium(node: HTMLElement, message: ChatMessage): void {
@@ -608,24 +741,18 @@ function handle_viewers(message: ViewerCounts): void {
 
     const elements = current_layout?.elements || {};
 
+    // Update all live elements (live, live-1, live-2, etc.)
     for (const [id, config] of Object.entries(elements)) {
-        if (id === 'live' || id.startsWith('live-')) {
+        const baseType = id.replace(/-\d+$/, '');
+        if (baseType === 'live' && config.enabled !== false) {
             const el = document.getElementById(id);
-            const totalsEl = el?.querySelector('#live-totals') || document.getElementById('live-totals');
+            const totalsEl = el?.querySelector('.live-totals');
 
-            if (totalsEl && config.enabled !== false) {
+            if (totalsEl) {
                 const options = config.options as LiveBadgeOptions | undefined;
                 const count = calculate_viewer_count(window.livestream_viewers, options);
                 totalsEl.innerHTML = count.toString();
             }
-        }
-    }
-
-    if (!current_layout || !elements.live) {
-        const total = calculate_viewer_count(window.livestream_viewers, undefined);
-        const totalsEl = document.getElementById("live-totals");
-        if (totalsEl) {
-            totalsEl.innerHTML = total.toString();
         }
     }
 }

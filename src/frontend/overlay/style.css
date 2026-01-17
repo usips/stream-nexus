@@ -518,10 +518,77 @@ section#chat::-webkit-scrollbar {
 
 /**
  * Avatar Visibility Toggle
- * Applied via chat--no-avatars class on #chat container
+ * Applied via chat--no-avatars class on chat container
  */
 .chat--no-avatars .msg-avatar-border {
     display: none;
+}
+
+/**
+ * Username Visibility Toggle
+ * Applied via chat--no-usernames class on chat container
+ */
+.chat--no-usernames .msg-user,
+.chat--no-usernames .msg-username,
+.chat--no-usernames .msg-badges {
+    display: none;
+}
+
+/* Also hide usernames via inline class on messages */
+.msg--hide-username .msg-user,
+.msg--hide-username .msg-username,
+.msg--hide-username .msg-badges {
+    display: none;
+}
+
+/**
+ * Chat Direction - Top First (new messages at top)
+ * Applied via chat--top-first class on chat container
+ */
+.chat--top-first {
+    flex-direction: column-reverse;
+}
+
+.chat--top-first .chat-messages {
+    flex-direction: column-reverse;
+}
+
+/**
+ * Dynamic Element Support
+ * Styling for dynamically created elements
+ */
+.element {
+    position: absolute;
+}
+
+.element--chat {
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.element--chat::-webkit-scrollbar {
+    display: none;
+}
+
+.element--chat .chat-messages {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 100%;
+}
+
+.element--live {
+    padding: 15px;
+}
+
+.element--text {
+    color: #fff;
+    text-shadow: 2px 2px 2px #000;
+    -webkit-text-stroke: 2px #000;
 }
 
 /**

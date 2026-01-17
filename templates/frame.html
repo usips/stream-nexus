@@ -15,25 +15,10 @@
 </head>
 
 <body id="overlay">
-    <section id="live">
-        <span id="live-icon" class="live-badge">LIVE</span>
-        <span id="live-totals" class="live-badge">0</span>
-    </section>
+    <!-- Dynamic elements container - elements are created by script based on layout -->
+    <div id="elements-container"></div>
 
-    <section id="attribution">
-        <span id="name">Mad at the Internet</span>
-        · <span id="url">mati.live</span>
-        · <span id="date">January 1st, 1970</span>
-    </section>
-
-    <section id="chat">
-        <div id="chat-messages"></div>
-        <div id="flyout">
-            <div id="poll-ui"></div>
-            <div id="superchat-ui"></div>
-        </div>
-    </section>
-
+    <!-- Featured message display (shared across layout) -->
     <section id="show-message"></section>
 
     <script type="text/javascript">

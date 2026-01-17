@@ -238,8 +238,12 @@ pub struct MessageStyle {
     // Display options
     #[serde(default = "default_true")]
     pub show_avatars: bool,
+    #[serde(default = "default_true")]
+    pub show_usernames: bool,
     #[serde(default)]
     pub condensed_mode: bool,
+    #[serde(default = "default_direction")]
+    pub direction: String,
 
     // Badge visibility
     #[serde(default = "default_true")]
@@ -269,6 +273,9 @@ fn default_font_size() -> String {
 fn default_true() -> bool {
     true
 }
+fn default_direction() -> String {
+    "bottom".to_string()
+}
 
 impl Default for MessageStyle {
     fn default() -> Self {
@@ -280,7 +287,9 @@ impl Default for MessageStyle {
             background_color: None,
             text_color: None,
             show_avatars: true,
+            show_usernames: true,
             condensed_mode: false,
+            direction: default_direction(),
             show_owner_badge: true,
             show_staff_badge: true,
             show_mod_badge: true,

@@ -128,7 +128,9 @@ export interface MessageStyle {
 
     // Display options
     showAvatars?: boolean;       // Default: true
+    showUsernames?: boolean;     // Default: true
     condensedMode?: boolean;     // Default: false
+    direction?: 'bottom' | 'top'; // Default: 'bottom' (new messages at bottom)
 
     // Badge visibility
     showOwnerBadge?: boolean;    // Default: true
@@ -164,7 +166,9 @@ export const defaultMessageStyle = (): MessageStyle => ({
     fontSize: '16px',
     // Display options default to showing everything
     showAvatars: true,
+    showUsernames: true,
     condensedMode: false,
+    direction: 'bottom',
     showOwnerBadge: true,
     showStaffBadge: true,
     showModBadge: true,
