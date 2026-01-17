@@ -652,6 +652,113 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
         );
     }
 
+    // Chat element options
+    if (elementType === 'chat') {
+        const showAvatars = options.showAvatars !== false;
+        const showUsernames = options.showUsernames !== false;
+        const condensedMode = options.condensedMode === true;
+        const direction = (options.direction as string) || 'bottom';
+        const showOwnerBadge = options.showOwnerBadge !== false;
+        const showStaffBadge = options.showStaffBadge !== false;
+        const showModBadge = options.showModBadge !== false;
+        const showVerifiedBadge = options.showVerifiedBadge !== false;
+        const showSubBadge = options.showSubBadge !== false;
+
+        return (
+            <CollapsibleSection title="Chat Options" defaultOpen={true}>
+                {/* Display Options */}
+                <div className="settings-row">
+                    <label>Display Options</label>
+                    <div className="settings-checkbox-group">
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showAvatars}
+                                onChange={(e) => updateOptions({ showAvatars: e.target.checked })}
+                            />
+                            <span>Show Avatars</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showUsernames}
+                                onChange={(e) => updateOptions({ showUsernames: e.target.checked })}
+                            />
+                            <span>Show Usernames</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={condensedMode}
+                                onChange={(e) => updateOptions({ condensedMode: e.target.checked })}
+                            />
+                            <span>Condensed Mode</span>
+                        </label>
+                    </div>
+                </div>
+
+                {/* Chat Direction */}
+                <div className="settings-row">
+                    <label>Message Direction</label>
+                    <select
+                        value={direction}
+                        onChange={(e) => updateOptions({ direction: e.target.value })}
+                    >
+                        <option value="bottom">Bottom-first (new at bottom)</option>
+                        <option value="top">Top-first (new at top)</option>
+                    </select>
+                </div>
+
+                {/* Badge Visibility */}
+                <div className="settings-row">
+                    <label>Visible Badges</label>
+                    <div className="settings-checkbox-group">
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showOwnerBadge}
+                                onChange={(e) => updateOptions({ showOwnerBadge: e.target.checked })}
+                            />
+                            <span style={{ color: '#ffd700' }}>Owner</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showStaffBadge}
+                                onChange={(e) => updateOptions({ showStaffBadge: e.target.checked })}
+                            />
+                            <span style={{ color: '#ff3434' }}>Staff</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showModBadge}
+                                onChange={(e) => updateOptions({ showModBadge: e.target.checked })}
+                            />
+                            <span style={{ color: '#197ce3' }}>Mod</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showVerifiedBadge}
+                                onChange={(e) => updateOptions({ showVerifiedBadge: e.target.checked })}
+                            />
+                            <span style={{ color: '#a80da8' }}>Verified</span>
+                        </label>
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={showSubBadge}
+                                onChange={(e) => updateOptions({ showSubBadge: e.target.checked })}
+                            />
+                            <span style={{ color: '#2f8d15' }}>Sub</span>
+                        </label>
+                    </div>
+                </div>
+            </CollapsibleSection>
+        );
+    }
+
     // No options for other element types (yet)
     return null;
 }

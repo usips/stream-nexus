@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Layout, defaultLayout, defaultElementConfig } from './types/layout';
+import { Layout, defaultLayout, defaultElementConfig, defaultChatOptions } from './types/layout';
 import { TopBar } from './components/TopBar';
 import { Toolbox } from './components/Toolbox';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -281,6 +281,7 @@ function App() {
                 case 'chat':
                     newElement.size = { width: '15.63vw', height: '100vh' };
                     newElement.position = { y: '0vh', right: '0vw' };
+                    newElement.options = defaultChatOptions();
                     break;
                 case 'live':
                     newElement.position = { x: '0vw', y: '0vh' };
@@ -305,6 +306,7 @@ function App() {
             switch (elementType) {
                 case 'chat':
                     newElement.size = { width: '15.63vw', height: '100vh' };
+                    newElement.options = defaultChatOptions();
                     break;
                 case 'text':
                     newElement.style = { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' };

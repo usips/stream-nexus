@@ -6,6 +6,7 @@ import type {
     ViewerCounts,
     BadgeSettings,
     LiveBadgeOptions,
+    ChatOptions,
 } from '../types';
 
 // ============================================================================
@@ -15,8 +16,13 @@ import type {
 const elements_container = document.querySelector<HTMLElement>("#elements-container");
 const feature_message = document.querySelector<HTMLElement>("#show-message");
 
-// Track all chat message containers for message dispatch
-let chat_containers: HTMLElement[] = [];
+// Track chat containers with their per-element options
+interface ChatContainerInfo {
+    container: HTMLElement;
+    elementId: string;
+    options: ChatOptions;
+}
+let chat_containers: ChatContainerInfo[] = [];
 
 // Current layout state
 let current_layout: Layout | null = null;
@@ -267,17 +273,43 @@ function apply_layout(layout: Layout): void {
             elements_container.appendChild(el);
             apply_element_config(el, config, baseType === 'text' || baseType === 'attribution');
 
-            // Track chat containers for message dispatch
+            // Track chat containers with per-element options
             if (baseType === 'chat') {
                 const messagesContainer = el.querySelector('.chat-messages') as HTMLElement;
                 if (messagesContainer) {
-                    chat_containers.push(messagesContainer);
+                    // Get chat options from element config, falling back to messageStyle for backwards compat
+                    const chatOpts = (config.options || {}) as ChatOptions;
+                    const ms = layout.messageStyle || {};
+
+                    const options: ChatOptions = {
+                        showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
+                        showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
+                        condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
+                        direction: chatOpts.direction ?? ms.direction ?? 'bottom',
+                        showOwnerBadge: chatOpts.showOwnerBadge ?? ms.showOwnerBadge ?? true,
+                        showStaffBadge: chatOpts.showStaffBadge ?? ms.showStaffBadge ?? true,
+                        showModBadge: chatOpts.showModBadge ?? ms.showModBadge ?? true,
+                        showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
+                        showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
+                    };
+
+                    chat_containers.push({
+                        container: messagesContainer,
+                        elementId,
+                        options,
+                    });
+
+                    // Apply per-element classes
+                    el.classList.toggle('chat--condensed', options.condensedMode === true);
+                    el.classList.toggle('chat--no-avatars', options.showAvatars === false);
+                    el.classList.toggle('chat--no-usernames', options.showUsernames === false);
+                    el.classList.toggle('chat--top-first', options.direction === 'top');
                 }
             }
         }
     }
 
-    // Apply message styling via CSS custom properties
+    // Apply global message styling via CSS custom properties (for sizing, etc.)
     if (layout.messageStyle) {
         const ms = layout.messageStyle;
         const root = document.documentElement;
@@ -289,21 +321,7 @@ function apply_layout(layout: Layout): void {
         if (ms.backgroundColor) root.style.setProperty('--message-bg', ms.backgroundColor);
         if (ms.textColor) root.style.setProperty('--message-color', ms.textColor);
 
-        // Apply display mode classes to all chat elements
-        for (const [elementId, config] of Object.entries(elements)) {
-            const baseType = elementId.replace(/-\d+$/, '');
-            if (baseType === 'chat') {
-                const chatEl = document.getElementById(elementId);
-                if (chatEl) {
-                    chatEl.classList.toggle('chat--condensed', ms.condensedMode === true);
-                    chatEl.classList.toggle('chat--no-avatars', ms.showAvatars === false);
-                    chatEl.classList.toggle('chat--no-usernames', ms.showUsernames === false);
-                    chatEl.classList.toggle('chat--top-first', ms.direction === 'top');
-                }
-            }
-        }
-
-        // Store badge visibility settings for message rendering
+        // Store default badge visibility settings (can be overridden per-element)
         window.badgeSettings = {
             owner: ms.showOwnerBadge !== false,
             staff: ms.showStaffBadge !== false,
@@ -613,6 +631,27 @@ function handle_message(message: ChatMessage): HTMLElement | null {
     return null;
 }
 
+// Filter badges based on per-element options
+function filter_badges_with_options(messageEl: HTMLElement, options: ChatOptions): void {
+    const badges = messageEl.querySelectorAll('.msg-badge');
+    badges.forEach(badge => {
+        const match = badge.className.match(/msg-badge--(\w+)/);
+        if (match) {
+            const type = match[1];
+            let show = true;
+            if (type === 'owner') show = options.showOwnerBadge !== false;
+            else if (type === 'staff') show = options.showStaffBadge !== false;
+            else if (type === 'mod') show = options.showModBadge !== false;
+            else if (type === 'verified') show = options.showVerifiedBadge !== false;
+            else if (type === 'sub') show = options.showSubBadge !== false;
+
+            if (!show) {
+                (badge as HTMLElement).style.display = 'none';
+            }
+        }
+    });
+}
+
 function processMessageImmediate(message: ChatMessage): HTMLElement | null {
     // Check if message already exists anywhere
     const existingEl = document.getElementById(message.id);
@@ -626,22 +665,21 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
         return null;
     }
 
-    // Get direction setting from current layout
-    const direction = current_layout?.messageStyle?.direction || 'bottom';
-    const isTopFirst = direction === 'top';
-
-    // Process message HTML to handle username visibility
-    let messageHtml = message.html;
-    if (current_layout?.messageStyle?.showUsernames === false) {
-        // Add a class to hide usernames via CSS
-        messageHtml = messageHtml.replace('class="msg', 'class="msg msg--hide-username');
-    }
-
     let firstEl: HTMLElement | null = null;
 
-    // Add message to all chat containers
+    // Add message to each chat container with per-element options
     for (let i = 0; i < chat_containers.length; i++) {
-        const container = chat_containers[i];
+        const { container, options } = chat_containers[i];
+
+        // Per-element direction
+        const isTopFirst = options.direction === 'top';
+
+        // Process message HTML with per-element username visibility
+        let messageHtml = message.html;
+        if (options.showUsernames === false) {
+            messageHtml = messageHtml.replace('class="msg', 'class="msg msg--hide-username');
+        }
+
         const el = document.createElement("div");
 
         if (isTopFirst) {
@@ -658,7 +696,8 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
 
         const insertedEl = document.getElementById(instanceId) as HTMLElement;
         if (insertedEl) {
-            filter_badges(insertedEl);
+            // Use per-element badge options
+            filter_badges_with_options(insertedEl, options);
 
             if (i === 0) {
                 firstEl = insertedEl;

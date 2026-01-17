@@ -112,6 +112,23 @@ export interface LiveBadgeOptions {
     showCount?: boolean;
 }
 
+// Chat element specific options
+export interface ChatOptions {
+    [key: string]: unknown;      // Index signature for Record<string, unknown> compatibility
+    // Display options
+    showAvatars?: boolean;       // Default: true
+    showUsernames?: boolean;     // Default: true
+    condensedMode?: boolean;     // Default: false
+    direction?: 'bottom' | 'top'; // Default: 'bottom'
+
+    // Badge visibility
+    showOwnerBadge?: boolean;    // Default: true
+    showStaffBadge?: boolean;    // Default: true
+    showModBadge?: boolean;      // Default: true
+    showVerifiedBadge?: boolean; // Default: true
+    showSubBadge?: boolean;      // Default: true
+}
+
 // Text element specific options
 export interface TextOptions {
     // The text content - can include tokens like {{datetime:HH:mm:ss}}
@@ -159,6 +176,18 @@ export const defaultElementConfig = (): ElementConfig => ({
     style: {},
 });
 
+export const defaultChatOptions = (): ChatOptions => ({
+    showAvatars: true,
+    showUsernames: true,
+    condensedMode: false,
+    direction: 'bottom',
+    showOwnerBadge: true,
+    showStaffBadge: true,
+    showModBadge: true,
+    showVerifiedBadge: true,
+    showSubBadge: true,
+});
+
 export const defaultMessageStyle = (): MessageStyle => ({
     avatarSize: '2em',
     maxHeight: '10em',
@@ -185,6 +214,7 @@ export const defaultLayout = (): Layout => ({
             position: { y: '0vh', right: '0vw' },
             size: { width: '15.63vw', height: '100vh' },
             style: { backgroundColor: 'transparent' },
+            options: defaultChatOptions(),
         },
         live: {
             enabled: true,

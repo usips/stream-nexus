@@ -52,6 +52,19 @@ export interface LiveBadgeOptions {
     showCount?: boolean;
 }
 
+export interface ChatOptions {
+    [key: string]: unknown;      // Index signature for Record<string, unknown> compatibility
+    showAvatars?: boolean;
+    showUsernames?: boolean;
+    condensedMode?: boolean;
+    direction?: 'bottom' | 'top';
+    showOwnerBadge?: boolean;
+    showStaffBadge?: boolean;
+    showModBadge?: boolean;
+    showVerifiedBadge?: boolean;
+    showSubBadge?: boolean;
+}
+
 export interface TextOptions {
     content?: string;
 }

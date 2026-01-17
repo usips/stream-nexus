@@ -911,17 +911,20 @@ export function EditorCanvas({
                 const maxMessages = Math.max(1, Math.floor(availableHeight / messageHeight));
                 const visibleMessages = mockData.chatMessages.slice(-maxMessages);
 
-                // Get display options from messageStyle
-                const showAvatars = layout.messageStyle?.showAvatars !== false;
-                const showUsernames = layout.messageStyle?.showUsernames !== false;
-                const condensedMode = layout.messageStyle?.condensedMode === true;
+                // Get display options from element config, falling back to messageStyle
+                const chatOpts = (config.options || {}) as Record<string, unknown>;
+                const ms = layout.messageStyle || {};
 
-                // Badge visibility settings
-                const showOwnerBadge = layout.messageStyle?.showOwnerBadge !== false;
-                const showStaffBadge = layout.messageStyle?.showStaffBadge !== false;
-                const showModBadge = layout.messageStyle?.showModBadge !== false;
-                const showVerifiedBadge = layout.messageStyle?.showVerifiedBadge !== false;
-                const showSubBadge = layout.messageStyle?.showSubBadge !== false;
+                const showAvatars = chatOpts.showAvatars !== undefined ? chatOpts.showAvatars !== false : ms.showAvatars !== false;
+                const showUsernames = chatOpts.showUsernames !== undefined ? chatOpts.showUsernames !== false : ms.showUsernames !== false;
+                const condensedMode = chatOpts.condensedMode !== undefined ? chatOpts.condensedMode === true : ms.condensedMode === true;
+
+                // Badge visibility settings (per-element with fallback)
+                const showOwnerBadge = chatOpts.showOwnerBadge !== undefined ? chatOpts.showOwnerBadge !== false : ms.showOwnerBadge !== false;
+                const showStaffBadge = chatOpts.showStaffBadge !== undefined ? chatOpts.showStaffBadge !== false : ms.showStaffBadge !== false;
+                const showModBadge = chatOpts.showModBadge !== undefined ? chatOpts.showModBadge !== false : ms.showModBadge !== false;
+                const showVerifiedBadge = chatOpts.showVerifiedBadge !== undefined ? chatOpts.showVerifiedBadge !== false : ms.showVerifiedBadge !== false;
+                const showSubBadge = chatOpts.showSubBadge !== undefined ? chatOpts.showSubBadge !== false : ms.showSubBadge !== false;
 
                 // Build chat container classes
                 const chatClasses = [
