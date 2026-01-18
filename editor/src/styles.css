@@ -287,16 +287,18 @@
 .element-wrapper {
     position: absolute;
     cursor: move;
-    border: 2px solid transparent;
-    transition: border-color 0.2s;
+    /* Use outline instead of border so it doesn't affect layout/positioning */
+    outline: 2px solid transparent;
+    outline-offset: 0px;
+    transition: outline-color 0.2s;
 }
 
 .element-wrapper:hover {
-    border-color: rgba(233, 69, 96, 0.5);
+    outline-color: rgba(233, 69, 96, 0.5);
 }
 
 .element-wrapper.selected {
-    border-color: #e94560;
+    outline-color: #e94560;
 }
 
 .element-wrapper.disabled {
@@ -880,7 +882,7 @@
 }
 
 .element-wrapper.locked:hover {
-    border-color: transparent;
+    outline-color: transparent;
 }
 
 .element-wrapper.locked .element-label {
