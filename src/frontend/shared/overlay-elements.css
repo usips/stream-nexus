@@ -387,10 +387,14 @@ section#attribution {
     width: auto;
     font-size: var(--message-text-size, 32px);
     font-family: var(--font-ui);
-    background: var(--message-bg, rgba(0, 0, 0, 0.9));
     color: var(--message-color, #ccc);
-    padding: 0.5em;
     border-radius: 0;
+}
+
+/* Only show background/padding when featured message has content */
+.element--featured:not(:empty) {
+    background: var(--message-bg, rgba(0, 0, 0, 0.9));
+    padding: 0.5em;
 }
 
 /* ============================================================================
@@ -399,11 +403,16 @@ section#attribution {
 
 .element--poll,
 .poll-ui {
-    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
     color: var(--msg-url, #ccc);
+    font-family: var(--font-ui);
+}
+
+/* Only show poll styling when it has content */
+.element--poll:not(:empty),
+.poll-ui:not(:empty) {
+    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
     padding: 0.5em 0.8em 1em 0.8em;
     border-radius: 0 0 0.8em 0.8em;
-    font-family: var(--font-ui);
     box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
 }
 
@@ -421,7 +430,16 @@ section#attribution {
    Superchat Element
    ============================================================================ */
 
-.element--superchat,
+.element--superchat {
+    color: var(--msg-url, #ccc);
+    font-family: var(--font-ui);
+}
+
+/* Only show superchat container styling when it has content */
+.element--superchat:not(:empty) {
+    width: 100%;
+}
+
 .superchat {
     width: 100%;
     border-radius: 0.8em 0 0 0.8em;

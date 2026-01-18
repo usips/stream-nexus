@@ -1252,11 +1252,7 @@ export function EditorCanvas({
                 const textContent = (options.content as string) || 'Text Element';
                 const resolvedContent = resolveTokens(textContent);
                 content = (
-                    <div className="element--text" style={{
-                        ...convertStyleUnits(config.style as React.CSSProperties),
-                        width: '100%',
-                        height: '100%',
-                    }}>
+                    <div className="element--text" style={convertStyleUnits(config.style as React.CSSProperties)}>
                         {resolvedContent}
                     </div>
                 );
