@@ -1,3 +1,17 @@
+/**
+ * Stream Nexus - Overlay Styles
+ *
+ * Styles specific to the overlay view. Common element styles are imported
+ * from the shared overlay-elements.css file.
+ */
+
+/* Import shared element styles - relative path for when served from public/ */
+@import url('./overlay-elements.css');
+
+/* ============================================================================
+   Base Overlay Styles
+   ============================================================================ */
+
 * {
     box-sizing: border-box;
 }
@@ -19,78 +33,22 @@ body {
     background: transparent !important;
 }
 
-/* Layout-controlled CSS custom properties */
-:root {
-    /* Message styling (can be overridden by layout) */
-    --message-font-size: 16px;
-    --message-line-height: calc(var(--message-font-size) * 1.125);
-    --message-bg: rgba(0, 0, 0, 0.9);
-    --message-color: #ccc;
-    --message-max-height: 10em;
-    --message-border-radius: 2em 0 0 2em;
+/* ============================================================================
+   Chat Section (Legacy)
+   ============================================================================ */
 
-    /* Avatar */
-    --avatar-size: 2em;
-}
-
-/**
- * Live Viewers
- * Position controlled by layout config
- */
-/**
- * Live Badge Element
- * Position controlled by layout config
- */
-.live-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    background-color: rgba(0, 0, 0, 0.66);
-    color: #fff;
-    border-radius: 3px;
-    font-size: 0.8em;
-    padding: 0 0.5em;
-    margin-right: 0.3em;
-    line-height: 1;
-    height: 1.6em;
-    font-family: 'Open Sans', Arial, Helvetica, sans-serif;
-}
-
-/* LIVE label and icon get red background */
-.live-icon.live-badge,
-.live-label.live-badge {
-    background-color: rgba(255, 0, 0, 0.66);
-}
-
-/**
- * Text/Attribution Element
- * All styling controlled by layout config
- */
-section#attribution {
-    position: absolute;
-    /* Defaults - all can be overridden by layout */
-    color: #fff;
-    text-shadow: 2px 2px 2px #000;
-    -webkit-text-stroke: 2px #000;
-}
-
-/**
- * Chat Messages
- * Position and size controlled by layout config
- */
 section#chat {
     position: absolute;
-    /* Position and size controlled by layout config */
     overflow-x: hidden;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 section#chat::-webkit-scrollbar {
-    display: none; /* Chrome/Safari/Opera */
+    display: none;
 }
 
 #chat-messages {
@@ -101,163 +59,9 @@ section#chat::-webkit-scrollbar {
     gap: 0.2em;
 }
 
-.msg {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start; /* Prevent children from stretching vertically */
-    overflow: hidden;
-    z-index: 1;
-
-    background: var(--message-bg-color, var(--message-bg));
-    border-radius: var(--message-border-radius);
-    border: 1px solid transparent;
-    border-right: none;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0.5em;
-
-    max-height: var(--message-max-height);
-    overflow: hidden;
-    flex-shrink: 0; /* Prevent messages from shrinking/overlapping */
-
-    font-family: "Open Sans", Arial, Helvetica, sans-serif;
-    font-size: var(--message-text-size, var(--message-font-size));
-    line-height: var(--message-line-height);
-    color: var(--message-text-color, var(--message-color));
-}
-
-.msg.msg--t {
-    flex-wrap: wrap;
-    padding: 0;
-    max-height: none;
-}
-
-.msg--b-owner {
-    border-color: gold;
-}
-
-.msg--b-staff {
-    border-color: red;
-}
-
-.msg-header {
-    display: flex;
-    box-sizing: border-box;
-    width: 100%;
-    flex-direction: row;
-    padding: 0.5em;
-    background: var(--message-head-color, transparent);
-}
-
-.msg-user,
-.msg-username,
-.msg-badges,
-.msg-badges>span {
-    font-size: 1em;
-    line-height: 1.2em;
-    vertical-align: top;
-}
-
-.msg-user {
-    font-size: 90%;
-    font-weight: bold;
-    margin-top: -4px;
-    margin-left: 2px;
-    margin-right: 2px;
-
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    text-shadow:
-        -1px -1px 0 rgba(0, 0, 0, 0.1),
-        1px -1px 0 rgba(0, 0, 0, 0.1),
-        -1px 1px 0 rgba(0, 0, 0, 0.1),
-        1px 1px 0 rgba(0, 0, 0, 0.1),
-        0 -1px 0 rgba(0, 0, 0, 0.1),
-        0 1px 0 rgba(0, 0, 0, 0.1),
-        -1px 0 0 rgba(0, 0, 0, 0.1),
-        1px 0 0 rgba(0, 0, 0, 0.1);
-}
-
-/* Role badges - SVG icon badges */
-.msg-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1em;
-    height: 1em;
-    vertical-align: middle;
-    flex-shrink: 0;
-}
-
-.msg-badge svg {
-    width: 1em;
-    height: 1em;
-    max-width: 1em;
-    max-height: 1em;
-    display: block;
-    flex-shrink: 0;
-}
-
-/* Owner: Gold crown */
-.msg-badge--owner {
-    color: #ffd700;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-}
-
-/* Staff: Red star */
-.msg-badge--staff {
-    color: #ff3434;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-}
-
-/* Mod: Blue shield */
-.msg-badge--mod {
-    color: #197ce3;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-}
-
-/* Verified: Purple checkmark */
-.msg-badge--verified {
-    color: #a80da8;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-}
-
-/* Sub: Green star */
-.msg-badge--sub {
-    color: #2f8d15;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
-}
-
-/* Role borders for special users (keep existing) */
-.msg--b-owner {
-    border-color: gold;
-}
-
-.msg--b-staff {
-    border-color: red;
-}
-
-
-.msg-avatar-border {
-    position: relative;
-    height: var(--avatar-size);
-    width: var(--avatar-size);
-    margin-right: 0.5em;
-    overflow: hidden;
-    flex-shrink: 0;
-
-    border: 2px solid transparent;
-    border-radius: 100%;
-    box-sizing: border-box;
-    background: white;
-    border-color: var(--brand-color);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* ============================================================================
+   Platform-Specific Avatar Styling
+   ============================================================================ */
 
 .msg--p-mail .msg-avatar-border {
     --brand-color: var(--kick-brand, rgba(0, 75, 135, 1));
@@ -276,13 +80,6 @@ section#chat::-webkit-scrollbar {
     opacity: 0.66;
 }
 
-.msg--p-Kick .msg-letter {
-    color: var(--brand-color);
-    font-family: 'VT323', Courier, monospace;
-    font-weight: bold;
-    font-size: 2em;
-}
-
 .msg--p-Odysee .msg-avatar-border {
     --brand-color: var(--odysee-brand, rgb(166, 10, 67, 1));
     background: linear-gradient(45deg, #ef1970 0%, #f23b5c 14%, #f77d35 45%, #fcad18 70%, #fecb07 89%, #ffd600 100%);
@@ -296,7 +93,6 @@ section#chat::-webkit-scrollbar {
 }
 
 .msg--p-Odysee .msg-letter {
-    /* Doubled up gradients are really ugly and Odysee provides a default avatar. */
     display: none;
 }
 
@@ -318,19 +114,8 @@ section#chat::-webkit-scrollbar {
     opacity: 0.66;
 }
 
-.msg--p-Twitch .msg-letter {
-    color: var(--brand-color);
-    font-family: 'VT323', Courier, monospace;
-    font-weight: bold;
-    font-size: 2em;
-}
-
 .msg--p-VK .msg-avatar-border {
     --brand-color: var(--vk-brand, rgb(255, 43, 66, 1));
-}
-
-.msg--p-VK .msg-avatar-border {
-    /* drop shadow mimics the VK logo a bit. */
     box-shadow: 2px 0px var(--vk--brand-shadow, rgb(0, 119, 255, 0.66));
 }
 
@@ -338,7 +123,15 @@ section#chat::-webkit-scrollbar {
     content: '@';
 }
 
-/* Platform-based username colors (support both cases) */
+.msg--p-XMRChat .msg-avatar-border {
+    --brand-color: var(--xmr-brand, rgb(255 127 10));
+    background: #494949;
+}
+
+/* ============================================================================
+   Platform-Based Username Colors
+   ============================================================================ */
+
 .msg--p-Kick .msg-user,
 .msg--p-kick .msg-user { color: var(--kick-brand, #53fc18); }
 .msg--p-YouTube .msg-user,
@@ -356,9 +149,14 @@ section#chat::-webkit-scrollbar {
 .msg--p-XMRChat .msg-user,
 .msg--p-xmrchat .msg-user { color: var(--xmr-brand, #ff7f0a); }
 
-.msg--p-XMRChat .msg-avatar-border {
-    --brand-color: var(--xmr-brand, rgb(255 127 10));
-    background: #494949;
+/* ============================================================================
+   Superchat Tier Colors (YouTube-style)
+   ============================================================================ */
+
+.msg.msg--t {
+    flex-wrap: wrap;
+    padding: 0;
+    max-height: none;
 }
 
 .msg--t {
@@ -403,55 +201,29 @@ section#chat::-webkit-scrollbar {
     --message-text-color: #FFFFFF;
 }
 
-.msg--sticky {
-    position: sticky;
-    top: 0;
-    transition: top 1s ease 0s;
-    z-index: 20;
+/* ============================================================================
+   Role Borders for Special Users
+   ============================================================================ */
+
+.msg--b-owner {
+    border-color: gold;
 }
 
-.msg-letter {
-    display: inline-block;
-    color: var(--brand-color);
-    font-size: 1.2rem;
-    font-weight: bold;
-    line-height: 0;
-    vertical-align: top;
+.msg--b-staff {
+    border-color: red;
 }
 
-.msg-avatar {
-    height: var(--avatar-size);
-    width: var(--avatar-size);
-    margin: -2px 0 0 -2px;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-}
+/* ============================================================================
+   Superchat Message Header
+   ============================================================================ */
 
-.msg-container {
-    flex: 1;
-    min-width: 0;
-    max-width: 100%;
-    height: auto;
-    overflow: visible;
-}
-
-.msg-text {
-    word-wrap: break-word;
-    vertical-align: bottom;
-
-    overflow: visible;
-    text-overflow: ellipsis;
-    margin: 0;
-    font-size: 0.9em;
-    line-height: 1.2em;
-    vertical-align: text-top;
-}
-
-.msg-text:empty {
-    display: none;
+.msg-header {
+    display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    flex-direction: row;
+    padding: 0.5em;
+    background: var(--message-head-color, transparent);
 }
 
 .msg--t .msg-text {
@@ -460,130 +232,153 @@ section#chat::-webkit-scrollbar {
     padding-top: 0.5em;
 }
 
-/**
- * Condensed Mode - Single line messages
- * Applied via chat--condensed class on #chat container
- */
-.chat--condensed .msg {
-    align-items: center;
-    border-radius: 0;
+/* ============================================================================
+   Sticky/Featured Message
+   ============================================================================ */
+
+.msg--sticky {
+    position: sticky;
+    top: 0;
+    transition: top 1s ease 0s;
+    z-index: 20;
 }
 
-.chat--condensed .msg-container {
-    display: inline;
-}
+/* ============================================================================
+   Featured Message Section (Legacy)
+   ============================================================================ */
 
-/* Make msg-user a flex container so order property works for badges */
-.chat--condensed .msg-user {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2em;
-    margin-right: 0;
-}
-
-.chat--condensed .msg-username::after {
-    content: ':';
-    margin-right: 0.3em;
-}
-
-.chat--condensed .msg-text {
-    display: inline;
-}
-
-/* In condensed mode, badges appear BEFORE username (left side) */
-.chat--condensed .msg-badges {
-    order: -1;
-    margin-right: 0;
-    margin-left: 0;
-}
-
-/* In condensed mode, avatars are same size as badges */
-.chat--condensed .msg-avatar-border {
-    width: 1em;
-    height: 1em;
-    min-width: 1em;
-    min-height: 1em;
-    margin-right: 0.3em;
-}
-
-/* In regular mode, badges appear after username */
-.msg-badges {
-    display: inline-flex;
-    gap: 0.2em;
-    margin-left: 0.3em;
-}
-
-/**
- * Avatar Visibility Toggle
- * Applied via chat--no-avatars class on chat container
- */
-.chat--no-avatars .msg-avatar-border {
-    display: none;
-}
-
-/**
- * Username Visibility Toggle
- * Applied via chat--no-usernames class on chat container
- */
-.chat--no-usernames .msg-user,
-.chat--no-usernames .msg-username,
-.chat--no-usernames .msg-badges {
-    display: none;
-}
-
-/* Also hide usernames via inline class on messages */
-.msg--hide-username .msg-user,
-.msg--hide-username .msg-username,
-.msg--hide-username .msg-badges {
-    display: none;
-}
-
-
-/**
- * Dynamic Element Support
- * Styling for dynamically created elements
- */
-.element {
+section#show-message {
     position: absolute;
+    width: auto;
+    --message-text-size: 32px;
 }
 
-.element--chat {
-    overflow-x: hidden;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+section#show-message .msg {
+    border-radius: 0;
+    padding-left: 15px;
 }
 
-.element--chat::-webkit-scrollbar {
+/* ============================================================================
+   Flyout Container
+   ============================================================================ */
+
+#flyout {
+    position: absolute;
+    z-index: 100;
+    width: 100%;
+    font-family: var(--font-ui);
+}
+
+/* ============================================================================
+   Superchat UI Animations
+   ============================================================================ */
+
+#superchat-ui {
+    transition: all .2s ease-in-out;
+    width: 100%;
+    top: 0px;
+}
+
+#superchat-ui.slide-down {
+    animation: slide-down 0.5s ease-in-out forwards;
+}
+
+#superchat-ui.slide-up {
+    animation: slide-down 0.5s ease-in-out forwards;
+}
+
+.superchat {
+    animation-duration: 0.5s;
+    animation-name: slide-in;
+    margin-top: 0.5em;
+    overflow: hidden;
+}
+
+.superchat-message {
+    padding: 0.1em 0.1em 0.3em 0.5em;
+}
+
+.superchat-message > p {
+    margin: 0;
+}
+
+.superchat-timeout-bar {
+    height: 0.1em;
+    width: 100%;
+    background: var(--superchat-timeout-bar-bg, rgba(245, 160, 160, 0.986));
+    float: right;
+    right: 0;
+}
+
+/* ============================================================================
+   Poll UI
+   ============================================================================ */
+
+#poll-ui,
+.superchat {
+    color: var(--msg-url, #ccc);
+    width: 100%;
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+}
+
+#poll-ui {
+    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
     display: none;
+    padding: 0.5em 0.8em 1em 0.8em;
+    border-radius: 0 0 0.8em 0.8em;
 }
 
-.element--chat .chat-messages {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    min-height: 100%;
+#poll-ui.fade-in {
+    animation: fade-in 0.5s ease-in-out forwards;
 }
 
-/* Top-first direction - must come after base .chat-messages styles */
-.element--chat.chat--top-first .chat-messages {
-    flex-direction: column-reverse;
+#poll-ui.fade-out {
+    animation: fade-out 0.5s ease-in-out forwards;
 }
 
-/* Position controlled by layout config - no default padding */
+/* ============================================================================
+   Animations
+   ============================================================================ */
 
-.element--text {
-    color: #fff;
-    text-shadow: 2px 2px 2px #000;
-    -webkit-text-stroke: 2px #000;
+@keyframes slide-down {
+    from { position: absolute; }
+    to { position: relative; }
 }
 
-/**
- * Additional Message Definitions
- * To deal with junk that appears inside chat messages.
- */
+@keyframes slide-in {
+    from {
+        margin-left: 100%;
+        width: 300%;
+    }
+    to {
+        margin-left: 0%;
+        width: 100%;
+    }
+}
+
+@keyframes fade-in {
+    from {
+        display: block;
+        opacity: 0;
+    }
+    to {
+        display: block;
+        opacity: 1;
+    }
+}
+
+@keyframes fade-out {
+    from { opacity: 1; }
+    to {
+        opacity: 0;
+        display: none;
+    }
+}
+
+/* ============================================================================
+   Message Content Styling
+   ============================================================================ */
+
 .msg-text img {
     max-height: 2em;
     max-width: 2em;
@@ -603,184 +398,20 @@ section#chat::-webkit-scrollbar {
     margin: 0;
 }
 
-/**
- * Overlay Feature Message
- **/
-section#show-message {
-    position: absolute;
-    /* Defaults - overridden by layout */
-    width: auto;
-    --message-text-size: 32px;
-}
+/* ============================================================================
+   Additional Display Toggles
+   ============================================================================ */
 
-section#show-message .msg {
-    border-radius: 0;
-    padding-left: 15px;
-}
-
-/**
- * Flyouts and Polls
- **/
-#flyout {
-    position: absolute;
-    z-index: 100;
-    width: 100%;
-    font-family: "Open Sans", Arial, Helvetica, sans-serif;
-}
-
-#superchat-ui {
-    transition: all .2s ease-in-out;
-    width: 100%;
-    top: 0px;
-}
-
-#superchat-ui.slide-down {
-    animation: slide-down 0.5s ease-in-out forwards;
-}
-
-#superchat-ui.slide-up {
-    animation: slide-down 0.5s ease-in-out forwards;
-
-}
-
-.superchat {
-    width: 100%;
-    border-radius: 0.8em 0 0 0.8em;
-    background: var(--superchat-bg, rgba(92, 42, 42, 0.95));
-    animation-duration: 0.5s;
-    animation-name: slide-in;
-    margin-top: 0.5em;
-    overflow: hidden;
-}
-
-.superchat-message {
-    padding: 0.1em 0.1em 0.3em 0.5em;
-}
-
-.superchat-message>p {
-    margin: 0;
-}
-
-.superchat-timeout-bar {
-    height: 0.1em;
-    width: 100%;
-    background: var(--superchat-timeout-bar-bg, rgba(245, 160, 160, 0.986));
-    float: right;
-    right: 0;
-}
-
-#poll-ui,
-.superchat {
-    color: var(--msg-url, #ccc);
-    width: 100%;
-
-    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
-}
-
-#poll-ui {
-    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
+.msg--hide-username .msg-user,
+.msg--hide-username .msg-username,
+.msg--hide-username .msg-badges {
     display: none;
-    padding: 0.5em 0.8em 1em 0.8em;
-    border-radius: 0 0 0.8em 0.8em;
 }
 
-#poll-ui.fade-in {
-    animation: fade-in 0.5s ease-in-out forwards;
-}
+/* ============================================================================
+   Dynamic Element Container
+   ============================================================================ */
 
-#poll-ui.fade-out {
-    animation: fade-out 0.5s ease-in-out forwards;
-
-}
-
-@keyframes slide-down {
-    from {
-        position: absolute;
-    }
-
-    to {
-        position: relative;
-    }
-}
-
-@keyframes slide-in {
-    from {
-        margin-left: 100%;
-        width: 300%;
-    }
-
-    to {
-        margin-left: 0%;
-        width: 100%;
-    }
-}
-
-@keyframes fade-in {
-    from {
-        display: block;
-        opacity: 0;
-    }
-
-    to {
-        display: block;
-        opacity: 1;
-    }
-}
-
-@keyframes fade-out {
-    from {
-        opacity: 1;
-    }
-
-    to {
-        opacity: 0;
-        display: none;
-    }
-}
-
-#poll-ui ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0.5em;
-}
-
-#poll-ui li+li {
-    margin-top: 0.5em;
-}
-
-
-/*
-.msg::before {
-    display: inline-block;
-    content: ' ';
-    height: 4em;
-    width: 4em;
-    background-repeat: no-repeat;
-    background-size: contain;
-    background-position: center center;
+.element {
     position: absolute;
-    top: -0.5em;
-    right: 0;
-    transform: rotate(20deg);
-    opacity: 0.15;
-}
-    .msg--p-Rumble::before {
-        background-image: url(/logo/rumble.svg);
-    }
-    .msg--p-YouTube::before {
-        background-image: url(/logo/youtube.svg);
-    }
-    */
-
-/**
- * Donation Matter Element
- * Physics-based donation visualization
- */
-.element--matter {
-    overflow: hidden;
-    background: transparent;
-}
-
-.element--matter canvas {
-    display: block;
 }

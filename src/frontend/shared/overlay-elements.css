@@ -1,0 +1,453 @@
+/**
+ * Stream Nexus - Shared Overlay Element Styles
+ *
+ * This file contains all styling for overlay elements (chat, text, live badge, etc.)
+ * that must be consistent between the editor preview and the actual overlay.
+ *
+ * IMPORTANT: Import this file in both:
+ *   - src/frontend/overlay/style.css
+ *   - editor/src/styles.css
+ */
+
+/* ============================================================================
+   Typography - Cross-platform font stacks
+   ============================================================================ */
+
+:root {
+    /* Primary UI font - widely available sans-serif */
+    --font-ui: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+
+    /* Monospace for retro/gaming platforms (Kick, Twitch) */
+    --font-mono-display: "VT323", "Courier New", Courier, monospace;
+
+    /* Message styling defaults */
+    --message-font-size: 16px;
+    --message-line-height: calc(var(--message-font-size) * 1.125);
+    --message-bg: rgba(0, 0, 0, 0.9);
+    --message-color: #ccc;
+    --message-max-height: 10em;
+    --message-border-radius: 2em 0 0 2em;
+    --avatar-size: 2em;
+}
+
+/* ============================================================================
+   Text Element
+   ============================================================================ */
+
+.element--text {
+    font-family: var(--font-ui);
+    color: #fff;
+    /* Use paint-order to render stroke BEHIND fill for solid text appearance */
+    paint-order: stroke fill;
+    -webkit-text-stroke: 1.5px #000;
+    text-shadow:
+        1px 1px 2px rgba(0, 0, 0, 0.8),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Legacy attribution element - same as text */
+section#attribution {
+    position: absolute;
+    font-family: var(--font-ui);
+    color: #fff;
+    paint-order: stroke fill;
+    -webkit-text-stroke: 1.5px #000;
+    text-shadow:
+        1px 1px 2px rgba(0, 0, 0, 0.8),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================================
+   Live Badge Element
+   ============================================================================ */
+
+.live-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.66);
+    color: #fff;
+    border-radius: 3px;
+    font-size: 0.8em;
+    padding: 0 0.5em;
+    margin-right: 0.3em;
+    line-height: 1;
+    height: 1.6em;
+    font-family: var(--font-ui);
+}
+
+.live-icon.live-badge,
+.live-label.live-badge {
+    background-color: rgba(255, 0, 0, 0.66);
+}
+
+/* ============================================================================
+   Chat Element Container
+   ============================================================================ */
+
+.element--chat {
+    --message-font-size: 16px;
+    --message-line-height: calc(var(--message-font-size) * 1.125);
+    --message-bg: rgba(0, 0, 0, 0.9);
+    --message-color: #ccc;
+    --message-max-height: 10em;
+    --message-border-radius: 2em 0 0 2em;
+    --avatar-size: 2em;
+
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    font-family: var(--font-ui);
+
+    /* Hide scrollbar */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.element--chat::-webkit-scrollbar {
+    display: none;
+}
+
+.element--chat .chat-messages {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 100%;
+    gap: 0.2em;
+}
+
+.element--chat.chat--top-first .chat-messages {
+    flex-direction: column-reverse;
+}
+
+/* ============================================================================
+   Chat Message
+   ============================================================================ */
+
+.msg {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    overflow: hidden;
+    z-index: 1;
+
+    background: var(--message-bg-color, var(--message-bg));
+    border-radius: var(--message-border-radius);
+    border: 1px solid transparent;
+    border-right: none;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.5em;
+
+    max-height: var(--message-max-height);
+    flex-shrink: 0;
+
+    font-family: var(--font-ui);
+    font-size: var(--message-text-size, var(--message-font-size));
+    line-height: var(--message-line-height);
+    color: var(--message-text-color, var(--message-color));
+}
+
+/* Avatar border/container */
+.msg-avatar-border {
+    position: relative;
+    height: var(--avatar-size);
+    width: var(--avatar-size);
+    margin-right: 0.5em;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    border: 2px solid transparent;
+    border-radius: 100%;
+    box-sizing: border-box;
+    background: white;
+    border-color: var(--brand-color, #e94560);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Avatar letter fallback */
+.msg-letter {
+    display: inline-block;
+    color: var(--brand-color, #e94560);
+    font-size: 1.2rem;
+    font-weight: bold;
+    line-height: 0;
+    vertical-align: top;
+    font-family: var(--font-ui);
+}
+
+/* Platform-specific letter styling - retro font for gaming platforms */
+.msg--p-Kick .msg-letter,
+.msg--p-kick .msg-letter,
+.msg--p-Twitch .msg-letter,
+.msg--p-twitch .msg-letter {
+    font-family: var(--font-mono-display);
+    font-size: 2em;
+}
+
+/* Avatar image */
+.msg-avatar {
+    height: var(--avatar-size);
+    width: var(--avatar-size);
+    margin: -2px 0 0 -2px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+/* Message content container */
+.msg-container {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+/* Username area */
+.msg-user,
+.msg-username,
+.msg-badges,
+.msg-badges > span {
+    font-size: 1em;
+    line-height: 1.2em;
+    vertical-align: top;
+    font-family: var(--font-ui);
+}
+
+.msg-user {
+    font-size: 90%;
+    font-weight: bold;
+    margin-top: -4px;
+    margin-left: 2px;
+    margin-right: 2px;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    text-shadow:
+        -1px -1px 0 rgba(0, 0, 0, 0.1),
+        1px -1px 0 rgba(0, 0, 0, 0.1),
+        -1px 1px 0 rgba(0, 0, 0, 0.1),
+        1px 1px 0 rgba(0, 0, 0, 0.1),
+        0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 1px 0 rgba(0, 0, 0, 0.1),
+        -1px 0 0 rgba(0, 0, 0, 0.1),
+        1px 0 0 rgba(0, 0, 0, 0.1);
+}
+
+.msg-username {
+    font-size: 1em;
+    line-height: 1.2em;
+    vertical-align: top;
+}
+
+/* Message text */
+.msg-text {
+    word-wrap: break-word;
+    vertical-align: bottom;
+    overflow: visible;
+    text-overflow: ellipsis;
+    margin: 0;
+    font-size: 0.9em;
+    line-height: 1.2em;
+    vertical-align: text-top;
+    font-family: var(--font-ui);
+}
+
+.msg-text:empty {
+    display: none;
+}
+
+/* Role badges container */
+.msg-badges {
+    display: inline-flex;
+    gap: 0.2em;
+    margin-left: 0.3em;
+}
+
+/* Role badges - SVG icon badges */
+.msg-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.msg-badge svg {
+    width: 1em;
+    height: 1em;
+    max-width: 1em;
+    max-height: 1em;
+    display: block;
+    flex-shrink: 0;
+}
+
+/* Badge colors */
+.msg-badge--owner {
+    color: #ffd700;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.msg-badge--staff {
+    color: #ff3434;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.msg-badge--mod {
+    color: #197ce3;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.msg-badge--verified {
+    color: #a80da8;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.msg-badge--sub {
+    color: #2f8d15;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+/* ============================================================================
+   Condensed Mode - Single line messages
+   ============================================================================ */
+
+.chat--condensed .msg {
+    align-items: center;
+    border-radius: 0;
+}
+
+.chat--condensed .msg-container {
+    display: inline;
+}
+
+.chat--condensed .msg-user {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2em;
+    margin-right: 0;
+}
+
+.chat--condensed .msg-username::after {
+    content: ':';
+    margin-right: 0.3em;
+}
+
+.chat--condensed .msg-text {
+    display: inline;
+}
+
+.chat--condensed .msg-badges {
+    order: -1;
+    margin-right: 0;
+    margin-left: 0;
+}
+
+.chat--condensed .msg-avatar-border {
+    width: 1em;
+    height: 1em;
+    min-width: 1em;
+    min-height: 1em;
+    margin-right: 0.3em;
+}
+
+/* ============================================================================
+   Chat Display Toggles
+   ============================================================================ */
+
+.chat--no-avatars .msg-avatar-border {
+    display: none;
+}
+
+.chat--no-usernames .msg-user,
+.chat--no-usernames .msg-username,
+.chat--no-usernames .msg-badges {
+    display: none;
+}
+
+/* ============================================================================
+   Featured Message Element
+   ============================================================================ */
+
+.element--featured {
+    width: auto;
+    font-size: var(--message-text-size, 32px);
+    font-family: var(--font-ui);
+    background: var(--message-bg, rgba(0, 0, 0, 0.9));
+    color: var(--message-color, #ccc);
+    padding: 0.5em;
+    border-radius: 0;
+}
+
+/* ============================================================================
+   Poll Element
+   ============================================================================ */
+
+.element--poll,
+.poll-ui {
+    background: var(--msg-bg, rgba(11, 11, 11, 0.95));
+    color: var(--msg-url, #ccc);
+    padding: 0.5em 0.8em 1em 0.8em;
+    border-radius: 0 0 0.8em 0.8em;
+    font-family: var(--font-ui);
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+}
+
+.poll-ui ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0.5em;
+}
+
+.poll-ui li + li {
+    margin-top: 0.5em;
+}
+
+/* ============================================================================
+   Superchat Element
+   ============================================================================ */
+
+.element--superchat,
+.superchat {
+    width: 100%;
+    border-radius: 0.8em 0 0 0.8em;
+    background: var(--superchat-bg, rgba(92, 42, 42, 0.95));
+    color: var(--msg-url, #ccc);
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+    font-family: var(--font-ui);
+}
+
+.superchat-message {
+    padding: 0.5em;
+}
+
+.superchat-message p {
+    margin: 0;
+}
+
+/* ============================================================================
+   Donation Matter Element
+   ============================================================================ */
+
+.element--matter {
+    overflow: hidden;
+    background: transparent;
+}
+
+.element--matter canvas {
+    display: block;
+}

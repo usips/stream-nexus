@@ -7,12 +7,12 @@
     "webpack": "webpack --config webpack.config.js",
     "build": "webpack --config webpack.config.js",
     "build:editor": "cd editor && npm run build",
-    "build:frontend": "npm run build && cp src/frontend/overlay/style.css src/frontend/dashboard/dashboard.css src/frontend/shared/variables.css public/ && cp node_modules/matter-js/build/matter.min.js public/",
+    "build:frontend": "npm run build && cp src/frontend/overlay/style.css src/frontend/dashboard/dashboard.css src/frontend/shared/variables.css src/frontend/shared/overlay-elements.css public/ && cp node_modules/matter-js/build/matter.min.js public/",
     "build:static": "cp -r static/* public/",
     "build:all": "npm run build:frontend && npm run build:static && npm run build:editor",
     "watch:frontend": "webpack --watch",
     "dev:editor": "cd editor && npm run dev",
-    "clean": "rm -rf public/script.js public/style.css public/dashboard.js public/dashboard.css public/variables.css public/editor public/js/*.js public/matter.min.js public/background.js"
+    "clean": "rm -rf public/script.js public/style.css public/dashboard.js public/dashboard.css public/variables.css public/overlay-elements.css public/editor public/js/*.js public/matter.min.js public/background.js"
   },
   "repository": {
     "type": "git",
