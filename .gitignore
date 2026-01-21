@@ -2,6 +2,7 @@
 .claude/
 .vscode/
 *.code-workspace
+.idea/
 
 # Dependencies
 node_modules/
