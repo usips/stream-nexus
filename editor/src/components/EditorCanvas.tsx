@@ -23,6 +23,20 @@ interface EditorCanvasProps {
     canUndo: boolean;
     canRedo: boolean;
     onAddElement?: (elementId: string, position?: { x: number; y: number }) => void;
+    gridSettings?: {
+        enabled: boolean;
+        size: number;
+        visible: boolean;
+        snapThreshold: number;
+        snapToElements: boolean;
+    };
+    onGridSettingsChange?: (settings: {
+        enabled: boolean;
+        size: number;
+        visible: boolean;
+        snapThreshold: number;
+        snapToElements: boolean;
+    }) => void;
 }
 
 interface DragState {
@@ -206,11 +220,15 @@ export function EditorCanvas({
     canUndo,
     canRedo,
     onAddElement,
+    gridSettings,
+    onGridSettingsChange,
 }: EditorCanvasProps) {
     const [scale, setScale] = useState(0.5);
     const [autoScale, setAutoScale] = useState(true);
     const [dragState, setDragState] = useState<DragState | null>(null);
     const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+    const [snapHighlight, setSnapHighlight] = useState<string | null>(null);
+    const [snapLines, setSnapLines] = useState<{x?: number, y?: number} | null>(null);
     const [mockData, setMockData] = useState<MockData>({
         viewerCount: 1234,
         chatMessages: [
@@ -515,6 +533,98 @@ export function EditorCanvas({
         });
     }, [layout.elements, onSelectElement]);
 
+    // Grid snapping utilities
+    const snapToGrid = useCallback((value: number, gridSize: number) => {
+        return Math.round(value / gridSize) * gridSize;
+    }, []);
+
+    const snapToElements = useCallback((draggedElementId: string, newX: number, newY: number, newWidth: number, newHeight: number) => {
+        const threshold = gridSettings?.snapThreshold || 10;
+        let snappedX = newX;
+        let snappedY = newY;
+        let snappedElement: string | null = null;
+        let snapLineX: number | undefined = undefined;
+        let snapLineY: number | undefined = undefined;
+
+        // Check against all other elements
+        Object.entries(layout.elements).forEach(([elementId, element]) => {
+            if (elementId === draggedElementId || snappedElement != null) return;
+
+            // First get dimensions from DOM
+            const otherElement = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
+            let otherWidth = 200; // fallback
+            let otherHeight = 100; // fallback
+            
+            if (otherElement) {
+                const rect = otherElement.getBoundingClientRect();
+                otherWidth = rect.width / scale; // Adjust for canvas scale
+                otherHeight = rect.height / scale;
+            }
+
+            // Handle position - check both x/y and right/bottom anchoring
+            let otherLeft: number;
+            let otherTop: number;
+            
+            if (element.position.x !== null && element.position.x !== undefined) {
+                otherLeft = positionToPx(element.position.x, true);
+            } else if (element.position.right !== null && element.position.right !== undefined) {
+                // Element is right-anchored, need to calculate left position
+                const rightPx = positionToPx(element.position.right, true);
+                otherLeft = CANVAS_WIDTH - rightPx - otherWidth;
+            } else {
+                otherLeft = 0;
+            }
+            
+            if (element.position.y !== null && element.position.y !== undefined) {
+                otherTop = positionToPx(element.position.y, false);
+            } else if (element.position.bottom !== null && element.position.bottom !== undefined) {
+                // Element is bottom-anchored, need to calculate top position  
+                const bottomPx = positionToPx(element.position.bottom, false);
+                otherTop = CANVAS_HEIGHT - bottomPx - otherHeight;
+            } else {
+                otherTop = 0;
+            }
+            
+            const otherRight = otherLeft + otherWidth;
+            const otherBottom = otherTop + otherHeight;
+
+            const draggedRight = newX + newWidth;
+            const draggedBottom = newY + newHeight;
+
+            // Check for snapping and set snappedElement if any snap occurs
+            const prevSnappedX = snappedX;
+            const prevSnappedY = snappedY;
+            snapLineX = undefined;
+            snapLineY = undefined;
+
+            // Snap to left edge
+            if (Math.abs(newX - otherLeft) < threshold) { snappedX = otherLeft; snapLineX = otherLeft; console.log("1");}
+            // Snap to right edge
+            if (Math.abs(newX - otherRight) < threshold) { snappedX = otherRight; snapLineX = otherRight; console.log("2"); }
+            // Snap dragged right edge to other left edge
+            if (Math.abs(draggedRight - otherLeft) < threshold) { snappedX = otherLeft - newWidth; snapLineX = otherLeft; console.log("3"); }
+            // Snap dragged right edge to other right edge
+            if (Math.abs(draggedRight - otherRight) < threshold) { snappedX = otherRight - newWidth; snapLineX = otherRight; console.log("4"); }
+
+            // Snap to top edge
+            if (Math.abs(newY - otherTop) < threshold) { snappedY = otherTop; snapLineY = otherTop; }
+            // Snap to bottom edge
+            if (Math.abs(newY - otherBottom) < threshold) { snappedY = otherBottom; snapLineY = otherBottom; }
+            // Snap dragged bottom edge to other top edge
+            if (Math.abs(draggedBottom - otherTop) < threshold) { snappedY = otherTop - newHeight; snapLineY = otherTop; }
+            // Snap dragged bottom edge to other bottom edge
+            if (Math.abs(draggedBottom - otherBottom) < threshold) { snappedY = otherBottom - newHeight; snapLineY = otherBottom; }
+
+            // If any snapping occurred with this element, mark it as snapped
+            if (snappedX !== newX || snappedY !== newY) {
+
+                snappedElement = elementId;
+            }
+        });
+
+        return { x: snappedX, y: snappedY, snappedElement, snapLineX, snapLineY };
+    }, [layout.elements, gridSettings]);
+
     const handleMouseMove = useCallback((e: React.MouseEvent) => {
         if (!dragState) return;
 
@@ -550,6 +660,28 @@ export function EditorCanvas({
             newTopPx = Math.max(0, Math.min(CANVAS_HEIGHT - dragState.elementHeight, dy));
         }
 
+        // Apply snapping if Shift key is held
+        if (e.shiftKey && !e.altKey) {
+            // Grid snapping (Shift only)
+            newLeftPx = snapToGrid(newLeftPx, gridSettings?.size || 20);
+            newTopPx = snapToGrid(newTopPx, gridSettings?.size || 20);
+            setSnapHighlight(null);
+            setSnapLines(null);
+        } else if (e.shiftKey && e.altKey) {
+            // Element snapping (Shift + Alt)
+            const snapped = snapToElements(dragState.elementId, newLeftPx, newTopPx, dragState.elementWidth, dragState.elementHeight);
+            newLeftPx = snapped.x;
+            newTopPx = snapped.y;
+            setSnapHighlight(snapped.snappedElement);
+            setSnapLines({
+                x: snapped.snapLineX,
+                y: snapped.snapLineY
+            });
+        } else {
+            setSnapHighlight(null);
+            setSnapLines(null);
+        }
+
         // Keep the same anchor type during drag to prevent flicker
         // We'll switch anchors only on mouse up based on final position
         const useRight = dragState.startRight !== null;
@@ -578,7 +710,7 @@ export function EditorCanvas({
         }
 
         updateElementConfig(dragState.elementId, { position: newPosition });
-    }, [dragState, scale, layout.elements, updateElementConfig]);
+    }, [dragState, scale, layout.elements, updateElementConfig, gridSettings, snapToGrid, snapToElements]);
 
     const handleMouseUp = useCallback(() => {
         // On drag end, switch anchors based on final position
@@ -646,6 +778,8 @@ export function EditorCanvas({
 
         setDragState(null);
         setResizeState(null);
+        setSnapHighlight(null);
+        setSnapLines(null);
     }, [dragState, layout.elements, updateElementConfig]);
 
     // Helper to nudge a position value by 1 pixel while keeping its original unit
@@ -1390,7 +1524,8 @@ export function EditorCanvas({
         return (
             <div
                 key={elementId}
-                className={`element-wrapper ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}`}
+                data-element-id={elementId}
+                className={`element-wrapper ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''} ${snapHighlight === elementId ? 'snap-highlight' : ''}`}
                 style={style}
                 onMouseDown={(e) => handleMouseDown(e, elementId)}
             >
@@ -1507,6 +1642,24 @@ export function EditorCanvas({
 
                 <div className="toolbar-separator" />
 
+                {/* Grid controls */}
+                <div className="grid-controls">
+                    <span style={{ fontSize: '12px', color: '#888', marginRight: '8px' }}>Grid size:</span>
+                    <input
+                        type="number"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={gridSettings?.size || 20}
+                        onChange={(e) => onGridSettingsChange?.({ ...gridSettings!, size: parseInt(e.target.value) || 20 })}
+                        style={{ width: '50px', fontSize: '12px' }}
+                        title="Grid size in pixels"
+                    />
+                    <span style={{ fontSize: '10px', color: '#888', marginLeft: '4px' }}>px</span>
+                </div>
+
+                <div className="toolbar-separator" />
+
                 {/* Zoom controls */}
                 <label className="auto-scale-toggle" style={{ marginRight: '16px' }}>
                     <input
@@ -1583,6 +1736,38 @@ export function EditorCanvas({
                     {Object.entries(layout.elements).map(([id, config]) => {
                         return renderElement(id, config);
                     })}
+                    
+                    {/* Snap lines */}
+                    {snapLines?.x !== undefined && (
+                        <div
+                            className="snap-line vertical"
+                            style={{
+                                position: 'absolute',
+                                left: snapLines.x,
+                                top: 0,
+                                width: '2px',
+                                height: '100%',
+                                backgroundColor: '#00ff00',
+                                pointerEvents: 'none',
+                                zIndex: 9999,
+                            }}
+                        />
+                    )}
+                    {snapLines?.y !== undefined && (
+                        <div
+                            className="snap-line horizontal"
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: snapLines.y,
+                                width: '100%',
+                                height: '2px',
+                                backgroundColor: '#00ff00',
+                                pointerEvents: 'none',
+                                zIndex: 9999,
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         </div>
