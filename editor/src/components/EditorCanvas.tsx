@@ -702,8 +702,8 @@ export function EditorCanvas({
         return isHorizontal ? pxToVw(Math.max(0, currentPx + deltaPx)) : pxToVh(Math.max(0, currentPx + deltaPx));
     }, []);
 
-    // Handle arrow key nudging
-    const handleNudge = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+    // Handle arrow key nudging with modifiers
+    const handleNudge = useCallback((direction: 'up' | 'down' | 'left' | 'right', multiplier: number = 1) => {
         if (!selectedElement || !layout.elements[selectedElement]) return;
 
         const element = layout.elements[selectedElement];
@@ -715,37 +715,37 @@ export function EditorCanvas({
             case 'left':
                 if (pos.right !== null && pos.right !== undefined) {
                     // Right-anchored: increase right value to move left
-                    newPosition.right = nudgePositionValue(pos.right, 1, true);
+                    newPosition.right = nudgePositionValue(pos.right, multiplier, true);
                 } else {
                     // Left-anchored: decrease x value to move left
-                    newPosition.x = nudgePositionValue(pos.x, -1, true);
+                    newPosition.x = nudgePositionValue(pos.x, -multiplier, true);
                 }
                 break;
             case 'right':
                 if (pos.right !== null && pos.right !== undefined) {
                     // Right-anchored: decrease right value to move right
-                    newPosition.right = nudgePositionValue(pos.right, -1, true);
+                    newPosition.right = nudgePositionValue(pos.right, -multiplier, true);
                 } else {
                     // Left-anchored: increase x value to move right
-                    newPosition.x = nudgePositionValue(pos.x, 1, true);
+                    newPosition.x = nudgePositionValue(pos.x, multiplier, true);
                 }
                 break;
             case 'up':
                 if (pos.bottom !== null && pos.bottom !== undefined) {
                     // Bottom-anchored: increase bottom value to move up
-                    newPosition.bottom = nudgePositionValue(pos.bottom, 1, false);
+                    newPosition.bottom = nudgePositionValue(pos.bottom, multiplier, false);
                 } else {
                     // Top-anchored: decrease y value to move up
-                    newPosition.y = nudgePositionValue(pos.y, -1, false);
+                    newPosition.y = nudgePositionValue(pos.y, -multiplier, false);
                 }
                 break;
             case 'down':
                 if (pos.bottom !== null && pos.bottom !== undefined) {
                     // Bottom-anchored: decrease bottom value to move down
-                    newPosition.bottom = nudgePositionValue(pos.bottom, -1, false);
+                    newPosition.bottom = nudgePositionValue(pos.bottom, -multiplier, false);
                 } else {
                     // Top-anchored: increase y value to move down
-                    newPosition.y = nudgePositionValue(pos.y, 1, false);
+                    newPosition.y = nudgePositionValue(pos.y, multiplier, false);
                 }
                 break;
         }
@@ -753,7 +753,49 @@ export function EditorCanvas({
         updateElementConfig(selectedElement, { position: newPosition });
     }, [selectedElement, layout.elements, nudgePositionValue, updateElementConfig]);
 
-    // Arrow key event handler
+    // Handle resizing with arrow keys
+    const handleResizeWithKeys = useCallback((direction: 'up' | 'down' | 'left' | 'right', multiplier: number = 1) => {
+        if (!selectedElement || !layout.elements[selectedElement]) return;
+
+        const element = layout.elements[selectedElement];
+        const currentSize = element.size;
+
+        // Get current dimensions in pixels
+        const currentWidth = sizeToPx(currentSize.width ?? '200px', true);
+        const currentHeight = sizeToPx(currentSize.height ?? '100px', false);
+
+        let newWidth = currentWidth;
+        let newHeight = currentHeight;
+
+        switch (direction) {
+            case 'left':
+                newWidth = Math.max(20, currentWidth - multiplier);
+                break;
+            case 'right':
+                newWidth = currentWidth + multiplier;
+                break;
+            case 'up':
+                newHeight = Math.max(20, currentHeight - multiplier);
+                break;
+            case 'down':
+                newHeight = currentHeight + multiplier;
+                break;
+        }
+
+        // Convert back to vw/vh
+        const newSize = {
+            ...currentSize,
+            width: pxToVw(newWidth),
+            height: pxToVh(newHeight),
+        };
+
+        updateElementConfig(selectedElement, { size: newSize });
+    }, [selectedElement, layout.elements, updateElementConfig]);
+    // Arrow key event handler for positioning and resizing
+    // - Arrow keys: Move selected element by 1px
+    // - Shift+Arrow keys: Move selected element by 10px  
+    // - Ctrl+Arrow keys: Resize selected element by 1px
+    // - Ctrl+Shift+Arrow keys: Resize selected element by 10px
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Don't trigger when typing in inputs
@@ -763,30 +805,52 @@ export function EditorCanvas({
                 return;
             }
 
-            // Arrow keys for nudging
+            // Determine multiplier based on modifiers
+            const isShift = e.shiftKey;
+            const isCtrl = e.ctrlKey || e.metaKey;
+            
+            // Arrow keys for positioning and resizing
             switch (e.key) {
                 case 'ArrowLeft':
                     e.preventDefault();
-                    handleNudge('left');
+                    if (isCtrl) {
+                        // Ctrl+Arrow = resize
+                        handleResizeWithKeys('left', isShift ? 10 : 1);
+                    } else {
+                        // Arrow = move
+                        handleNudge('left', isShift ? 10 : 1);
+                    }
                     break;
                 case 'ArrowRight':
                     e.preventDefault();
-                    handleNudge('right');
+                    if (isCtrl) {
+                        handleResizeWithKeys('right', isShift ? 10 : 1);
+                    } else {
+                        handleNudge('right', isShift ? 10 : 1);
+                    }
                     break;
                 case 'ArrowUp':
                     e.preventDefault();
-                    handleNudge('up');
+                    if (isCtrl) {
+                        handleResizeWithKeys('up', isShift ? 10 : 1);
+                    } else {
+                        handleNudge('up', isShift ? 10 : 1);
+                    }
                     break;
                 case 'ArrowDown':
                     e.preventDefault();
-                    handleNudge('down');
+                    if (isCtrl) {
+                        handleResizeWithKeys('down', isShift ? 10 : 1);
+                    } else {
+                        handleNudge('down', isShift ? 10 : 1);
+                    }
                     break;
             }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleNudge]);
+    }, [handleNudge, handleResizeWithKeys]);
 
     // Resize handlers
     const handleResizeStart = useCallback((e: React.MouseEvent, elementId: string, handle: ResizeState['handle']) => {

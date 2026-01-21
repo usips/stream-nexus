@@ -171,6 +171,251 @@ function App() {
         isUndoingRef.current = false;
     }, [redoHistory, localLayout, selectedElement, sendLayoutUpdate]);
 
+    // Layout broadcast - sends immediately for live preview during drag
+    // Also saves to disk if autoSave is enabled (debounced)
+    const broadcastLayout = useCallback((layout: Layout, addToHistory = true) => {
+        // Add to history before making changes (debounced to avoid flooding)
+        if (addToHistory && !isUndoingRef.current) {
+            pushToHistory(localLayout);
+        }
+
+        // Broadcast immediately for live preview during drag
+        sendLayoutUpdate(layout);
+
+        // Auto-save to disk with debounce (don't save on every drag frame)
+        if (autoSave) {
+            if (saveDebounceRef.current) {
+                clearTimeout(saveDebounceRef.current);
+            }
+            saveDebounceRef.current = setTimeout(() => {
+                const name = layout.name || 'default';
+                saveLayout(name, layout);
+            }, 500); // 500ms debounce for save
+        }
+    }, [sendLayoutUpdate, saveLayout, autoSave, pushToHistory, localLayout]);
+
+    // Duplicate selected element
+    const handleDuplicateElement = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        // Push current state to history before duplicating
+        pushToHistory(localLayout);
+
+        const originalElement = localLayout.elements[selectedElement];
+        
+        // Generate unique ID
+        let newId = `${selectedElement}-copy`;
+        let counter = 1;
+        while (localLayout.elements[newId]) {
+            newId = `${selectedElement}-copy-${counter}`;
+            counter++;
+        }
+
+        // Create duplicate with slight offset
+        const duplicatedElement = JSON.parse(JSON.stringify(originalElement));
+        
+        // Offset position by 20px (convert to vw/vh)
+        const offsetVw = (20 / 1920) * 100;
+        const offsetVh = (20 / 1080) * 100;
+        
+        if (duplicatedElement.position.x) {
+            const currentX = parseFloat(duplicatedElement.position.x);
+            duplicatedElement.position.x = `${currentX + offsetVw}vw`;
+        }
+        if (duplicatedElement.position.y) {
+            const currentY = parseFloat(duplicatedElement.position.y);
+            duplicatedElement.position.y = `${currentY + offsetVh}vh`;
+        }
+
+        // Increment z-index to place on top
+        const maxZIndex = Math.max(
+            0,
+            ...Object.values(localLayout.elements).map(el => el.position.zIndex ?? 0)
+        );
+        duplicatedElement.position.zIndex = maxZIndex + 1;
+
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...localLayout.elements,
+                [newId]: duplicatedElement,
+            },
+        };
+
+        setLocalLayout(newLayout);
+        setSelectedElement(newId);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
+    // Toggle lock on selected element
+    const handleToggleLock = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        // Push current state to history before changing lock
+        pushToHistory(localLayout);
+
+        const element = localLayout.elements[selectedElement];
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...localLayout.elements,
+                [selectedElement]: {
+                    ...element,
+                    locked: !element.locked,
+                },
+            },
+        };
+
+        setLocalLayout(newLayout);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
+    // Cycle through elements (Tab navigation)
+    const handleCycleElements = useCallback((forward: boolean = true) => {
+        const elementIds = Object.keys(localLayout.elements);
+        if (elementIds.length <= 1) return;
+
+        const currentIndex = elementIds.indexOf(selectedElement);
+        let nextIndex;
+        
+        if (forward) {
+            nextIndex = (currentIndex + 1) % elementIds.length;
+        } else {
+            nextIndex = currentIndex <= 0 ? elementIds.length - 1 : currentIndex - 1;
+        }
+
+        setSelectedElement(elementIds[nextIndex]);
+    }, [selectedElement, localLayout.elements]);
+
+    // Layer management functions
+    const handleBringForward = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        pushToHistory(localLayout);
+
+        const elements = localLayout.elements;
+        const currentElement = elements[selectedElement];
+        const currentZIndex = currentElement.position.zIndex ?? 0;
+
+        // Find the next higher z-index
+        const zIndexes = Object.values(elements)
+            .map(el => el.position.zIndex ?? 0)
+            .filter(z => z > currentZIndex)
+            .sort((a, b) => a - b);
+
+        const nextZIndex = zIndexes.length > 0 ? zIndexes[0] : currentZIndex + 1;
+
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...elements,
+                [selectedElement]: {
+                    ...currentElement,
+                    position: {
+                        ...currentElement.position,
+                        zIndex: nextZIndex + 1,
+                    },
+                },
+            },
+        };
+
+        setLocalLayout(newLayout);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
+    const handleSendBackward = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        pushToHistory(localLayout);
+
+        const elements = localLayout.elements;
+        const currentElement = elements[selectedElement];
+        const currentZIndex = currentElement.position.zIndex ?? 0;
+
+        // Find the next lower z-index
+        const zIndexes = Object.values(elements)
+            .map(el => el.position.zIndex ?? 0)
+            .filter(z => z < currentZIndex)
+            .sort((a, b) => b - a);
+
+        const nextZIndex = zIndexes.length > 0 ? zIndexes[0] : Math.max(0, currentZIndex - 1);
+
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...elements,
+                [selectedElement]: {
+                    ...currentElement,
+                    position: {
+                        ...currentElement.position,
+                        zIndex: Math.max(0, nextZIndex - 1),
+                    },
+                },
+            },
+        };
+
+        setLocalLayout(newLayout);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
+    const handleBringToFront = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        pushToHistory(localLayout);
+
+        const elements = localLayout.elements;
+        const currentElement = elements[selectedElement];
+
+        // Find the highest z-index
+        const maxZIndex = Math.max(
+            0,
+            ...Object.values(elements).map(el => el.position.zIndex ?? 0)
+        );
+
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...elements,
+                [selectedElement]: {
+                    ...currentElement,
+                    position: {
+                        ...currentElement.position,
+                        zIndex: maxZIndex + 1,
+                    },
+                },
+            },
+        };
+
+        setLocalLayout(newLayout);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
+    const handleSendToBack = useCallback(() => {
+        if (!selectedElement || !localLayout.elements[selectedElement]) return;
+
+        pushToHistory(localLayout);
+
+        const elements = localLayout.elements;
+        const currentElement = elements[selectedElement];
+
+        const newLayout = {
+            ...localLayout,
+            elements: {
+                ...elements,
+                [selectedElement]: {
+                    ...currentElement,
+                    position: {
+                        ...currentElement.position,
+                        zIndex: 0,
+                    },
+                },
+            },
+        };
+
+        setLocalLayout(newLayout);
+        broadcastLayout(newLayout, false);
+    }, [selectedElement, localLayout, pushToHistory, broadcastLayout]);
+
     // Delete selected element
     const handleDeleteElement = useCallback(() => {
         if (!selectedElement) return;
@@ -209,6 +454,25 @@ function App() {
     }, [selectedElement, localLayout, pushToHistory, sendLayoutUpdate, autoSave, saveLayout]);
 
     // Keyboard shortcuts
+    // Element Management:
+    // - Delete/Backspace: Delete selected element
+    // - Ctrl+D: Duplicate selected element
+    // - Ctrl+L: Toggle lock on selected element
+    // - Tab/Shift+Tab: Cycle through elements
+    // - Escape: Reset to first element
+    // History:
+    // - Ctrl+Z: Undo
+    // - Ctrl+Y/Ctrl+Shift+Z: Redo
+    // Layer Management:
+    // - Ctrl+]: Bring forward one layer
+    // - Ctrl+[: Send back one layer
+    // - Ctrl+Shift+]: Bring to front
+    // - Ctrl+Shift+[: Send to back
+    // Positioning (handled in EditorCanvas):
+    // - Arrow keys: Move 1px
+    // - Shift+Arrow keys: Move 10px
+    // - Ctrl+Arrow keys: Resize 1px
+    // - Ctrl+Shift+Arrow keys: Resize 10px
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Don't trigger shortcuts when typing in inputs
@@ -224,6 +488,33 @@ function App() {
                 handleDeleteElement();
             }
 
+            // Ctrl+D - Duplicate selected element
+            if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
+                e.preventDefault();
+                handleDuplicateElement();
+            }
+
+            // Ctrl+L - Toggle lock on selected element
+            if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+                e.preventDefault();
+                handleToggleLock();
+            }
+
+            // Tab - Cycle through elements
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                handleCycleElements(!e.shiftKey);
+            }
+
+            // Escape - Deselect element
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                const elementIds = Object.keys(localLayout.elements);
+                if (elementIds.length > 0) {
+                    setSelectedElement(elementIds[0]);
+                }
+            }
+
             // Ctrl+Z - Undo
             if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
                 e.preventDefault();
@@ -235,34 +526,36 @@ function App() {
                 e.preventDefault();
                 handleRedo();
             }
+
+            // Layer management shortcuts
+            // Ctrl+] - Bring forward one layer
+            if ((e.ctrlKey || e.metaKey) && e.key === ']' && !e.shiftKey) {
+                e.preventDefault();
+                handleBringForward();
+            }
+
+            // Ctrl+[ - Send back one layer
+            if ((e.ctrlKey || e.metaKey) && e.key === '[' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendBackward();
+            }
+
+            // Ctrl+Shift+] - Bring to front
+            if ((e.ctrlKey || e.metaKey) && e.key === ']' && e.shiftKey) {
+                e.preventDefault();
+                handleBringToFront();
+            }
+
+            // Ctrl+Shift+[ - Send to back
+            if ((e.ctrlKey || e.metaKey) && e.key === '[' && e.shiftKey) {
+                e.preventDefault();
+                handleSendToBack();
+            }
         };
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [handleDeleteElement, handleUndo, handleRedo]);
-
-    // Layout broadcast - sends immediately for live preview during drag
-    // Also saves to disk if autoSave is enabled (debounced)
-    const broadcastLayout = useCallback((layout: Layout, addToHistory = true) => {
-        // Add to history before making changes (debounced to avoid flooding)
-        if (addToHistory && !isUndoingRef.current) {
-            pushToHistory(localLayout);
-        }
-
-        // Broadcast immediately for live preview during drag
-        sendLayoutUpdate(layout);
-
-        // Auto-save to disk with debounce (don't save on every drag frame)
-        if (autoSave) {
-            if (saveDebounceRef.current) {
-                clearTimeout(saveDebounceRef.current);
-            }
-            saveDebounceRef.current = setTimeout(() => {
-                const name = layout.name || 'default';
-                saveLayout(name, layout);
-            }, 500); // 500ms debounce for save
-        }
-    }, [sendLayoutUpdate, saveLayout, autoSave, pushToHistory, localLayout]);
+    }, [handleDeleteElement, handleDuplicateElement, handleToggleLock, handleCycleElements, handleUndo, handleRedo, handleBringForward, handleSendBackward, handleBringToFront, handleSendToBack, localLayout.elements]);
 
     const handleSave = useCallback(() => {
         const name = localLayout.name || 'default';
