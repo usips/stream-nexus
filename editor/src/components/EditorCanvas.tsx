@@ -592,19 +592,17 @@ export function EditorCanvas({
             const draggedBottom = newY + newHeight;
 
             // Check for snapping and set snappedElement if any snap occurs
-            const prevSnappedX = snappedX;
-            const prevSnappedY = snappedY;
             snapLineX = undefined;
             snapLineY = undefined;
 
             // Snap to left edge
-            if (Math.abs(newX - otherLeft) < threshold) { snappedX = otherLeft; snapLineX = otherLeft; console.log("1");}
+            if (Math.abs(newX - otherLeft) < threshold) { snappedX = otherLeft; snapLineX = otherLeft; }
             // Snap to right edge
-            if (Math.abs(newX - otherRight) < threshold) { snappedX = otherRight; snapLineX = otherRight; console.log("2"); }
+            if (Math.abs(newX - otherRight) < threshold) { snappedX = otherRight; snapLineX = otherRight; }
             // Snap dragged right edge to other left edge
-            if (Math.abs(draggedRight - otherLeft) < threshold) { snappedX = otherLeft - newWidth; snapLineX = otherLeft; console.log("3"); }
+            if (Math.abs(draggedRight - otherLeft) < threshold) { snappedX = otherLeft - newWidth; snapLineX = otherLeft; }
             // Snap dragged right edge to other right edge
-            if (Math.abs(draggedRight - otherRight) < threshold) { snappedX = otherRight - newWidth; snapLineX = otherRight; console.log("4"); }
+            if (Math.abs(draggedRight - otherRight) < threshold) { snappedX = otherRight - newWidth; snapLineX = otherRight; }
 
             // Snap to top edge
             if (Math.abs(newY - otherTop) < threshold) { snappedY = otherTop; snapLineY = otherTop; }
