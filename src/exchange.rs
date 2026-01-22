@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use anyhow::{anyhow, Result};
 use quick_xml::events::Event;
 use quick_xml::reader::Reader;
+use tracing::{error, warn};
 
 const RATES_URL: &str = "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml";
 
@@ -23,7 +24,7 @@ impl ExchangeRates {
             // Note: Rates are stored as (XYZ->USD), not (USD->XYZ).
             Some(rate) => amount * rate,
             None => {
-                log::warn!("Could not find exchange rate for {}", currency);
+                warn!(currency = %currency, "Exchange rate not found");
                 0.0
             }
         }
@@ -112,7 +113,7 @@ pub async fn fetch_exchange_rates() -> Result<ExchangeRates> {
         }
     }
 
-    log::error!("Failed to fetch Exchange Rates! System will rely on old data!");
+    error!("Failed to fetch exchange rates, using cached data");
     let mut text = String::new();
     f.read_to_string(&mut text)?;
     parse_xml(&text)

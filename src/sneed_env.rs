@@ -25,7 +25,8 @@ pub fn get_env() {
         match dotenvy::var(k) {
             Ok(_) => (),
             Err(_) => {
-                eprintln!(".env file is missing definition of {k}. Appending new default.");
+                // Note: Using eprintln! here since tracing isn't initialized yet
+                eprintln!("[WARN] .env missing {k}, adding default value");
                 writeln!(f, "{k}={v}").expect("Failed to write new pair to .env file.");
                 modified = true;
             }

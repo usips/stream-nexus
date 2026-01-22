@@ -2,6 +2,7 @@ use actix::*;
 use actix_web_actors::ws;
 use serde::Deserialize;
 use std::time::Instant;
+use tracing::{debug, error, trace, warn};
 
 use super::message;
 use super::ChatMessage;
@@ -82,7 +83,7 @@ impl ChatClient {
         ChatServer: Handler<M>,
     {
         if let Err(err) = self.server.try_send(msg) {
-            log::error!("Error sending message to server: {:?}", err);
+            error!(error = ?err, "Failed to send message to server");
         }
     }
 
@@ -105,7 +106,7 @@ impl ChatClient {
                     Ok(res) => act.id = res,
                     Err(err) => {
                         // something is wrong with chat server
-                        log::warn!("Failed to assign conection id: {:?}", err);
+                        warn!(error = ?err, "Failed to assign connection id");
                         ctx.stop();
                     }
                 }
@@ -213,11 +214,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                 // Try parsing as LayoutCommand
                 if let Ok(cmd) = serde_json::from_str::<LayoutCommand>(&text) {
-                    log::debug!("[ChatClient] Parsed LayoutCommand: {:?}", cmd);
+                    trace!(command = ?cmd, "Parsed LayoutCommand");
 
                     // Handle layout update broadcast
                     if let Some(layout) = cmd.layout_update {
-                        log::info!("[ChatClient] Broadcasting layout update: {}", layout.name);
+                        debug!(layout = %layout.name, "Broadcasting layout update");
                         self.send_or_reply(ctx, message::LayoutUpdate { layout });
                         return;
                     }
@@ -230,7 +231,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle save layout
                     if let Some(save_cmd) = cmd.save_layout {
-                        log::info!("[ChatClient] Saving layout: {}", save_cmd.name);
+                        debug!(layout = %save_cmd.name, "Saving layout");
                         let mut layout = save_cmd.layout;
                         layout.name = save_cmd.name.clone();
                         self.send_or_reply(ctx, message::SaveLayout { layout });
@@ -245,7 +246,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle request layout
                     if cmd.request_layout.unwrap_or(false) {
-                        log::info!("[ChatClient] Client requesting current layout");
+                        debug!("Client requesting current layout");
                         self.server
                             .send(message::RequestLayout)
                             .into_actor(self)
@@ -266,7 +267,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle subscribe to specific layout
                     if let Some(name) = cmd.subscribe_layout {
-                        log::info!("[ChatClient] Client subscribing to layout: {}", name);
+                        debug!(layout = %name, "Client subscribing to layout");
                         let client_id = self.id;
                         let server = self.server.clone();
                         self.server
@@ -289,10 +290,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                         ctx.text(reply);
                                     }
                                     Ok(None) => {
-                                        log::warn!("[ChatClient] Layout not found: {}", name);
+                                        warn!(layout = %name, "Layout not found");
                                     }
                                     Err(e) => {
-                                        log::error!("[ChatClient] Error fetching layout: {:?}", e);
+                                        error!(error = ?e, "Failed to fetch layout");
                                     }
                                 }
                                 fut::ready(())
@@ -322,11 +323,11 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                     }
                 }
 
-                log::warn!("Unrecognized WebSocket message: {}", text);
+                warn!(message = %text, "Unrecognized WebSocket message");
             }
-            ws::Message::Binary(_) => log::warn!("Unexpected ChatClient binary."),
+            ws::Message::Binary(_) => warn!("Unexpected binary message"),
             ws::Message::Close(reason) => {
-                log::debug!("Client {} disconnecting with reason: {:?}", self.id, reason);
+                debug!(client_id = %self.id, reason = ?reason, "Client disconnecting");
                 ctx.close(reason);
                 ctx.stop();
             }

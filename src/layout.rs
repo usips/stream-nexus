@@ -3,6 +3,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use tracing::{info, warn};
 
 /// A dimension value with explicit unit type
 #[derive(Debug, Clone, PartialEq)]
@@ -486,7 +487,7 @@ impl Layout {
                             config.style.compiled_css = Some(css);
                         }
                         Err(e) => {
-                            log::warn!("Failed to compile SCSS: {}", e);
+                            warn!("Failed to compile SCSS: {}", e);
                             // Fall back to using the source as-is
                             config.style.compiled_css = Some(scss.clone());
                         }
@@ -548,7 +549,7 @@ impl LayoutManager {
         if manager.list()?.is_empty() {
             let default = Layout::default_layout();
             manager.save(&default)?;
-            log::info!("Created default layout");
+            info!("Created default layout");
         }
 
         Ok(manager)
@@ -593,7 +594,7 @@ impl LayoutManager {
         let content =
             serde_json::to_string_pretty(&layout).context("Failed to serialize layout")?;
         fs::write(&path, content).context(format!("Failed to write layout file: {}", path))?;
-        log::info!("Saved layout: {}", layout.name);
+        info!("Saved layout: {}", layout.name);
         Ok(())
     }
 
@@ -601,7 +602,7 @@ impl LayoutManager {
     pub fn delete(&self, name: &str) -> Result<()> {
         let path = format!("{}/{}.json", self.layouts_dir, name);
         fs::remove_file(&path).context(format!("Failed to delete layout file: {}", path))?;
-        log::info!("Deleted layout: {}", name);
+        info!("Deleted layout: {}", name);
         Ok(())
     }
 

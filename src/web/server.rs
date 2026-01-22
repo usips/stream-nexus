@@ -1,6 +1,7 @@
 use actix::{Actor, Context, Handler, MessageResult, Recipient};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use tracing::{debug, info};
 use uuid::Uuid;
 
 use super::message;
@@ -30,7 +31,7 @@ pub struct ChatServer {
 
 impl ChatServer {
     pub fn new(exchange_rates: ExchangeRates, layout_manager: Arc<Mutex<LayoutManager>>) -> Self {
-        log::info!("Chat actor starting up.");
+        info!("Chat actor starting up.");
 
         // Determine active layout (use "default" if it exists)
         let active_layout = {
@@ -55,7 +56,7 @@ impl ChatServer {
                 // Load superchats from disk.
                 let super_chats_json = std::fs::read_to_string("super_chats.json");
                 if let Ok(super_chats_json) = super_chats_json {
-                    log::info!("Loading superchats from disk.");
+                    info!("Loading superchats from disk.");
                     let super_chats: Vec<ChatMessage> =
                         serde_json::from_str(&super_chats_json).unwrap();
                     let paid_messages: Vec<Uuid> = super_chats.iter().map(|msg| msg.id).collect();
@@ -132,7 +133,7 @@ impl Handler<message::Connect> for ChatServer {
     type Result = usize;
 
     fn handle(&mut self, msg: message::Connect, _: &mut Context<Self>) -> Self::Result {
-        log::debug!("New client connected to chat.");
+        debug!("New client connected to chat.");
         // random usize
         let id: usize = rand::random();
         self.clients.insert(
@@ -152,7 +153,7 @@ impl Handler<message::Content> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, mut msg: message::Content, _: &mut Context<Self>) -> Self::Result {
-        log::debug!("[ChatServer] {}", msg.chat_message.to_console_msg());
+        debug!("[ChatServer] {}", msg.chat_message.to_console_msg());
 
         let usd = if msg.chat_message.amount > 0.0 {
             self.exchange_rates
@@ -300,7 +301,7 @@ impl<'a> Handler<message::RecentMessages> for ChatServer {
         };
         last_messages.sort_by_key(|msg| msg.received_at);
 
-        log::debug!("Sending {} recent messages.", last_messages.len());
+        debug!("Sending {} recent messages.", last_messages.len());
         MessageResult(last_messages)
     }
 }
@@ -310,7 +311,7 @@ impl Handler<message::RemoveMessage> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: message::RemoveMessage, _: &mut Context<Self>) -> Self::Result {
-        log::debug!("[ChatServer] Removing message with ID {}", msg.id);
+        debug!("[ChatServer] Removing message with ID {}", msg.id);
         self.chat_messages.remove(&msg.id);
         self.paid_messages.retain(|&id| id != msg.id);
 
@@ -339,7 +340,7 @@ impl<'a> Handler<message::PaidMessages> for ChatServer {
             .filter_map(|id| self.chat_messages.get(id).cloned())
             .collect();
         super_chats.sort_by_key(|msg| msg.received_at);
-        log::debug!("Sending {} superchats.", super_chats.len());
+        debug!("Sending {} superchats.", super_chats.len());
         MessageResult(super_chats)
     }
 }
@@ -378,7 +379,7 @@ impl Handler<message::LayoutUpdate> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: message::LayoutUpdate, _: &mut Context<Self>) -> Self::Result {
-        log::debug!("[ChatServer] Broadcasting layout update: {}", msg.layout.name);
+        debug!("[ChatServer] Broadcasting layout update: {}", msg.layout.name);
         self.broadcast_layout(&msg.layout);
     }
 }
@@ -388,7 +389,7 @@ impl Handler<message::SwitchLayout> for ChatServer {
     type Result = Result<(), String>;
 
     fn handle(&mut self, msg: message::SwitchLayout, _: &mut Context<Self>) -> Self::Result {
-        log::info!("[ChatServer] Switching to layout: {}", msg.name);
+        info!("[ChatServer] Switching to layout: {}", msg.name);
 
         let layout = {
             let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
@@ -406,7 +407,7 @@ impl Handler<message::SaveLayout> for ChatServer {
     type Result = Result<(), String>;
 
     fn handle(&mut self, msg: message::SaveLayout, _: &mut Context<Self>) -> Self::Result {
-        log::info!("[ChatServer] Saving layout: {}", msg.layout.name);
+        info!("[ChatServer] Saving layout: {}", msg.layout.name);
 
         let lm = self.layout_manager.lock().map_err(|e| e.to_string())?;
         lm.save(&msg.layout).map_err(|e| e.to_string())?;
@@ -423,7 +424,7 @@ impl Handler<message::DeleteLayout> for ChatServer {
     type Result = Result<(), String>;
 
     fn handle(&mut self, msg: message::DeleteLayout, _: &mut Context<Self>) -> Self::Result {
-        log::info!("[ChatServer] Deleting layout: {}", msg.name);
+        info!("[ChatServer] Deleting layout: {}", msg.name);
 
         // Don't allow deleting the active layout
         if msg.name == self.active_layout {
@@ -481,7 +482,7 @@ impl Handler<message::SubscribeLayout> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: message::SubscribeLayout, _: &mut Context<Self>) -> Self::Result {
-        log::info!(
+        info!(
             "[ChatServer] Client {} subscribing to layout: {}",
             msg.client_id,
             msg.layout_name

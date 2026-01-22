@@ -11,11 +11,19 @@ use actix::Actor;
 use actix_web::{App, HttpServer};
 use anyhow::Result;
 use std::sync::{Arc, Mutex};
+use tracing::info;
+use tracing_subscriber::EnvFilter;
 
 #[actix_web::main]
 async fn main() -> Result<(), std::io::Error> {
     sneed_env::get_env();
-    env_logger::init();
+
+    // Initialize tracing subscriber with RUST_LOG env filter
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .init();
+
+    info!("Starting Stream Nexus server");
 
     // Initialize layout manager
     let layout_manager = Arc::new(Mutex::new(

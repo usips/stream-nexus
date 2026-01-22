@@ -12,6 +12,7 @@ use actix_web::{http::header, web, Error, HttpRequest, HttpResponse, Responder};
 use actix_web_actors::ws;
 use askama::Template;
 use std::time::{Duration, Instant};
+use tracing::debug;
 
 use crate::layout::Layout;
 
@@ -162,7 +163,7 @@ pub async fn websocket(req: HttpRequest, stream: web::Payload) -> Result<HttpRes
     };
 
     let resp = ws::start(client, &req, stream);
-    println!("{:?}", resp);
+    debug!(response = ?resp, "WebSocket connection started");
     resp
 }
 
