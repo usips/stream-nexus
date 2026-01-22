@@ -13,7 +13,7 @@ body {
     height: 100vh;
     width: 100vw;
     overflow: hidden;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
     color: #fff;
     font-family: 'Open Sans', Arial, sans-serif;
 }
