@@ -420,7 +420,7 @@ function sendSimpleMessage(text: string, isOwner = false): void {
 }
 
 function handleFeatureMessage(id: string | null): void {
-    // Remove sticky from all messages
+    // Remove sticky styling from all messages
     document.querySelectorAll(".msg--sticky").forEach((msg) => {
         msg.classList.remove("msg--sticky");
     });
@@ -433,6 +433,12 @@ function handleFeatureMessage(id: string | null): void {
             featuredMessageIds.add(id);
             featuredMessage.classList.add("msg--was-featured");
         }
+    } else {
+        // When un-featuring (id is null), also remove was-featured styling
+        document.querySelectorAll(".msg--was-featured").forEach((msg) => {
+            msg.classList.remove("msg--was-featured");
+        });
+        featuredMessageIds.clear();
     }
 }
 

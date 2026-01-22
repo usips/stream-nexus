@@ -203,9 +203,12 @@ const bindWebsocketEvents = (): void => {
 
         switch (data.tag) {
             case "chat_message":
-                handle_message(message as ChatMessage);
+                const chatMsg = message as ChatMessage;
+                console.log("[SNEED] Received message:", chatMsg.id, "containers:", chat_containers.length);
+                handle_message(chatMsg);
                 break;
             case "feature_message":
+                console.log("[SNEED] Received feature_message event:", message);
                 handle_feature_message(message as string | null);
                 break;
             case "viewers":
@@ -283,10 +286,12 @@ function apply_layout(layout: Layout): void {
     chat_containers = [];
 
     // Create/update elements dynamically based on layout config
+    console.log("[SNEED] Layout elements:", Object.keys(elements));
     for (const [elementId, config] of Object.entries(elements)) {
         if (!config || config.enabled === false) continue;
 
         const baseType = elementId.replace(/-\d+$/, ''); // Remove -N suffix to get base type
+        console.log("[SNEED] Creating element:", elementId, "type:", baseType);
         const el = create_element_for_type(elementId, baseType, config);
         if (el) {
             elements_container.appendChild(el);
@@ -645,8 +650,13 @@ let pendingFeatureId: string | null = null;
 function handle_feature_message(id: string | null): void {
     // Find all layout-created featured elements
     const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
+    console.log("[SNEED] handle_feature_message:", id, "featured_elements:", featured_elements.length);
+
     if (featured_elements.length === 0) {
         console.log("[SNEED] No .element--featured elements found in layout");
+        // Log all elements to help debug
+        const allElements = document.querySelectorAll('.element');
+        console.log("[SNEED] All .element classes:", Array.from(allElements).map(e => e.className));
         return;
     }
 
@@ -657,18 +667,26 @@ function handle_feature_message(id: string | null): void {
         console.log("[SNEED] Cleared featured message");
     } else {
         const sourceEl = document.getElementById(id);
+        console.log("[SNEED] Looking for message ID:", id, "found:", sourceEl !== null);
+
         if (sourceEl !== null) {
             const cloned = sourceEl.cloneNode(true) as HTMLElement;
             cloned.id = `feature-${id}`;
             const content = cloned.outerHTML;
             // Update all featured elements with the same content
-            featured_elements.forEach(el => el.innerHTML = content);
+            featured_elements.forEach(el => {
+                el.innerHTML = content;
+                console.log("[SNEED] Set featured element content, innerHTML length:", el.innerHTML.length);
+            });
             pendingFeatureId = null;
             console.log("[SNEED] Featured message:", id);
         } else {
             // Message might be in buffer, store for later
             pendingFeatureId = id;
             console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
+            // Log existing message IDs to help debug
+            const allMsgs = document.querySelectorAll('.msg');
+            console.log("[SNEED] Existing message IDs:", Array.from(allMsgs).slice(0, 10).map(m => m.id));
         }
     }
 }
