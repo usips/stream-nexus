@@ -159,12 +159,20 @@ body {
     cursor: pointer;
     transition: all 0.15s ease;
     border: 1px solid transparent;
+}
+
+/* Regular messages get dark background, superchats use their tier colors */
+.dashboard-column-content .msg:not(.msg--t) {
     background: rgba(0, 0, 0, 0.3);
 }
 
-.dashboard-column-content .msg:hover {
+.dashboard-column-content .msg:not(.msg--t):hover {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(233, 69, 96, 0.3);
+}
+
+.dashboard-column-content .msg.msg--t:hover {
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Currently featured message */
