@@ -544,6 +544,16 @@ document.querySelectorAll<HTMLElement>(".msg").forEach((el) => {
     }
 });
 
+// Auto-scroll to bottom after initial load
+if (donationHistory) {
+    donationAutoScroll = true;
+    forceScrollToBottom(donationHistory, donationScrollBtn);
+}
+if (chatHistory) {
+    chatAutoScroll = true;
+    forceScrollToBottom(chatHistory, chatScrollBtn);
+}
+
 // Initialize poll options
 document.querySelectorAll<HTMLInputElement>(".poll-option").forEach((opt) => {
     opt.addEventListener("keydown", onPollOptionType);
