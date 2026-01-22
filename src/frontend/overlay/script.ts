@@ -195,6 +195,10 @@ const bindWebsocketEvents = (): void => {
         } else {
             socket.send(JSON.stringify({ request_layout: true }));
         }
+
+        // Request recent messages to sync state (for featuring messages that arrived before we connected)
+        console.log("[SNEED] Requesting recent messages");
+        socket.send(JSON.stringify({ request_messages: true }));
     });
 
     socket.addEventListener("message", (event: MessageEvent) => {

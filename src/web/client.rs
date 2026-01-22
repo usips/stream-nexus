@@ -30,6 +30,9 @@ struct LayoutCommand {
     /// Subscribe to a specific layout by name (used by overlay views)
     #[serde(default)]
     subscribe_layout: Option<String>,
+    /// Request recent chat messages (used by overlay to sync state)
+    #[serde(default)]
+    request_messages: Option<bool>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -315,6 +318,29 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                     })
                                     .unwrap();
                                     ctx.text(reply);
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+                        return;
+                    }
+
+                    // Handle request recent messages
+                    if cmd.request_messages.unwrap_or(false) {
+                        self.server
+                            .send(message::RecentMessages)
+                            .into_actor(self)
+                            .then(|res, _, ctx| {
+                                if let Ok(messages) = res {
+                                    // Send each message as a chat_message event
+                                    for msg in messages {
+                                        let reply = serde_json::to_string(&message::ReplyInner {
+                                            tag: "chat_message".to_owned(),
+                                            message: msg.to_json(),
+                                        })
+                                        .unwrap();
+                                        ctx.text(reply);
+                                    }
                                 }
                                 fut::ready(())
                             })
