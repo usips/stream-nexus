@@ -347,6 +347,49 @@ function apply_layout(layout: Layout): void {
         }
     }
 
+    // Apply positioning from 'featured' layout element to legacy #show-message section
+    if (feature_message) {
+        // Find a featured element config in the layout
+        const featuredConfig = Object.entries(elements).find(
+            ([id]) => id === 'featured' || id.startsWith('featured-')
+        )?.[1];
+
+        if (featuredConfig?.position) {
+            const pos = featuredConfig.position;
+            const formatPos = (val: number | string | null | undefined): string =>
+                typeof val === 'number' ? `${val}px` : (val as string);
+
+            feature_message.style.left = 'auto';
+            feature_message.style.right = 'auto';
+            feature_message.style.top = 'auto';
+            feature_message.style.bottom = 'auto';
+
+            if (pos.x !== null && pos.x !== undefined) {
+                feature_message.style.left = formatPos(pos.x);
+            }
+            if (pos.y !== null && pos.y !== undefined) {
+                feature_message.style.top = formatPos(pos.y);
+            }
+            if (pos.right !== null && pos.right !== undefined) {
+                feature_message.style.right = formatPos(pos.right);
+            }
+            if (pos.bottom !== null && pos.bottom !== undefined) {
+                feature_message.style.bottom = formatPos(pos.bottom);
+            }
+        }
+
+        // Apply sizing if specified
+        if (featuredConfig?.size) {
+            const size = featuredConfig.size;
+            if (size.width !== null && size.width !== undefined) {
+                feature_message.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width as string;
+            }
+            if (size.maxWidth) {
+                feature_message.style.maxWidth = size.maxWidth;
+            }
+        }
+    }
+
     // Apply global message styling via CSS custom properties (for sizing, etc.)
     if (layout.messageStyle) {
         const ms = layout.messageStyle;
