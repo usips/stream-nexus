@@ -190,6 +190,10 @@ impl Message {
         format!("msg--p-{}", self.platform)
     }
 
+    pub fn get_sent_at_secs(&self) -> i64 {
+        self.sent_at / 1000
+    }
+
     pub fn to_console_msg(&self) -> String {
         if self.is_premium() {
             format!(

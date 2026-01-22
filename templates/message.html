@@ -1,6 +1,6 @@
 <div id="{{ message.id }}"
     class="msg {{ message.get_platform_string() }} {{ message.get_badge_string() }} {{ message.get_paid_string() }}"
-    style="order: {{ message.sent_at / 1000 }}" data-paid-tier="{{ message.get_paid_tier() }}" data-sent-at="{{ message.sent_at / 1000 }}">
+    style="order: {{ message.get_sent_at_secs() }}" data-paid-tier="{{ message.get_paid_tier() }}" data-sent-at="{{ message.get_sent_at_secs() }}">
     {% if message.is_premium() ~%}
     <div class="msg-header">
         <div class="msg-avatar-border">

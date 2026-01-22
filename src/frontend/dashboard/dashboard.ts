@@ -457,7 +457,8 @@ function handleMessage(message: ChatMessage): HTMLElement | null {
             // Add relative timestamp to the new element
             const newEl = document.getElementById(message.id);
             if (newEl) {
-                addTimestampToSuperchat(newEl, message.sent_at);
+                // Convert milliseconds to seconds for the timestamp
+                addTimestampToSuperchat(newEl, Math.floor(message.sent_at / 1000));
                 newEl.addEventListener("click", onClickMessage);
 
                 // Check if this was previously featured
