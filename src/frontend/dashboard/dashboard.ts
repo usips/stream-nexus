@@ -478,13 +478,18 @@ function handleMessage(message: ChatMessage): HTMLElement | null {
             chatHistory.appendChild(el);
             el.outerHTML = message.html;
 
-            // Limit chat history
-            while (chatHistory.children.length > 500) {
-                const child = chatHistory.firstElementChild;
-                if (child && !child.classList.contains("msg--sticky")) {
-                    child.remove();
-                } else {
-                    break;
+            // Limit chat history to prevent memory issues
+            const maxMessages = 300;
+            if (chatHistory.children.length > maxMessages) {
+                const toRemove: Element[] = [];
+                for (let i = 0; i < chatHistory.children.length - maxMessages; i++) {
+                    const child = chatHistory.children[i];
+                    if (!child.classList.contains("msg--sticky")) {
+                        toRemove.push(child);
+                    }
+                }
+                for (const el of toRemove) {
+                    el.remove();
                 }
             }
 

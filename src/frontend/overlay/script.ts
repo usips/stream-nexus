@@ -775,20 +775,20 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
         }
 
         // Remove old messages from beginning (oldest first in DOM)
-        while (container.children.length > 1000) {
-            const child = container.children[0] as HTMLElement;
-            if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
-                child.remove();
-            } else if (container.children.length > 1) {
-                // Skip sticky/premium messages, try next
-                const next = container.children[1] as HTMLElement;
-                if (next && !next.classList.contains("msg--sticky") && !next.classList.contains("msg--t")) {
-                    next.remove();
-                } else {
-                    break; // Avoid infinite loop
+        // Keep limit low (150) to prevent memory issues in long-running overlay tabs
+        const maxMessages = 150;
+        if (container.children.length > maxMessages) {
+            const toRemove: HTMLElement[] = [];
+            for (let i = 0; i < container.children.length - maxMessages; i++) {
+                const child = container.children[i] as HTMLElement;
+                // Don't remove sticky or premium messages
+                if (!child.classList.contains("msg--sticky") && !child.classList.contains("msg--t")) {
+                    toRemove.push(child);
                 }
-            } else {
-                break;
+            }
+            // Remove in batch to avoid live collection issues
+            for (const el of toRemove) {
+                el.remove();
             }
         }
 
