@@ -23,13 +23,50 @@ const featuredMessageIds = new Set<string>();
 // Auto-scroll Management
 // ============================================================================
 
-function setupScrollListener(container: HTMLElement | null, setAutoScroll: (val: boolean) => void): void {
+const SCROLL_THRESHOLD = 100; // pixels from bottom to consider "at bottom"
+
+// Create scroll-to-bottom button
+function createScrollButton(container: HTMLElement): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.className = 'scroll-to-bottom';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z" transform="rotate(90 12 12)"/></svg>';
+    btn.title = 'Scroll to bottom';
+    btn.style.display = 'none';
+
+    // Insert button into the column (parent of container)
+    const column = container.closest('.dashboard-column') as HTMLElement | null;
+    if (column) {
+        column.style.position = 'relative';
+        column.appendChild(btn);
+    }
+
+    return btn;
+}
+
+function isAtBottom(container: HTMLElement): boolean {
+    return container.scrollHeight - container.scrollTop - container.clientHeight < SCROLL_THRESHOLD;
+}
+
+function setupScrollListener(
+    container: HTMLElement | null,
+    setAutoScroll: (val: boolean) => void,
+    button: HTMLButtonElement | null
+): void {
     if (!container) return;
 
-    container.addEventListener('scroll', () => {
-        const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-        setAutoScroll(isAtBottom);
-    });
+    const updateState = () => {
+        const atBottom = isAtBottom(container);
+        setAutoScroll(atBottom);
+        if (button) {
+            button.style.display = atBottom ? 'none' : 'flex';
+        }
+    };
+
+    // Check on scroll
+    container.addEventListener('scroll', updateState);
+
+    // Also check periodically in case content changes
+    setInterval(updateState, 1000);
 }
 
 function scrollToBottom(container: HTMLElement | null, autoScroll: boolean): void {
@@ -37,9 +74,35 @@ function scrollToBottom(container: HTMLElement | null, autoScroll: boolean): voi
     container.scrollTop = container.scrollHeight;
 }
 
+function forceScrollToBottom(container: HTMLElement | null, button: HTMLButtonElement | null): void {
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
+    if (button) {
+        button.style.display = 'none';
+    }
+}
+
+// Create buttons
+const chatScrollBtn = chatHistory ? createScrollButton(chatHistory) : null;
+const donationScrollBtn = donationHistory ? createScrollButton(donationHistory) : null;
+
 // Initialize scroll listeners
-setupScrollListener(chatHistory, (val) => { chatAutoScroll = val; });
-setupScrollListener(donationHistory, (val) => { donationAutoScroll = val; });
+setupScrollListener(chatHistory, (val) => { chatAutoScroll = val; }, chatScrollBtn);
+setupScrollListener(donationHistory, (val) => { donationAutoScroll = val; }, donationScrollBtn);
+
+// Button click handlers
+if (chatScrollBtn && chatHistory) {
+    chatScrollBtn.addEventListener('click', () => {
+        chatAutoScroll = true;
+        forceScrollToBottom(chatHistory, chatScrollBtn);
+    });
+}
+if (donationScrollBtn && donationHistory) {
+    donationScrollBtn.addEventListener('click', () => {
+        donationAutoScroll = true;
+        forceScrollToBottom(donationHistory, donationScrollBtn);
+    });
+}
 
 // ============================================================================
 // Relative Time Formatting

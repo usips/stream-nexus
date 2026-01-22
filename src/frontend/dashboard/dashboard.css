@@ -149,6 +149,36 @@ body {
     background: rgba(255, 255, 255, 0.3);
 }
 
+/* Scroll to bottom button */
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: none;
+    background: #e94560;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.scroll-to-bottom:hover {
+    background: #ff6b6b;
+    transform: scale(1.1);
+}
+
+.scroll-to-bottom svg {
+    width: 24px;
+    height: 24px;
+}
+
 /* ============================================================================
    Message Styles (Dashboard-specific overrides)
    ============================================================================ */
