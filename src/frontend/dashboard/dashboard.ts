@@ -451,9 +451,15 @@ function addTimestampToSuperchat(el: HTMLElement, timestamp: number): void {
     timeEl.dataset.timestamp = timestamp.toString();
     timeEl.textContent = formatRelativeTime(timestamp);
 
-    // Insert at the start of the message
-    const container = el.querySelector(".msg-container") || el;
-    container.insertBefore(timeEl, container.firstChild);
+    // Insert after the amount element (on the second row)
+    const amountEl = el.querySelector(".msg-amount");
+    if (amountEl) {
+        amountEl.appendChild(timeEl);
+    } else {
+        // Fallback: insert at start of container
+        const container = el.querySelector(".msg-container") || el;
+        container.insertBefore(timeEl, container.firstChild);
+    }
 }
 
 function handleViewers(_message: ViewerCounts): void {

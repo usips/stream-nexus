@@ -157,6 +157,8 @@ section#chat::-webkit-scrollbar {
     flex-wrap: wrap;
     padding: 0;
     max-height: none;
+    background: var(--message-bg-color);
+    color: var(--message-text-color);
 }
 
 .msg--t {

@@ -210,11 +210,12 @@ body {
 .superchat-time {
     display: inline-block;
     font-size: 10px;
-    color: rgba(255, 255, 255, 0.5);
+    color: rgba(255, 255, 255, 0.6);
     background: rgba(0, 0, 0, 0.3);
     padding: 2px 8px;
     border-radius: 10px;
-    margin-bottom: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
 }
 
 /* ============================================================================
