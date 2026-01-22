@@ -142,6 +142,9 @@ const messageBuffer = {
             }
         }
         this.lastProcessTime = Date.now();
+
+        // Check if a pending feature request can now be fulfilled
+        checkPendingFeature();
     },
 
     // Called when tab visibility changes - process all overdue messages immediately
@@ -636,14 +639,22 @@ function filter_badges(messageEl: HTMLElement): void {
     });
 }
 
+// Store pending feature request if message isn't in DOM yet
+let pendingFeatureId: string | null = null;
+
 function handle_feature_message(id: string | null): void {
     // Find all layout-created featured elements
     const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
-    if (featured_elements.length === 0) return;
+    if (featured_elements.length === 0) {
+        console.log("[SNEED] No .element--featured elements found in layout");
+        return;
+    }
 
     if (id === null) {
         // Clear all featured elements
+        pendingFeatureId = null;
         featured_elements.forEach(el => el.innerHTML = "");
+        console.log("[SNEED] Cleared featured message");
     } else {
         const sourceEl = document.getElementById(id);
         if (sourceEl !== null) {
@@ -652,8 +663,22 @@ function handle_feature_message(id: string | null): void {
             const content = cloned.outerHTML;
             // Update all featured elements with the same content
             featured_elements.forEach(el => el.innerHTML = content);
+            pendingFeatureId = null;
+            console.log("[SNEED] Featured message:", id);
         } else {
-            console.log("Featured chat message not found:", id);
+            // Message might be in buffer, store for later
+            pendingFeatureId = id;
+            console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
+        }
+    }
+}
+
+// Check if a pending feature can be applied (called after processing buffered messages)
+function checkPendingFeature(): void {
+    if (pendingFeatureId) {
+        const sourceEl = document.getElementById(pendingFeatureId);
+        if (sourceEl) {
+            handle_feature_message(pendingFeatureId);
         }
     }
 }
