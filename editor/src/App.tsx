@@ -77,6 +77,15 @@ function App() {
     const saveDebounceRef = useRef<NodeJS.Timeout | null>(null);
     const isUndoingRef = useRef(false);
 
+    // Grid settings
+    const [gridSettings, setGridSettings] = useState({
+        enabled: true,
+        size: 20, // pixels
+        visible: true,
+        snapThreshold: 10, // pixels
+        snapToElements: true,
+    });
+
     // Track current layout name to detect when switching layouts
     const currentLayoutNameRef = useRef<string | null>(null);
 
@@ -716,6 +725,8 @@ function App() {
                         canUndo={undoHistory.length > 0}
                         canRedo={redoHistory.length > 0}
                         onAddElement={handleAddElement}
+                        gridSettings={gridSettings}
+                        onGridSettingsChange={setGridSettings}
                     />
                     <div className="right-panels">
                         <LayerPanel

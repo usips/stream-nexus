@@ -985,3 +985,23 @@
         transform: translateY(5px);
     }
 }
+
+/* Grid settings in toolbar */
+.grid-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+/* Snap highlight for elements being snapped to */
+.element-wrapper.snap-highlight {
+    box-shadow: 0 0 0 2px #00ff88 !important;
+    animation: snap-pulse 0.3s ease-in-out;
+}
+
+@keyframes snap-pulse {
+    0% { box-shadow: 0 0 0 2px #00ff88; }
+    50% { box-shadow: 0 0 0 4px rgba(0, 255, 136, 0.5); }
+    100% { box-shadow: 0 0 0 2px #00ff88; }
+}
