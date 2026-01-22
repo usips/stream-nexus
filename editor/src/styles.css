@@ -30,6 +30,16 @@
     gap: 16px;
 }
 
+.brand-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, #e94560, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .top-bar-right {
     display: flex;
     align-items: center;

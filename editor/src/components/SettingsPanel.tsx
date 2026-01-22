@@ -120,17 +120,6 @@ export function SettingsPanel({
         onLayoutChange(newLayout);
     };
 
-    const updateMessageStyle = (key: keyof typeof layout.messageStyle, value: string | boolean) => {
-        const newLayout = {
-            ...layout,
-            messageStyle: {
-                ...layout.messageStyle,
-                [key]: value,
-            },
-        };
-        onLayoutChange(newLayout);
-    };
-
     const currentConfig = layout.elements[selectedElement] || {
         enabled: true,
         position: {},
@@ -162,26 +151,8 @@ export function SettingsPanel({
                     </button>
                 </div>
 
-                {/* Element Selection */}
+                {/* Element Settings */}
                 <div className="settings-section element-selector">
-                    <div className="settings-row">
-                        <label>Select Element</label>
-                        <select
-                            value={selectedElement}
-                            onChange={(e) => onSelectElement(e.target.value)}
-                        >
-                            {Object.keys(layout.elements).map((id) => {
-                                const config = layout.elements[id];
-                                const displayName = config.displayName || getDefaultDisplayName(id);
-                                return (
-                                    <option key={id} value={id}>
-                                        {displayName}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                    </div>
-
                     <div className="settings-checkbox">
                         <input
                             type="checkbox"
@@ -204,45 +175,6 @@ export function SettingsPanel({
                         />
                     </div>
                 </div>
-
-                {/* Global Message Style Section */}
-                <CollapsibleSection title="Message Style" defaultOpen={false}>
-                    <div className="settings-row">
-                        <label>Avatar Size</label>
-                        <input
-                            type="text"
-                            value={layout.messageStyle.avatarSize}
-                            onChange={(e) => updateMessageStyle('avatarSize', e.target.value)}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Font Size</label>
-                        <input
-                            type="text"
-                            value={layout.messageStyle.fontSize}
-                            onChange={(e) => updateMessageStyle('fontSize', e.target.value)}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Max Height</label>
-                        <input
-                            type="text"
-                            value={layout.messageStyle.maxHeight}
-                            onChange={(e) => updateMessageStyle('maxHeight', e.target.value)}
-                        />
-                    </div>
-                    <div className="settings-row">
-                        <label>Border Radius</label>
-                        <input
-                            type="text"
-                            value={layout.messageStyle.borderRadius}
-                            onChange={(e) => updateMessageStyle('borderRadius', e.target.value)}
-                        />
-                    </div>
-                    <small style={{ color: '#666', display: 'block', marginTop: '8px' }}>
-                        These settings apply to all chat elements. Use the Chat Options section below for per-element settings.
-                    </small>
-                </CollapsibleSection>
 
                 {/* Element-specific Options Section */}
                 <ElementOptionsSection
@@ -667,6 +599,44 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
                             <span style={{ color: '#2f8d15' }}>Sub</span>
                         </label>
                     </div>
+                </div>
+
+                {/* Message Style - per-element */}
+                <div className="settings-row">
+                    <label>Avatar Size</label>
+                    <input
+                        type="text"
+                        value={(options.avatarSize as string) || ''}
+                        placeholder="32px"
+                        onChange={(e) => updateOptions({ avatarSize: e.target.value || undefined })}
+                    />
+                </div>
+                <div className="settings-row">
+                    <label>Font Size</label>
+                    <input
+                        type="text"
+                        value={(options.fontSize as string) || ''}
+                        placeholder="14px"
+                        onChange={(e) => updateOptions({ fontSize: e.target.value || undefined })}
+                    />
+                </div>
+                <div className="settings-row">
+                    <label>Max Height</label>
+                    <input
+                        type="text"
+                        value={(options.maxHeight as string) || ''}
+                        placeholder="none"
+                        onChange={(e) => updateOptions({ maxHeight: e.target.value || undefined })}
+                    />
+                </div>
+                <div className="settings-row">
+                    <label>Border Radius</label>
+                    <input
+                        type="text"
+                        value={(options.borderRadius as string) || ''}
+                        placeholder="8px"
+                        onChange={(e) => updateOptions({ borderRadius: e.target.value || undefined })}
+                    />
                 </div>
             </CollapsibleSection>
         );

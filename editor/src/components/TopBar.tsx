@@ -48,8 +48,8 @@ export function TopBar({
         <>
             <div className="top-bar">
                 <div className="top-bar-left">
-                    <h1 style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                        Stream Nexus Editor
+                    <h1 className="brand-title">
+                        Stream Nexus
                     </h1>
                     <div className="connection-status">
                         <span className={`connection-dot ${connected ? 'connected' : ''}`} />
