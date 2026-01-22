@@ -163,7 +163,7 @@ pub async fn websocket(req: HttpRequest, stream: web::Payload) -> Result<HttpRes
     };
 
     let resp = ws::start(client, &req, stream);
-    debug!(response = ?resp, "WebSocket connection started");
+    debug!("WebSocket client connected");
     resp
 }
 
