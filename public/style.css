@@ -244,21 +244,6 @@ section#chat::-webkit-scrollbar {
 }
 
 /* ============================================================================
-   Featured Message Section (Legacy)
-   ============================================================================ */
-
-section#show-message {
-    position: absolute;
-    width: auto;
-    --message-text-size: 32px;
-}
-
-section#show-message .msg {
-    border-radius: 0;
-    padding-left: 15px;
-}
-
-/* ============================================================================
    Flyout Container
    ============================================================================ */
 

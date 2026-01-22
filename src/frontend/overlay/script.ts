@@ -18,7 +18,6 @@ declare const Matter: typeof import('matter-js') | undefined;
 // ============================================================================
 
 const elements_container = document.querySelector<HTMLElement>("#elements-container");
-const feature_message = document.querySelector<HTMLElement>("#show-message");
 
 // Track chat containers with their per-element options
 interface ChatContainerInfo {
@@ -347,49 +346,6 @@ function apply_layout(layout: Layout): void {
         }
     }
 
-    // Apply positioning from 'featured' layout element to legacy #show-message section
-    if (feature_message) {
-        // Find a featured element config in the layout
-        const featuredConfig = Object.entries(elements).find(
-            ([id]) => id === 'featured' || id.startsWith('featured-')
-        )?.[1];
-
-        if (featuredConfig?.position) {
-            const pos = featuredConfig.position;
-            const formatPos = (val: number | string | null | undefined): string =>
-                typeof val === 'number' ? `${val}px` : (val as string);
-
-            feature_message.style.left = 'auto';
-            feature_message.style.right = 'auto';
-            feature_message.style.top = 'auto';
-            feature_message.style.bottom = 'auto';
-
-            if (pos.x !== null && pos.x !== undefined) {
-                feature_message.style.left = formatPos(pos.x);
-            }
-            if (pos.y !== null && pos.y !== undefined) {
-                feature_message.style.top = formatPos(pos.y);
-            }
-            if (pos.right !== null && pos.right !== undefined) {
-                feature_message.style.right = formatPos(pos.right);
-            }
-            if (pos.bottom !== null && pos.bottom !== undefined) {
-                feature_message.style.bottom = formatPos(pos.bottom);
-            }
-        }
-
-        // Apply sizing if specified
-        if (featuredConfig?.size) {
-            const size = featuredConfig.size;
-            if (size.width !== null && size.width !== undefined) {
-                feature_message.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width as string;
-            }
-            if (size.maxWidth) {
-                feature_message.style.maxWidth = size.maxWidth;
-            }
-        }
-    }
-
     // Apply global message styling via CSS custom properties (for sizing, etc.)
     if (layout.messageStyle) {
         const ms = layout.messageStyle;
@@ -681,16 +637,21 @@ function filter_badges(messageEl: HTMLElement): void {
 }
 
 function handle_feature_message(id: string | null): void {
-    if (!feature_message) return;
+    // Find all layout-created featured elements
+    const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
+    if (featured_elements.length === 0) return;
 
     if (id === null) {
-        feature_message.innerHTML = "";
+        // Clear all featured elements
+        featured_elements.forEach(el => el.innerHTML = "");
     } else {
-        const el = document.getElementById(id);
-        if (el !== null) {
-            const fel = el.cloneNode(true) as HTMLElement;
-            fel.id = `feature-${id}`;
-            feature_message.innerHTML = fel.outerHTML;
+        const sourceEl = document.getElementById(id);
+        if (sourceEl !== null) {
+            const cloned = sourceEl.cloneNode(true) as HTMLElement;
+            cloned.id = `feature-${id}`;
+            const content = cloned.outerHTML;
+            // Update all featured elements with the same content
+            featured_elements.forEach(el => el.innerHTML = content);
         } else {
             console.log("Featured chat message not found:", id);
         }
