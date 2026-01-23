@@ -496,10 +496,29 @@ export function EditorCanvas({
         const hasRight = pos.right !== null && pos.right !== undefined;
         const hasBottom = pos.bottom !== null && pos.bottom !== undefined;
 
-        // Get element dimensions first (needed for position calculations)
-        const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
-        const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
-        const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+        // Get element dimensions (needed for position calculations)
+        // For autoSize elements, measure the actual DOM element
+        let widthPx: number;
+        let heightPx: number;
+
+        if (element.autoSize) {
+            // Measure actual rendered size from DOM
+            const domEl = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement;
+            if (domEl) {
+                // Account for canvas scale
+                widthPx = domEl.offsetWidth / scale;
+                heightPx = domEl.offsetHeight / scale;
+            } else {
+                // Fallback to defaults if element not found
+                const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
+                widthPx = sizeToPx(defaults.width, true);
+                heightPx = sizeToPx(defaults.height, false);
+            }
+        } else {
+            const defaults = defaultSizes[elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
+            widthPx = sizeToPx(element.size.width ?? defaults.width, true);
+            heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+        }
 
         // Convert current positions to pixels
         // If both left and right are set, pick one (prefer left for consistency)
@@ -718,9 +737,9 @@ export function EditorCanvas({
             const element = layout.elements[dragState.elementId];
             if (element) {
                 const pos = element.position;
-                const defaults = defaultSizes[dragState.elementId.replace(/-\d+$/, '')] || { width: 200, height: 100 };
-                const widthPx = sizeToPx(element.size.width ?? defaults.width, true);
-                const heightPx = sizeToPx(element.size.height ?? defaults.height, false);
+                // Use dimensions from dragState (already measured correctly for autoSize)
+                const widthPx = dragState.elementWidth;
+                const heightPx = dragState.elementHeight;
 
                 // Calculate current position in pixels
                 let leftPx: number;
@@ -1263,10 +1282,13 @@ export function EditorCanvas({
         }
 
         // Size - convert to pixels for canvas display
-        const widthValue = config.size.width ?? defaults.width;
-        const heightValue = config.size.height ?? defaults.height;
-        style.width = sizeToPx(widthValue, true);
-        style.height = sizeToPx(heightValue, false);
+        // Skip explicit width/height for autoSize elements (they size to content)
+        if (!config.autoSize) {
+            const widthValue = config.size.width ?? defaults.width;
+            const heightValue = config.size.height ?? defaults.height;
+            style.width = sizeToPx(widthValue, true);
+            style.height = sizeToPx(heightValue, false);
+        }
 
         // Z-index
         if (config.position.zIndex !== undefined) {
