@@ -530,6 +530,58 @@
     margin-bottom: 0;
 }
 
+/* Dimension Input - number + unit dropdown */
+.dimension-input {
+    display: flex;
+    gap: 0;
+    width: 100%;
+}
+
+.dimension-input input {
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    border-radius: 4px 0 0 4px;
+    border: 1px solid #0f3460;
+    border-right: none;
+    background: #1a1a2e;
+    color: #eee;
+    font-size: 13px;
+    box-sizing: border-box;
+}
+
+.dimension-input input:focus {
+    outline: none;
+    border-color: #e94560;
+    z-index: 1;
+}
+
+.dimension-input .dimension-unit {
+    width: 50px;
+    flex-shrink: 0;
+    padding: 8px 4px;
+    border-radius: 0 4px 4px 0;
+    border: 1px solid #0f3460;
+    background: #0f3460;
+    color: #eee;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: center;
+    box-sizing: border-box;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.dimension-input .dimension-unit:focus {
+    outline: none;
+    border-color: #e94560;
+}
+
+.dimension-input .dimension-unit:hover {
+    background: #16213e;
+}
+
 .settings-checkbox {
     display: flex;
     align-items: center;

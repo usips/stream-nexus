@@ -1,6 +1,159 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Layout, ElementConfig, AnchorPoint, getPositionPropsForAnchor } from '../types/layout';
+import { Layout, ElementConfig, AnchorPoint, getPositionPropsForAnchor, CANVAS_WIDTH, CANVAS_HEIGHT } from '../types/layout';
 import { getAvailableTokens } from '../utils/tokens';
+
+// ============================================================================
+// DimensionInput Component - Number input with unit dropdown
+// ============================================================================
+
+type DimensionUnit = 'px' | 'vw' | 'vh' | '%' | 'em';
+
+interface DimensionInputProps {
+    value: string | number | null | undefined;
+    onChange: (value: string | undefined) => void;
+    placeholder?: string;
+    /** Whether this is a horizontal (width/x) or vertical (height/y) dimension */
+    isHorizontal?: boolean;
+}
+
+// Parse a dimension string like "15.63vw" into { value: 15.63, unit: 'vw' }
+function parseDimension(input: string | number | null | undefined): { value: number; unit: DimensionUnit } | null {
+    if (input === null || input === undefined || input === '') return null;
+
+    if (typeof input === 'number') {
+        return { value: input, unit: 'px' };
+    }
+
+    const str = input.toString().trim();
+    if (!str) return null;
+
+    // Match number followed by optional unit
+    const match = str.match(/^(-?[\d.]+)\s*(vw|vh|%|px|em)?$/i);
+    if (match) {
+        const value = parseFloat(match[1]);
+        const unit = (match[2]?.toLowerCase() || 'px') as DimensionUnit;
+        return { value, unit };
+    }
+
+    return null;
+}
+
+// Convert a value from one unit to another
+function convertUnit(
+    value: number,
+    fromUnit: DimensionUnit,
+    toUnit: DimensionUnit,
+    isHorizontal: boolean
+): number {
+    if (fromUnit === toUnit) return value;
+
+    const refSize = isHorizontal ? CANVAS_WIDTH : CANVAS_HEIGHT;
+
+    // First convert to pixels
+    let pixels: number;
+    switch (fromUnit) {
+        case 'px':
+            pixels = value;
+            break;
+        case 'vw':
+            pixels = (value / 100) * CANVAS_WIDTH;
+            break;
+        case 'vh':
+            pixels = (value / 100) * CANVAS_HEIGHT;
+            break;
+        case '%':
+            pixels = (value / 100) * refSize;
+            break;
+        case 'em':
+            pixels = value * 16; // Assume 16px base font size
+            break;
+        default:
+            pixels = value;
+    }
+
+    // Then convert from pixels to target unit
+    switch (toUnit) {
+        case 'px':
+            return Math.round(pixels * 100) / 100;
+        case 'vw':
+            return Math.round((pixels / CANVAS_WIDTH) * 100 * 100) / 100;
+        case 'vh':
+            return Math.round((pixels / CANVAS_HEIGHT) * 100 * 100) / 100;
+        case '%':
+            return Math.round((pixels / refSize) * 100 * 100) / 100;
+        case 'em':
+            return Math.round((pixels / 16) * 100) / 100;
+        default:
+            return pixels;
+    }
+}
+
+function DimensionInput({ value, onChange, placeholder = 'auto', isHorizontal = true }: DimensionInputProps) {
+    const parsed = parseDimension(value);
+    const [numValue, setNumValue] = useState<string>(parsed ? parsed.value.toString() : '');
+    const [unit, setUnit] = useState<DimensionUnit>(parsed?.unit || 'vw');
+
+    // Update local state when prop changes
+    useEffect(() => {
+        const parsed = parseDimension(value);
+        if (parsed) {
+            setNumValue(parsed.value.toString());
+            setUnit(parsed.unit);
+        } else {
+            setNumValue('');
+        }
+    }, [value]);
+
+    const handleValueChange = (newNumValue: string) => {
+        setNumValue(newNumValue);
+        if (newNumValue === '' || newNumValue === '-') {
+            onChange(undefined);
+        } else {
+            const num = parseFloat(newNumValue);
+            if (!isNaN(num)) {
+                onChange(unit === 'px' ? num.toString() : `${num}${unit}`);
+            }
+        }
+    };
+
+    const handleUnitChange = (newUnit: DimensionUnit) => {
+        const oldUnit = unit;
+        setUnit(newUnit);
+
+        // Convert the value when unit changes
+        if (numValue !== '' && numValue !== '-') {
+            const num = parseFloat(numValue);
+            if (!isNaN(num)) {
+                const converted = convertUnit(num, oldUnit, newUnit, isHorizontal);
+                setNumValue(converted.toString());
+                onChange(newUnit === 'px' ? converted.toString() : `${converted}${newUnit}`);
+            }
+        }
+    };
+
+    return (
+        <div className="dimension-input">
+            <input
+                type="text"
+                inputMode="decimal"
+                value={numValue}
+                placeholder={placeholder}
+                onChange={(e) => handleValueChange(e.target.value)}
+            />
+            <select
+                value={unit}
+                onChange={(e) => handleUnitChange(e.target.value as DimensionUnit)}
+                className="dimension-unit"
+            >
+                <option value="vw">vw</option>
+                <option value="vh">vh</option>
+                <option value="px">px</option>
+                <option value="%">%</option>
+                <option value="em">em</option>
+            </select>
+        </div>
+    );
+}
 
 interface SettingsPanelProps {
     layout: Layout;
@@ -239,14 +392,13 @@ export function SettingsPanel({
                     <div className="settings-row-inline">
                         <div className="settings-row">
                             <label>X (Left)</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.x ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
+                            <DimensionInput
+                                value={currentConfig.position.x}
+                                isHorizontal={true}
+                                onChange={(val) => updateElementConfig({
                                     position: {
                                         ...currentConfig.position,
-                                        x: e.target.value || undefined,
+                                        x: val,
                                         right: undefined, // Clear opposite anchor
                                     }
                                 })}
@@ -254,14 +406,13 @@ export function SettingsPanel({
                         </div>
                         <div className="settings-row">
                             <label>Y (Top)</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.y ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
+                            <DimensionInput
+                                value={currentConfig.position.y}
+                                isHorizontal={false}
+                                onChange={(val) => updateElementConfig({
                                     position: {
                                         ...currentConfig.position,
-                                        y: e.target.value || undefined,
+                                        y: val,
                                         bottom: undefined, // Clear opposite anchor
                                     }
                                 })}
@@ -271,14 +422,13 @@ export function SettingsPanel({
                     <div className="settings-row-inline">
                         <div className="settings-row">
                             <label>Right</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.right ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
+                            <DimensionInput
+                                value={currentConfig.position.right}
+                                isHorizontal={true}
+                                onChange={(val) => updateElementConfig({
                                     position: {
                                         ...currentConfig.position,
-                                        right: e.target.value || undefined,
+                                        right: val,
                                         x: undefined, // Clear opposite anchor
                                     }
                                 })}
@@ -286,14 +436,13 @@ export function SettingsPanel({
                         </div>
                         <div className="settings-row">
                             <label>Bottom</label>
-                            <input
-                                type="text"
-                                value={currentConfig.position.bottom ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => updateElementConfig({
+                            <DimensionInput
+                                value={currentConfig.position.bottom}
+                                isHorizontal={false}
+                                onChange={(val) => updateElementConfig({
                                     position: {
                                         ...currentConfig.position,
-                                        bottom: e.target.value || undefined,
+                                        bottom: val,
                                         y: undefined, // Clear opposite anchor
                                     }
                                 })}
@@ -322,34 +471,22 @@ export function SettingsPanel({
                         <div className="settings-row-inline">
                             <div className="settings-row">
                                 <label>Width</label>
-                                <input
-                                    type="text"
-                                    value={currentConfig.size.width ?? ''}
-                                    placeholder="auto"
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        updateElementConfig({
-                                            size: {
-                                                width: val === '' ? undefined : val,
-                                            }
-                                        });
-                                    }}
+                                <DimensionInput
+                                    value={currentConfig.size.width}
+                                    isHorizontal={true}
+                                    onChange={(val) => updateElementConfig({
+                                        size: { ...currentConfig.size, width: val }
+                                    })}
                                 />
                             </div>
                             <div className="settings-row">
                                 <label>Height</label>
-                                <input
-                                    type="text"
-                                    value={currentConfig.size.height ?? ''}
-                                    placeholder="auto"
-                                    onChange={(e) => {
-                                        const val = e.target.value;
-                                        updateElementConfig({
-                                            size: {
-                                                height: val === '' ? undefined : val,
-                                            }
-                                        });
-                                    }}
+                                <DimensionInput
+                                    value={currentConfig.size.height}
+                                    isHorizontal={false}
+                                    onChange={(val) => updateElementConfig({
+                                        size: { ...currentConfig.size, height: val }
+                                    })}
                                 />
                             </div>
                         </div>
