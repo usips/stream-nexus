@@ -111,7 +111,8 @@ function DimensionInput({ value, onChange, placeholder = 'auto', isHorizontal = 
         } else {
             const num = parseFloat(newNumValue);
             if (!isNaN(num)) {
-                onChange(unit === 'px' ? num.toString() : `${num}${unit}`);
+                // Always include unit suffix for valid CSS
+                onChange(`${num}${unit}`);
             }
         }
     };
@@ -126,7 +127,8 @@ function DimensionInput({ value, onChange, placeholder = 'auto', isHorizontal = 
             if (!isNaN(num)) {
                 const converted = convertUnit(num, oldUnit, newUnit, isHorizontal);
                 setNumValue(converted.toString());
-                onChange(newUnit === 'px' ? converted.toString() : `${converted}${newUnit}`);
+                // Always include unit suffix for valid CSS
+                onChange(`${converted}${newUnit}`);
             }
         }
     };
@@ -625,65 +627,162 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
     if (elementType === 'text' || elementType === 'attribution') {
         const content = (options.content as string) || '';
         const tokens = getAvailableTokens();
+        const style = config.style || {};
+
+        const updateStyle = (styleUpdates: Record<string, string | undefined>) => {
+            onUpdate({ style: { ...style, ...styleUpdates } });
+        };
 
         return (
-            <CollapsibleSection title="Text Options" defaultOpen={false}>
-                <div className="settings-row">
-                    <label>Content</label>
-                    <textarea
-                        value={content}
-                        placeholder="Enter text content..."
-                        onChange={(e) => updateOptions({ content: e.target.value })}
-                        rows={3}
-                        style={{
-                            width: '100%',
+            <>
+                <CollapsibleSection title="Text Content" defaultOpen={true}>
+                    <div className="settings-row">
+                        <label>Content</label>
+                        <textarea
+                            value={content}
+                            placeholder="Enter text content..."
+                            onChange={(e) => updateOptions({ content: e.target.value })}
+                            rows={3}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                borderRadius: '4px',
+                                border: '1px solid #0f3460',
+                                background: '#1a1a2e',
+                                color: '#eee',
+                                fontSize: '13px',
+                                resize: 'vertical',
+                                fontFamily: 'inherit',
+                            }}
+                        />
+                    </div>
+                    <div className="settings-row">
+                        <label>Available Tokens</label>
+                        <div className="token-list" style={{
+                            fontSize: '11px',
+                            color: '#888',
+                            background: '#1a1a2e',
                             padding: '8px',
                             borderRadius: '4px',
                             border: '1px solid #0f3460',
-                            background: '#1a1a2e',
-                            color: '#eee',
-                            fontSize: '13px',
-                            resize: 'vertical',
-                            fontFamily: 'inherit',
-                        }}
-                    />
-                </div>
-                <div className="settings-row">
-                    <label>Available Tokens</label>
-                    <div className="token-list" style={{
-                        fontSize: '11px',
-                        color: '#888',
-                        background: '#1a1a2e',
-                        padding: '8px',
-                        borderRadius: '4px',
-                        border: '1px solid #0f3460',
-                    }}>
-                        {tokens.map((token) => (
-                            <div key={token.name} className="token-item" style={{ marginBottom: '6px' }}>
-                                <code style={{
-                                    background: '#0f3460',
-                                    padding: '2px 6px',
-                                    borderRadius: '3px',
-                                    color: '#e94560',
-                                    cursor: 'pointer',
-                                }}
-                                onClick={() => {
-                                    const newContent = content + token.example;
-                                    updateOptions({ content: newContent });
-                                }}
-                                title="Click to insert"
-                                >
-                                    {token.example}
-                                </code>
-                                <span style={{ marginLeft: '8px' }}>{token.description}</span>
-                            </div>
-                        ))}
+                        }}>
+                            {tokens.map((token) => (
+                                <div key={token.name} className="token-item" style={{ marginBottom: '6px' }}>
+                                    <code style={{
+                                        background: '#0f3460',
+                                        padding: '2px 6px',
+                                        borderRadius: '3px',
+                                        color: '#e94560',
+                                        cursor: 'pointer',
+                                    }}
+                                    onClick={() => {
+                                        const newContent = content + token.example;
+                                        updateOptions({ content: newContent });
+                                    }}
+                                    title="Click to insert"
+                                    >
+                                        {token.example}
+                                    </code>
+                                    <span style={{ marginLeft: '8px' }}>{token.description}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                            Click a token to insert it. Tokens update in real-time.
+                        </small>
                     </div>
-                    <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
-                        Click a token to insert it. Tokens update in real-time.
-                    </small>
-                </div>
-            </CollapsibleSection>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Text Style" defaultOpen={false}>
+                    <div className="settings-row">
+                        <label>Font Size</label>
+                        <DimensionInput
+                            value={style.fontSize}
+                            isHorizontal={true}
+                            placeholder="inherit"
+                            onChange={(val) => updateStyle({ fontSize: val })}
+                        />
+                    </div>
+                    <div className="settings-row">
+                        <label>Font Weight</label>
+                        <select
+                            value={style.fontWeight || ''}
+                            onChange={(e) => updateStyle({ fontWeight: e.target.value || undefined })}
+                        >
+                            <option value="">Normal</option>
+                            <option value="100">100 (Thin)</option>
+                            <option value="200">200 (Extra Light)</option>
+                            <option value="300">300 (Light)</option>
+                            <option value="400">400 (Regular)</option>
+                            <option value="500">500 (Medium)</option>
+                            <option value="600">600 (Semi Bold)</option>
+                            <option value="700">700 (Bold)</option>
+                            <option value="800">800 (Extra Bold)</option>
+                            <option value="900">900 (Black)</option>
+                            <option value="bold">Bold</option>
+                        </select>
+                    </div>
+                    <div className="settings-row">
+                        <label>Font Style</label>
+                        <select
+                            value={style.fontStyle || ''}
+                            onChange={(e) => updateStyle({ fontStyle: e.target.value || undefined })}
+                        >
+                            <option value="">Normal</option>
+                            <option value="italic">Italic</option>
+                            <option value="oblique">Oblique</option>
+                        </select>
+                    </div>
+                    <div className="settings-row">
+                        <label>Text Color</label>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <input
+                                type="color"
+                                value={style.color || '#ffffff'}
+                                onChange={(e) => updateStyle({ color: e.target.value })}
+                                style={{ width: '40px', height: '28px', border: 'none', cursor: 'pointer' }}
+                            />
+                            <input
+                                type="text"
+                                value={style.color || ''}
+                                placeholder="#ffffff"
+                                onChange={(e) => updateStyle({ color: e.target.value || undefined })}
+                                style={{ flex: 1 }}
+                            />
+                        </div>
+                    </div>
+                    <div className="settings-row">
+                        <label>Line Height</label>
+                        <input
+                            type="text"
+                            value={style.lineHeight || ''}
+                            placeholder="normal"
+                            onChange={(e) => updateStyle({ lineHeight: e.target.value || undefined })}
+                        />
+                    </div>
+                    <div className="settings-row">
+                        <label>Letter Spacing</label>
+                        <input
+                            type="text"
+                            value={style.letterSpacing || ''}
+                            placeholder="normal"
+                            onChange={(e) => updateStyle({ letterSpacing: e.target.value || undefined })}
+                        />
+                    </div>
+                    <div className="settings-row">
+                        <label>Text Align</label>
+                        <select
+                            value={style.textAlign || ''}
+                            onChange={(e) => updateStyle({ textAlign: e.target.value || undefined })}
+                        >
+                            <option value="">Left</option>
+                            <option value="center">Center</option>
+                            <option value="right">Right</option>
+                            <option value="justify">Justify</option>
+                        </select>
+                    </div>
+                </CollapsibleSection>
+            </>
         );
     }
 
@@ -827,6 +926,31 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
                         placeholder="8px"
                         onChange={(e) => updateOptions({ borderRadius: e.target.value || undefined })}
                     />
+                </div>
+            </CollapsibleSection>
+        );
+    }
+
+    // Featured Message options
+    if (elementType === 'featured') {
+        const scale = (options.scale as number) ?? 1;
+
+        return (
+            <CollapsibleSection title="Featured Message Options" defaultOpen={true}>
+                <div className="settings-row">
+                    <label>Scale</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <input
+                            type="range"
+                            min="0.5"
+                            max="3"
+                            step="0.1"
+                            value={scale}
+                            onChange={(e) => updateOptions({ scale: parseFloat(e.target.value) })}
+                            style={{ flex: 1 }}
+                        />
+                        <span style={{ minWidth: '40px', textAlign: 'right' }}>{scale.toFixed(1)}x</span>
+                    </div>
                 </div>
             </CollapsibleSection>
         );
