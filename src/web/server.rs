@@ -277,12 +277,22 @@ impl<'a> Handler<message::FeatureMessage> for ChatServer {
         self.featured_message = msg.id;
         debug!("[ChatServer] Featured message set to: {:?}", self.featured_message);
 
+        // Get the message HTML if featuring (not unfeaturing)
+        let html = msg.id.and_then(|id| {
+            self.chat_messages.get(&id).map(|m| m.to_html())
+        });
+
+        let response = message::FeatureMessageResponse {
+            id: msg.id,
+            html,
+        };
+
         for (_, conn) in &self.clients {
             conn.recipient.do_send(message::Reply(
                 serde_json::to_string(&message::ReplyInner {
                     tag: "feature_message".to_owned(),
-                    message: serde_json::to_string(&msg.id)
-                        .expect("Failed to serialize feature string."),
+                    message: serde_json::to_string(&response)
+                        .expect("Failed to serialize feature response."),
                 })
                 .expect("Failed to serialize feature ReplyInner"),
             ));
@@ -295,7 +305,15 @@ impl Handler<message::RequestFeaturedMessage> for ChatServer {
     type Result = MessageResult<message::RequestFeaturedMessage>;
 
     fn handle(&mut self, _: message::RequestFeaturedMessage, _: &mut Context<Self>) -> Self::Result {
-        MessageResult(self.featured_message)
+        // Get the message HTML if there's a featured message
+        let html = self.featured_message.and_then(|id| {
+            self.chat_messages.get(&id).map(|m| m.to_html())
+        });
+
+        MessageResult(message::FeatureMessageResponse {
+            id: self.featured_message,
+            html,
+        })
     }
 }
 
