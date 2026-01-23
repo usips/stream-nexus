@@ -53,11 +53,20 @@ impl Message for FeatureMessage {
     type Result = ();
 }
 
+/// Featured message response (sent to clients)
+/// Contains both ID and full message HTML so overlay can display even if message was pruned
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FeatureMessageResponse {
+    pub id: Option<uuid::Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub html: Option<String>,
+}
+
 /// Request current featured message
 pub struct RequestFeaturedMessage;
 
 impl Message for RequestFeaturedMessage {
-    type Result = Option<uuid::Uuid>;
+    type Result = FeatureMessageResponse;
 }
 
 /// Request for paid messages.
