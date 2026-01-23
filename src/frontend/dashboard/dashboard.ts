@@ -220,6 +220,9 @@ function updateConnectionStatus(connected: boolean): void {
         socket.addEventListener("open", () => {
             console.log("[Dashboard] Connection established.");
             updateConnectionStatus(true);
+
+            // Request message history
+            socket?.send(JSON.stringify({ request_messages: true }));
         });
 
         socket.addEventListener("message", (event: MessageEvent) => {
@@ -420,7 +423,7 @@ function sendSimpleMessage(text: string, isOwner = false): void {
 }
 
 function handleFeatureMessage(id: string | null): void {
-    // Remove sticky styling from all messages
+    // Remove sticky styling from all messages (only one can be active at a time)
     document.querySelectorAll(".msg--sticky").forEach((msg) => {
         msg.classList.remove("msg--sticky");
     });
@@ -429,17 +432,12 @@ function handleFeatureMessage(id: string | null): void {
         const featuredMessage = document.getElementById(id);
         if (featuredMessage !== null) {
             featuredMessage.classList.add("msg--sticky");
-            // Track as featured
+            // Track as featured (keep history of all featured messages)
             featuredMessageIds.add(id);
             featuredMessage.classList.add("msg--was-featured");
         }
-    } else {
-        // When un-featuring (id is null), also remove was-featured styling
-        document.querySelectorAll(".msg--was-featured").forEach((msg) => {
-            msg.classList.remove("msg--was-featured");
-        });
-        featuredMessageIds.clear();
     }
+    // When unfeaturing (id is null), just remove sticky - keep was-featured markers
 }
 
 function handleMessage(message: ChatMessage): HTMLElement | null {
