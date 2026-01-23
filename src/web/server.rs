@@ -27,6 +27,8 @@ pub struct ChatServer {
     pub viewer_counts: HashMap<String, usize>,
     pub layout_manager: Arc<Mutex<LayoutManager>>,
     pub active_layout: String,
+    /// Currently featured message ID (if any)
+    pub featured_message: Option<Uuid>,
 }
 
 impl ChatServer {
@@ -74,6 +76,7 @@ impl ChatServer {
                         viewer_counts: Default::default(),
                         layout_manager,
                         active_layout,
+                        featured_message: None,
                     };
                 }
             }
@@ -87,6 +90,7 @@ impl ChatServer {
             viewer_counts: HashMap::with_capacity(100),
             layout_manager,
             active_layout,
+            featured_message: None,
         }
     }
 
@@ -269,6 +273,10 @@ impl<'a> Handler<message::FeatureMessage> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, msg: message::FeatureMessage, _: &mut Context<Self>) -> Self::Result {
+        // Store the featured message ID for new clients
+        self.featured_message = msg.id;
+        debug!("[ChatServer] Featured message set to: {:?}", self.featured_message);
+
         for (_, conn) in &self.clients {
             conn.recipient.do_send(message::Reply(
                 serde_json::to_string(&message::ReplyInner {
@@ -279,6 +287,15 @@ impl<'a> Handler<message::FeatureMessage> for ChatServer {
                 .expect("Failed to serialize feature ReplyInner"),
             ));
         }
+    }
+}
+
+/// Handler for requesting current featured message
+impl Handler<message::RequestFeaturedMessage> for ChatServer {
+    type Result = MessageResult<message::RequestFeaturedMessage>;
+
+    fn handle(&mut self, _: message::RequestFeaturedMessage, _: &mut Context<Self>) -> Self::Result {
+        MessageResult(self.featured_message)
     }
 }
 

@@ -327,6 +327,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
 
                     // Handle request recent messages
                     if cmd.request_messages.unwrap_or(false) {
+                        // Send recent messages
                         self.server
                             .send(message::RecentMessages)
                             .into_actor(self)
@@ -341,6 +342,23 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                         .unwrap();
                                         ctx.text(reply);
                                     }
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+
+                        // Also send the current featured message if any
+                        self.server
+                            .send(message::RequestFeaturedMessage)
+                            .into_actor(self)
+                            .then(|res, _, ctx| {
+                                if let Ok(featured_id) = res {
+                                    let reply = serde_json::to_string(&message::ReplyInner {
+                                        tag: "feature_message".to_owned(),
+                                        message: serde_json::to_string(&featured_id).unwrap(),
+                                    })
+                                    .unwrap();
+                                    ctx.text(reply);
                                 }
                                 fut::ready(())
                             })

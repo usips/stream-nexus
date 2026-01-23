@@ -53,6 +53,13 @@ impl Message for FeatureMessage {
     type Result = ();
 }
 
+/// Request current featured message
+pub struct RequestFeaturedMessage;
+
+impl Message for RequestFeaturedMessage {
+    type Result = Option<uuid::Uuid>;
+}
+
 /// Request for paid messages.
 pub struct PaidMessages;
 
