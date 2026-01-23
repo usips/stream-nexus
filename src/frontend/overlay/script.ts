@@ -7,6 +7,7 @@ import type {
     BadgeSettings,
     LiveBadgeOptions,
     ChatOptions,
+    FeatureMessageResponse,
 } from '../types';
 import { DonationMatter, DonationMatterConfig } from '../background/DonationMatter';
 
@@ -213,7 +214,7 @@ const bindWebsocketEvents = (): void => {
                 break;
             case "feature_message":
                 console.log("[SNEED] Received feature_message event:", message);
-                handle_feature_message(message as string | null);
+                handle_feature_message(message as FeatureMessageResponse);
                 break;
             case "viewers":
                 handle_viewers(message as ViewerCounts);
@@ -720,47 +721,58 @@ function filter_badges(messageEl: HTMLElement): void {
 }
 
 // Store pending feature request if message isn't in DOM yet
-let pendingFeatureId: string | null = null;
+let pendingFeature: FeatureMessageResponse | null = null;
 
-function handle_feature_message(id: string | null): void {
+function handle_feature_message(response: FeatureMessageResponse): void {
     // Find all layout-created featured elements
     const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
-    console.log("[SNEED] handle_feature_message:", id, "featured_elements:", featured_elements.length);
+    console.log("[SNEED] handle_feature_message:", response.id, "featured_elements:", featured_elements.length, "hasHtml:", !!response.html);
 
-    if (id === null) {
+    if (response.id === null) {
         // Clear all featured elements
-        pendingFeatureId = null;
+        pendingFeature = null;
         featured_elements.forEach(el => el.innerHTML = "");
         console.log("[SNEED] Cleared featured message");
         return;
     }
 
-    // Store pending feature ID even if no featured elements exist yet
+    // Store pending feature if no featured elements exist yet
     // (layout might not be applied yet)
     if (featured_elements.length === 0) {
-        console.log("[SNEED] No .element--featured elements found yet, storing pending feature:", id);
-        pendingFeatureId = id;
+        console.log("[SNEED] No .element--featured elements found yet, storing pending feature:", response.id);
+        pendingFeature = response;
         return;
     }
 
-    const sourceEl = document.getElementById(id);
-    console.log("[SNEED] Looking for message ID:", id, "found:", sourceEl !== null);
+    // Try to find the message in DOM first
+    const sourceEl = document.getElementById(response.id);
+    console.log("[SNEED] Looking for message ID:", response.id, "found:", sourceEl !== null);
+
+    let content: string | null = null;
 
     if (sourceEl !== null) {
+        // Clone from existing DOM element
         const cloned = sourceEl.cloneNode(true) as HTMLElement;
-        cloned.id = `feature-${id}`;
-        const content = cloned.outerHTML;
+        cloned.id = `feature-${response.id}`;
+        content = cloned.outerHTML;
+    } else if (response.html) {
+        // Use HTML from server (message may have been pruned from overlay DOM)
+        content = response.html.replace(`id="${response.id}"`, `id="feature-${response.id}"`);
+        console.log("[SNEED] Using HTML from server for featured message");
+    }
+
+    if (content !== null) {
         // Update all featured elements with the same content
         featured_elements.forEach(el => {
-            el.innerHTML = content;
+            el.innerHTML = content!;
             console.log("[SNEED] Set featured element content, innerHTML length:", el.innerHTML.length);
         });
-        pendingFeatureId = null;
-        console.log("[SNEED] Featured message:", id);
+        pendingFeature = null;
+        console.log("[SNEED] Featured message:", response.id);
     } else {
-        // Message might be in buffer, store for later
-        pendingFeatureId = id;
-        console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
+        // Message not in DOM and no HTML provided - store for later
+        pendingFeature = response;
+        console.log("[SNEED] Featured message not found and no HTML provided, waiting for buffer:", response.id);
         // Log existing message IDs to help debug
         const allMsgs = document.querySelectorAll('.msg');
         console.log("[SNEED] Existing message IDs:", Array.from(allMsgs).slice(0, 10).map(m => m.id));
@@ -769,10 +781,10 @@ function handle_feature_message(id: string | null): void {
 
 // Check if a pending feature can be applied (called after processing buffered messages)
 function checkPendingFeature(): void {
-    if (pendingFeatureId) {
-        const sourceEl = document.getElementById(pendingFeatureId);
-        if (sourceEl) {
-            handle_feature_message(pendingFeatureId);
+    if (pendingFeature) {
+        const sourceEl = document.getElementById(pendingFeature.id!);
+        if (sourceEl || pendingFeature.html) {
+            handle_feature_message(pendingFeature);
         }
     }
 }
