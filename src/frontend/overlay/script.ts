@@ -278,38 +278,63 @@ function apply_layout(layout: Layout): void {
     }
 
     const elements = layout.elements || {};
+    const existingElementIds = new Set<string>();
 
-    // Clean up existing matter instances
-    for (const info of matter_instances) {
-        info.instance.destroy();
+    // Track which elements currently exist
+    for (const child of Array.from(elements_container.children)) {
+        if (child.id) {
+            existingElementIds.add(child.id);
+        }
     }
-    matter_instances = [];
 
-    // Clear old dynamic elements and reset chat containers
-    elements_container.innerHTML = '';
-    chat_containers = [];
+    // Track which elements are in the new layout
+    const newElementIds = new Set(Object.keys(elements).filter(id => elements[id]?.enabled !== false));
 
-    // Create/update elements dynamically based on layout config
-    console.log("[SNEED] Layout elements:", Object.keys(elements));
+    // Remove elements that are no longer in the layout
+    for (const existingId of existingElementIds) {
+        if (!newElementIds.has(existingId)) {
+            const el = document.getElementById(existingId);
+            if (el) {
+                // Clean up matter instance if this is a matter element
+                const matterIdx = matter_instances.findIndex(m => m.elementId === existingId);
+                if (matterIdx !== -1) {
+                    matter_instances[matterIdx].instance.destroy();
+                    matter_instances.splice(matterIdx, 1);
+                }
+                // Remove from chat containers
+                const chatIdx = chat_containers.findIndex(c => c.elementId === existingId);
+                if (chatIdx !== -1) {
+                    chat_containers.splice(chatIdx, 1);
+                }
+                el.remove();
+            }
+        }
+    }
+
+    // Create or update elements
     for (const [elementId, config] of Object.entries(elements)) {
         if (!config || config.enabled === false) continue;
 
         const baseType = elementId.replace(/-\d+$/, ''); // Remove -N suffix to get base type
-        console.log("[SNEED] Creating element:", elementId, "type:", baseType);
-        const el = create_element_for_type(elementId, baseType, config);
+        let el = document.getElementById(elementId);
+
         if (el) {
-            elements_container.appendChild(el);
+            // Element exists - just update its config (position, size, style)
             apply_element_config(el, config, baseType === 'text' || baseType === 'attribution');
 
-            // Track chat containers with per-element options
+            // Update chat element classes if needed
             if (baseType === 'chat') {
-                const messagesContainer = el.querySelector('.chat-messages') as HTMLElement;
-                if (messagesContainer) {
-                    // Get chat options from element config, falling back to messageStyle for backwards compat
-                    const chatOpts = (config.options || {}) as ChatOptions;
-                    const ms = layout.messageStyle || {};
+                const chatOpts = (config.options || {}) as ChatOptions;
+                const ms = layout.messageStyle || {};
+                el.classList.toggle('chat--condensed', (chatOpts.condensedMode ?? ms.condensedMode) === true);
+                el.classList.toggle('chat--no-avatars', (chatOpts.showAvatars ?? ms.showAvatars) === false);
+                el.classList.toggle('chat--no-usernames', (chatOpts.showUsernames ?? ms.showUsernames) === false);
+                el.classList.toggle('chat--top-first', (chatOpts.direction ?? ms.direction) === 'top');
 
-                    const options: ChatOptions = {
+                // Update chat container options
+                const chatInfo = chat_containers.find(c => c.elementId === elementId);
+                if (chatInfo) {
+                    chatInfo.options = {
                         showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
                         showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
                         condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
@@ -320,39 +345,66 @@ function apply_layout(layout: Layout): void {
                         showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
                         showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
                     };
-
-                    chat_containers.push({
-                        container: messagesContainer,
-                        elementId,
-                        options,
-                    });
-
-                    // Apply per-element classes
-                    el.classList.toggle('chat--condensed', options.condensedMode === true);
-                    el.classList.toggle('chat--no-avatars', options.showAvatars === false);
-                    el.classList.toggle('chat--no-usernames', options.showUsernames === false);
-                    el.classList.toggle('chat--top-first', options.direction === 'top');
                 }
             }
+        } else {
+            // Element doesn't exist - create it
+            console.log("[SNEED] Creating element:", elementId, "type:", baseType);
+            el = create_element_for_type(elementId, baseType, config);
+            if (el) {
+                elements_container.appendChild(el);
+                apply_element_config(el, config, baseType === 'text' || baseType === 'attribution');
 
-            // Initialize DonationMatter for matter elements
-            if (baseType === 'matter') {
-                // Check if Matter.js is available
-                if (typeof Matter !== 'undefined') {
-                    try {
-                        const matterConfig = (config.options || {}) as Partial<DonationMatterConfig>;
-                        const matterInstance = new DonationMatter(el, matterConfig);
-                        matterInstance.start();
-                        matter_instances.push({
-                            instance: matterInstance,
+                // Track chat containers with per-element options
+                if (baseType === 'chat') {
+                    const messagesContainer = el.querySelector('.chat-messages') as HTMLElement;
+                    if (messagesContainer) {
+                        const chatOpts = (config.options || {}) as ChatOptions;
+                        const ms = layout.messageStyle || {};
+
+                        const options: ChatOptions = {
+                            showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
+                            showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
+                            condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
+                            direction: chatOpts.direction ?? ms.direction ?? 'bottom',
+                            showOwnerBadge: chatOpts.showOwnerBadge ?? ms.showOwnerBadge ?? true,
+                            showStaffBadge: chatOpts.showStaffBadge ?? ms.showStaffBadge ?? true,
+                            showModBadge: chatOpts.showModBadge ?? ms.showModBadge ?? true,
+                            showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
+                            showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
+                        };
+
+                        chat_containers.push({
+                            container: messagesContainer,
                             elementId,
+                            options,
                         });
-                        console.log('[SNEED] DonationMatter initialized for element:', elementId);
-                    } catch (e) {
-                        console.error('[SNEED] Failed to initialize DonationMatter:', e);
+
+                        el.classList.toggle('chat--condensed', options.condensedMode === true);
+                        el.classList.toggle('chat--no-avatars', options.showAvatars === false);
+                        el.classList.toggle('chat--no-usernames', options.showUsernames === false);
+                        el.classList.toggle('chat--top-first', options.direction === 'top');
                     }
-                } else {
-                    console.warn('[SNEED] Matter.js not loaded, cannot initialize DonationMatter');
+                }
+
+                // Initialize DonationMatter for matter elements
+                if (baseType === 'matter') {
+                    if (typeof Matter !== 'undefined') {
+                        try {
+                            const matterConfig = (config.options || {}) as Partial<DonationMatterConfig>;
+                            const matterInstance = new DonationMatter(el, matterConfig);
+                            matterInstance.start();
+                            matter_instances.push({
+                                instance: matterInstance,
+                                elementId,
+                            });
+                            console.log('[SNEED] DonationMatter initialized for element:', elementId);
+                        } catch (e) {
+                            console.error('[SNEED] Failed to initialize DonationMatter:', e);
+                        }
+                    } else {
+                        console.warn('[SNEED] Matter.js not loaded, cannot initialize DonationMatter');
+                    }
                 }
             }
         }
@@ -387,6 +439,10 @@ function apply_layout(layout: Layout): void {
         const widthStr = typeof width === 'number' ? `${width}px` : width;
         document.documentElement.style.setProperty('--chat-width', widthStr as string);
     }
+
+    // Check if there's a pending featured message to display
+    // (feature_message event may have arrived before layout was applied)
+    checkPendingFeature();
 }
 
 // Create DOM element for a specific element type
@@ -625,12 +681,22 @@ function apply_element_config(el: HTMLElement | null, config: ElementConfig | un
         if (style.fontWeight) el.style.fontWeight = style.fontWeight;
         if (style.fontStyle) el.style.fontStyle = style.fontStyle;
         if (style.color) el.style.color = style.color;
+        if (style.lineHeight) el.style.lineHeight = style.lineHeight;
+        if (style.letterSpacing) el.style.letterSpacing = style.letterSpacing;
+        if (style.textAlign) el.style.textAlign = style.textAlign;
         if (style.padding) el.style.padding = style.padding;
         if (style.margin) el.style.margin = style.margin;
         if (style.borderRadius) el.style.borderRadius = style.borderRadius;
         if (style.opacity !== null && style.opacity !== undefined) el.style.opacity = style.opacity.toString();
         if (style.transform) el.style.transform = style.transform;
         if (style.zIndex !== null && style.zIndex !== undefined) el.style.zIndex = style.zIndex.toString();
+    }
+
+    // Handle scale option (for featured messages) - set CSS variable for inner content scaling
+    const options = config.options as Record<string, unknown> | undefined;
+    if (options?.scale !== undefined) {
+        const scale = options.scale as number;
+        el.style.setProperty('--featured-scale', scale.toString());
     }
 }
 
@@ -661,42 +727,43 @@ function handle_feature_message(id: string | null): void {
     const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
     console.log("[SNEED] handle_feature_message:", id, "featured_elements:", featured_elements.length);
 
-    if (featured_elements.length === 0) {
-        console.log("[SNEED] No .element--featured elements found in layout");
-        // Log all elements to help debug
-        const allElements = document.querySelectorAll('.element');
-        console.log("[SNEED] All .element classes:", Array.from(allElements).map(e => e.className));
-        return;
-    }
-
     if (id === null) {
         // Clear all featured elements
         pendingFeatureId = null;
         featured_elements.forEach(el => el.innerHTML = "");
         console.log("[SNEED] Cleared featured message");
-    } else {
-        const sourceEl = document.getElementById(id);
-        console.log("[SNEED] Looking for message ID:", id, "found:", sourceEl !== null);
+        return;
+    }
 
-        if (sourceEl !== null) {
-            const cloned = sourceEl.cloneNode(true) as HTMLElement;
-            cloned.id = `feature-${id}`;
-            const content = cloned.outerHTML;
-            // Update all featured elements with the same content
-            featured_elements.forEach(el => {
-                el.innerHTML = content;
-                console.log("[SNEED] Set featured element content, innerHTML length:", el.innerHTML.length);
-            });
-            pendingFeatureId = null;
-            console.log("[SNEED] Featured message:", id);
-        } else {
-            // Message might be in buffer, store for later
-            pendingFeatureId = id;
-            console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
-            // Log existing message IDs to help debug
-            const allMsgs = document.querySelectorAll('.msg');
-            console.log("[SNEED] Existing message IDs:", Array.from(allMsgs).slice(0, 10).map(m => m.id));
-        }
+    // Store pending feature ID even if no featured elements exist yet
+    // (layout might not be applied yet)
+    if (featured_elements.length === 0) {
+        console.log("[SNEED] No .element--featured elements found yet, storing pending feature:", id);
+        pendingFeatureId = id;
+        return;
+    }
+
+    const sourceEl = document.getElementById(id);
+    console.log("[SNEED] Looking for message ID:", id, "found:", sourceEl !== null);
+
+    if (sourceEl !== null) {
+        const cloned = sourceEl.cloneNode(true) as HTMLElement;
+        cloned.id = `feature-${id}`;
+        const content = cloned.outerHTML;
+        // Update all featured elements with the same content
+        featured_elements.forEach(el => {
+            el.innerHTML = content;
+            console.log("[SNEED] Set featured element content, innerHTML length:", el.innerHTML.length);
+        });
+        pendingFeatureId = null;
+        console.log("[SNEED] Featured message:", id);
+    } else {
+        // Message might be in buffer, store for later
+        pendingFeatureId = id;
+        console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
+        // Log existing message IDs to help debug
+        const allMsgs = document.querySelectorAll('.msg');
+        console.log("[SNEED] Existing message IDs:", Array.from(allMsgs).slice(0, 10).map(m => m.id));
     }
 }
 
