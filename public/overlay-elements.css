@@ -384,17 +384,21 @@ section#attribution {
    ============================================================================ */
 
 .element--featured {
-    width: auto;
     font-size: var(--message-text-size, 32px);
     font-family: var(--font-ui);
     color: var(--message-color, #ccc);
-    border-radius: 0;
+    overflow: hidden;
+    /* Scale is applied via CSS variable set by JS */
+    --featured-scale: 1;
 }
 
-/* Only show background/padding when featured message has content */
-.element--featured:not(:empty) {
-    background: var(--message-bg, rgba(0, 0, 0, 0.9));
-    padding: 0.5em;
+/* Featured messages have border-radius on the right instead of left */
+.element--featured .msg {
+    border-radius: 0 2em 2em 0;
+    border-left: none;
+    border-right: 1px solid transparent;
+    transform: scale(var(--featured-scale));
+    transform-origin: top left;
 }
 
 /* ============================================================================
