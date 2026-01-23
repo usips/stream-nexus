@@ -592,16 +592,21 @@ function apply_element_config(el: HTMLElement | null, config: ElementConfig | un
         }
     }
 
-    // Handle sizing
+    // Handle sizing (skip explicit width/height for autoSize elements)
     if (config.size) {
         const size = config.size;
+        const isAutoSize = (config as { autoSize?: boolean }).autoSize === true;
 
-        if (size.width !== null && size.width !== undefined) {
-            el.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width as string;
+        // Only apply explicit width/height if not auto-sized
+        if (!isAutoSize) {
+            if (size.width !== null && size.width !== undefined) {
+                el.style.width = typeof size.width === 'number' ? `${size.width}px` : size.width as string;
+            }
+            if (size.height !== null && size.height !== undefined) {
+                el.style.height = typeof size.height === 'number' ? `${size.height}px` : size.height as string;
+            }
         }
-        if (size.height !== null && size.height !== undefined) {
-            el.style.height = typeof size.height === 'number' ? `${size.height}px` : size.height as string;
-        }
+        // maxWidth/maxHeight always apply (useful for content constraints)
         if (size.maxWidth) {
             el.style.maxWidth = size.maxWidth;
         }

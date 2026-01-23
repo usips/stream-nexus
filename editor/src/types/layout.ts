@@ -94,9 +94,17 @@ export interface Style {
     compiledCss?: string;    // Compiled CSS (set by server)
 }
 
+// Anchor point for auto-sized elements (which corner/edge to anchor from)
+export type AnchorPoint =
+    | 'top-left' | 'top' | 'top-right'
+    | 'left' | 'center' | 'right'
+    | 'bottom-left' | 'bottom' | 'bottom-right';
+
 export interface ElementConfig {
     enabled: boolean;
-    locked?: boolean;  // Prevents selection/manipulation in editor
+    locked?: boolean;      // Prevents selection/manipulation in editor
+    autoSize?: boolean;    // Content-sized: draggable but not resizable
+    anchor?: AnchorPoint;  // Anchor point for positioning (default: top-left)
     displayName?: string;
     position: Position;
     size: Size;
@@ -177,6 +185,27 @@ export const defaultElementConfig = (): ElementConfig => ({
     style: {},
 });
 
+// Helper to determine which position properties to use based on anchor point
+export function getPositionPropsForAnchor(anchor: AnchorPoint): {
+    horizontal: 'x' | 'right';
+    vertical: 'y' | 'bottom';
+} {
+    const horizontal = anchor.includes('right') ? 'right' : 'x';
+    const vertical = anchor.includes('bottom') ? 'bottom' : 'y';
+    return { horizontal, vertical };
+}
+
+// Helper to infer anchor point from existing position properties
+export function inferAnchorFromPosition(position: Position): AnchorPoint {
+    const hasRight = position.right !== undefined && position.right !== null;
+    const hasBottom = position.bottom !== undefined && position.bottom !== null;
+
+    if (hasRight && hasBottom) return 'bottom-right';
+    if (hasRight) return 'top-right';
+    if (hasBottom) return 'bottom-left';
+    return 'top-left';
+}
+
 export const defaultChatOptions = (): ChatOptions => ({
     showAvatars: true,
     showUsernames: true,
@@ -219,12 +248,16 @@ export const defaultLayout = (): Layout => ({
         },
         live: {
             enabled: true,
+            autoSize: true,
+            anchor: 'top-left',
             position: { x: '0vw', y: '0vh' },
             size: {},
             style: {},
         },
         text: {
             enabled: true,
+            autoSize: true,
+            anchor: 'bottom-left',
             position: { x: '0.78vw', bottom: '0.65vh' },
             size: {},
             style: { fontSize: '3.5vw', fontStyle: 'italic', fontWeight: 'bold' },
@@ -232,18 +265,22 @@ export const defaultLayout = (): Layout => ({
         },
         featured: {
             enabled: true,
+            autoSize: true,
+            anchor: 'bottom-left',
             position: { x: '0vw', bottom: '47.41vh' },
             size: { maxWidth: 'calc(100vw - 16.41vw)' },
             style: { fontSize: '32px' },
         },
         poll: {
             enabled: true,
+            autoSize: true,
             position: { y: '0vh' },
             size: {},
             style: {},
         },
         superchat: {
             enabled: true,
+            autoSize: true,
             position: { y: '0vh' },
             size: {},
             style: {},

@@ -907,6 +907,19 @@
     background: #666;
 }
 
+/* =============================================================================
+   Auto-Size Element Styles (in canvas)
+   ============================================================================ */
+
+.element-wrapper.auto-size.selected {
+    outline-style: dashed;
+    outline-color: #4a9eff;
+}
+
+.element-wrapper.auto-size .element-label {
+    background: #4a9eff;
+}
+
 /* Preview for DonationMatter element */
 .element--matter,
 .preview-donation-matter {

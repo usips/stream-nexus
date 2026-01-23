@@ -188,6 +188,21 @@ pub struct Style {
     pub compiled_css: Option<String>,
 }
 
+/// Anchor point for auto-sized elements
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "kebab-case")]
+pub enum AnchorPoint {
+    TopLeft,
+    Top,
+    TopRight,
+    Left,
+    Center,
+    Right,
+    BottomLeft,
+    Bottom,
+    BottomRight,
+}
+
 /// Configuration for an individual overlay element
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -196,6 +211,12 @@ pub struct ElementConfig {
     /// Prevents selection/manipulation in editor (editor-only, not used by overlay)
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub locked: bool,
+    /// Content-sized element: draggable but not resizable
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub auto_size: bool,
+    /// Anchor point for positioning auto-sized elements
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub anchor: Option<AnchorPoint>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub display_name: Option<String>,
     #[serde(default)]
@@ -214,6 +235,8 @@ impl Default for ElementConfig {
         Self {
             enabled: true,
             locked: false,
+            auto_size: false,
+            anchor: None,
             display_name: None,
             position: Position::default(),
             size: Size::default(),
@@ -326,12 +349,14 @@ impl Layout {
     pub fn default_layout() -> Self {
         let mut elements = HashMap::new();
 
-        // Chat panel - right side, full height
+        // Chat panel - right side, full height (not auto-sized, has explicit dimensions)
         elements.insert(
             "chat".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: false,
+                anchor: None,
                 display_name: None,
                 position: Position {
                     x: None,
@@ -354,12 +379,14 @@ impl Layout {
             },
         );
 
-        // Live badge - top left
+        // Live badge - top left (auto-sized, content determines size)
         elements.insert(
             "live".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: true,
+                anchor: Some(AnchorPoint::TopLeft),
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.0)),
@@ -374,12 +401,14 @@ impl Layout {
             },
         );
 
-        // Text element - bottom left (replaces attribution)
+        // Text element - bottom left (auto-sized)
         elements.insert(
             "text".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: true,
+                anchor: Some(AnchorPoint::BottomLeft),
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.78)),
@@ -401,12 +430,14 @@ impl Layout {
             },
         );
 
-        // Featured message - bottom left, above attribution
+        // Featured message - bottom left (auto-sized with maxWidth constraint)
         elements.insert(
             "featured".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: true,
+                anchor: Some(AnchorPoint::BottomLeft),
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.0)),
@@ -429,12 +460,14 @@ impl Layout {
             },
         );
 
-        // Poll UI - top center
+        // Poll UI - top (auto-sized)
         elements.insert(
             "poll".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: true,
+                anchor: Some(AnchorPoint::TopLeft),
                 display_name: None,
                 position: Position {
                     x: None,
@@ -449,12 +482,14 @@ impl Layout {
             },
         );
 
-        // Superchat UI - top right
+        // Superchat UI - top (auto-sized)
         elements.insert(
             "superchat".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
+                auto_size: true,
+                anchor: Some(AnchorPoint::TopLeft),
                 display_name: None,
                 position: Position {
                     x: None,

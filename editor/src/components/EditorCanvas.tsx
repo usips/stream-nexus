@@ -9,6 +9,8 @@ import {
     pxToVh,
     positionToPx,
     sizeToPx,
+    getPositionPropsForAnchor,
+    inferAnchorFromPosition,
 } from '../types/layout';
 import { resolveTokens } from '../utils/tokens';
 
@@ -744,11 +746,23 @@ export function EditorCanvas({
                 const centerX = leftPx + widthPx / 2;
                 const centerY = topPx + heightPx / 2;
 
-                // Determine optimal anchor based on center position
-                const useRight = centerX > CANVAS_WIDTH / 2;
-                const useBottom = centerY > CANVAS_HEIGHT / 2;
+                // For autoSize elements with explicit anchor, respect the anchor
+                // Otherwise, determine optimal anchor based on center position
+                let useRight: boolean;
+                let useBottom: boolean;
 
-                // Build final position with optimal anchors
+                if (element.autoSize && element.anchor) {
+                    // Use explicit anchor
+                    const { horizontal, vertical } = getPositionPropsForAnchor(element.anchor);
+                    useRight = horizontal === 'right';
+                    useBottom = vertical === 'bottom';
+                } else {
+                    // Auto-determine optimal anchor
+                    useRight = centerX > CANVAS_WIDTH / 2;
+                    useBottom = centerY > CANVAS_HEIGHT / 2;
+                }
+
+                // Build final position with determined anchors
                 const newPosition: Position = {};
 
                 if (useRight) {
@@ -992,8 +1006,8 @@ export function EditorCanvas({
         const element = layout.elements[elementId];
         if (!element) return;
 
-        // Locked elements cannot be resized
-        if (element.locked) return;
+        // Locked or auto-sized elements cannot be resized
+        if (element.locked || element.autoSize) return;
 
         onSelectElement(elementId);
 
@@ -1518,21 +1532,22 @@ export function EditorCanvas({
         }
 
         const isLocked = config.locked === true;
+        const isAutoSize = config.autoSize === true;
 
         return (
             <div
                 key={elementId}
                 data-element-id={elementId}
-                className={`element-wrapper ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''} ${snapHighlight === elementId ? 'snap-highlight' : ''}`}
+                className={`element-wrapper ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''} ${isAutoSize ? 'auto-size' : ''} ${snapHighlight === elementId ? 'snap-highlight' : ''}`}
                 style={style}
                 onMouseDown={(e) => handleMouseDown(e, elementId)}
             >
                 <span className="element-label">
-                    {isLocked && '🔒 '}{getDisplayName(elementId, config)}
+                    {isLocked && '🔒 '}{isAutoSize && '↔ '}{getDisplayName(elementId, config)}
                 </span>
                 {content}
-                {/* Resize handles - only show when selected and not locked */}
-                {isSelected && !isLocked && (
+                {/* Resize handles - only show when selected, not locked, and not auto-sized */}
+                {isSelected && !isLocked && !isAutoSize && (
                     <>
                         <div className="resize-handle resize-n" onMouseDown={(e) => handleResizeStart(e, elementId, 'n')} />
                         <div className="resize-handle resize-s" onMouseDown={(e) => handleResizeStart(e, elementId, 's')} />

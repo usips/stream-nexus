@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Layout, ElementConfig } from '../types/layout';
+import { Layout, ElementConfig, AnchorPoint, getPositionPropsForAnchor } from '../types/layout';
 import { getAvailableTokens } from '../utils/tokens';
 
 interface SettingsPanelProps {
@@ -174,6 +174,57 @@ export function SettingsPanel({
                             } as Partial<ElementConfig>)}
                         />
                     </div>
+
+                    <div className="settings-checkbox">
+                        <input
+                            type="checkbox"
+                            id="element-autosize"
+                            checked={currentConfig.autoSize === true}
+                            onChange={(e) => updateElementConfig({ autoSize: e.target.checked || undefined })}
+                        />
+                        <label htmlFor="element-autosize">Auto-size (content-sized)</label>
+                    </div>
+
+                    {currentConfig.autoSize && (
+                        <div className="settings-row">
+                            <label>Anchor Point</label>
+                            <select
+                                value={currentConfig.anchor || 'top-left'}
+                                onChange={(e) => {
+                                    const anchor = e.target.value as AnchorPoint;
+                                    const { horizontal, vertical } = getPositionPropsForAnchor(anchor);
+                                    // Update position to match anchor
+                                    const pos = currentConfig.position;
+                                    const newPosition = { ...pos };
+                                    // Clear conflicting position values
+                                    if (horizontal === 'x') {
+                                        delete newPosition.right;
+                                    } else {
+                                        delete newPosition.x;
+                                    }
+                                    if (vertical === 'y') {
+                                        delete newPosition.bottom;
+                                    } else {
+                                        delete newPosition.y;
+                                    }
+                                    updateElementConfig({
+                                        anchor,
+                                        position: newPosition
+                                    });
+                                }}
+                            >
+                                <option value="top-left">↖ Top Left</option>
+                                <option value="top">↑ Top Center</option>
+                                <option value="top-right">↗ Top Right</option>
+                                <option value="left">← Left Center</option>
+                                <option value="center">● Center</option>
+                                <option value="right">→ Right Center</option>
+                                <option value="bottom-left">↙ Bottom Left</option>
+                                <option value="bottom">↓ Bottom Center</option>
+                                <option value="bottom-right">↘ Bottom Right</option>
+                            </select>
+                        </div>
+                    )}
                 </div>
 
                 {/* Element-specific Options Section */}
@@ -265,43 +316,45 @@ export function SettingsPanel({
                     </div>
                 </CollapsibleSection>
 
-                {/* Size Section */}
-                <CollapsibleSection title="Size" defaultOpen={false}>
-                    <div className="settings-row-inline">
-                        <div className="settings-row">
-                            <label>Width</label>
-                            <input
-                                type="text"
-                                value={currentConfig.size.width ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    updateElementConfig({
-                                        size: {
-                                            width: val === '' ? undefined : val,
-                                        }
-                                    });
-                                }}
-                            />
+                {/* Size Section - hidden when autoSize is enabled */}
+                {!currentConfig.autoSize && (
+                    <CollapsibleSection title="Size" defaultOpen={false}>
+                        <div className="settings-row-inline">
+                            <div className="settings-row">
+                                <label>Width</label>
+                                <input
+                                    type="text"
+                                    value={currentConfig.size.width ?? ''}
+                                    placeholder="auto"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        updateElementConfig({
+                                            size: {
+                                                width: val === '' ? undefined : val,
+                                            }
+                                        });
+                                    }}
+                                />
+                            </div>
+                            <div className="settings-row">
+                                <label>Height</label>
+                                <input
+                                    type="text"
+                                    value={currentConfig.size.height ?? ''}
+                                    placeholder="auto"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        updateElementConfig({
+                                            size: {
+                                                height: val === '' ? undefined : val,
+                                            }
+                                        });
+                                    }}
+                                />
+                            </div>
                         </div>
-                        <div className="settings-row">
-                            <label>Height</label>
-                            <input
-                                type="text"
-                                value={currentConfig.size.height ?? ''}
-                                placeholder="auto"
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    updateElementConfig({
-                                        size: {
-                                            height: val === '' ? undefined : val,
-                                        }
-                                    });
-                                }}
-                            />
-                        </div>
-                    </div>
-                </CollapsibleSection>
+                    </CollapsibleSection>
+                )}
 
                 {/* CSS/SCSS Editor Section */}
                 <CollapsibleSection title="CSS / SCSS" defaultOpen={false}>
