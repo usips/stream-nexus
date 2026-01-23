@@ -713,10 +713,11 @@ function App() {
                     <Toolbox onAddElement={handleAddElement} />
                     <EditorCanvas
                         layout={localLayout}
-                        onLayoutChange={(newLayout) => {
+                        onLayoutChange={(newLayout, addToHistory = true) => {
                             setLocalLayout(newLayout);
-                            broadcastLayout(newLayout);
+                            broadcastLayout(newLayout, addToHistory);
                         }}
+                        onPushHistory={pushToHistory}
                         selectedElement={selectedElement}
                         onSelectElement={setSelectedElement}
                         onDeleteElement={handleDeleteElement}

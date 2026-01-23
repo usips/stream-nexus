@@ -60,7 +60,8 @@ function pxToUnit(px: number, unit: DimensionUnit, isHorizontal: boolean): strin
 
 interface EditorCanvasProps {
     layout: Layout;
-    onLayoutChange: (layout: Layout) => void;
+    onLayoutChange: (layout: Layout, addToHistory?: boolean) => void;
+    onPushHistory?: (layout: Layout) => void;
     selectedElement: string;
     onSelectElement: (elementId: string) => void;
     onDeleteElement: () => void;
@@ -258,6 +259,7 @@ const DistributeVIcon = () => (
 export function EditorCanvas({
     layout,
     onLayoutChange,
+    onPushHistory,
     selectedElement,
     onSelectElement,
     onDeleteElement,
@@ -290,6 +292,8 @@ export function EditorCanvas({
     const containerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLDivElement>(null);
     const messageIdRef = useRef(4);
+    // Store layout state at start of drag/resize for proper undo batching
+    const preDragLayoutRef = useRef<Layout | null>(null);
 
     // Auto-scale to fit container
     useEffect(() => {
@@ -375,7 +379,7 @@ export function EditorCanvas({
         return () => clearInterval(interval);
     }, []);
 
-    const updateElementConfig = useCallback((elementId: string, updates: Partial<ElementConfig>) => {
+    const updateElementConfig = useCallback((elementId: string, updates: Partial<ElementConfig>, addToHistory = true) => {
         const currentElement = layout.elements[elementId];
 
         // For position updates, we REPLACE rather than merge to allow clearing anchors
@@ -403,7 +407,7 @@ export function EditorCanvas({
                 },
             },
         };
-        onLayoutChange(newLayout);
+        onLayoutChange(newLayout, addToHistory);
     }, [layout, onLayoutChange]);
 
     // Alignment handler for toolbar buttons
@@ -585,6 +589,9 @@ export function EditorCanvas({
             topPx = CANVAS_HEIGHT - bottomPx - heightPx; // Calculate top for drag math
         }
 
+        // Store layout state before drag for undo batching
+        preDragLayoutRef.current = JSON.parse(JSON.stringify(layout));
+
         setDragState({
             elementId,
             startMouseX: e.clientX,
@@ -596,7 +603,7 @@ export function EditorCanvas({
             elementWidth: widthPx,
             elementHeight: heightPx,
         });
-    }, [layout.elements, onSelectElement]);
+    }, [layout, onSelectElement]);
 
     // Grid snapping utilities
     const snapToGrid = useCallback((value: number, gridSize: number) => {
@@ -776,12 +783,20 @@ export function EditorCanvas({
             newPosition.zIndex = element.position.zIndex;
         }
 
-        updateElementConfig(dragState.elementId, { position: newPosition });
+        // Don't add to history during drag - we'll push once on mouse up
+        updateElementConfig(dragState.elementId, { position: newPosition }, false);
     }, [dragState, scale, layout.elements, updateElementConfig, gridSettings, snapToGrid, snapToElements]);
 
     const handleMouseUp = useCallback(() => {
-        // On drag end, switch anchors based on final position
+        // On drag end, push pre-drag state to history (for proper undo batching)
+        // then apply final position without adding to history again
         if (dragState) {
+            // Push the pre-drag state to history so undo reverts the entire drag
+            if (preDragLayoutRef.current && onPushHistory) {
+                onPushHistory(preDragLayoutRef.current);
+            }
+            preDragLayoutRef.current = null;
+
             const element = layout.elements[dragState.elementId];
             if (element) {
                 const pos = element.position;
@@ -859,15 +874,24 @@ export function EditorCanvas({
                     newPosition.zIndex = pos.zIndex;
                 }
 
-                updateElementConfig(dragState.elementId, { position: newPosition });
+                // Don't add to history - we already pushed the pre-drag state above
+                updateElementConfig(dragState.elementId, { position: newPosition }, false);
             }
+        }
+
+        // Handle resize end similarly - push pre-resize state for proper undo batching
+        if (resizeState) {
+            if (preDragLayoutRef.current && onPushHistory) {
+                onPushHistory(preDragLayoutRef.current);
+            }
+            preDragLayoutRef.current = null;
         }
 
         setDragState(null);
         setResizeState(null);
         setSnapHighlight(null);
         setSnapLines(null);
-    }, [dragState, layout.elements, updateElementConfig]);
+    }, [dragState, resizeState, layout.elements, updateElementConfig, onPushHistory]);
 
     // Helper to nudge a position value by 1 pixel while keeping its original unit
     const nudgePositionValue = useCallback((value: number | string | null | undefined, deltaPx: number, isHorizontal: boolean): string => {
@@ -1114,6 +1138,9 @@ export function EditorCanvas({
             bottomPx = positionToPx(pos.bottom, false);
         }
 
+        // Store layout state before resize for undo batching
+        preDragLayoutRef.current = JSON.parse(JSON.stringify(layout));
+
         setResizeState({
             elementId,
             handle,
@@ -1126,7 +1153,7 @@ export function EditorCanvas({
             startPosRight: rightPx,
             startPosBottom: bottomPx,
         });
-    }, [layout.elements, onSelectElement]);
+    }, [layout, onSelectElement]);
 
     const handleResizeMove = useCallback((e: React.MouseEvent) => {
         if (!resizeState) return;
@@ -1240,13 +1267,14 @@ export function EditorCanvas({
         const widthUnit = getUnit(element.size.width);
         const heightUnit = getUnit(element.size.height);
 
+        // Don't add to history during resize - we'll push once on mouse up
         updateElementConfig(resizeState.elementId, {
             size: {
                 width: pxToUnit(Math.round(newWidthPx), widthUnit, true),
                 height: pxToUnit(Math.round(newHeightPx), heightUnit, false),
             },
             ...(Object.keys(newPosition).length > 0 ? { position: newPosition } : {}),
-        });
+        }, false);
     }, [resizeState, scale, layout.elements, updateElementConfig]);
 
     // Default sizes for each element type
@@ -1558,14 +1586,25 @@ export function EditorCanvas({
                 );
                 break;
             }
-            case 'featured':
+            case 'featured': {
                 // Matches overlay structure: .element--featured
+                const featuredOptions = config.options || {};
+                const featuredScale = (featuredOptions.scale as number) ?? 1;
+
                 content = (
-                    <div className="element--featured" style={{ opacity: mockData.featuredMessage ? 1 : 0.5 }}>
+                    <div
+                        className="element--featured"
+                        style={{
+                            opacity: mockData.featuredMessage ? 1 : 0.5,
+                            // Set CSS variable for inner content scaling
+                            ['--featured-scale' as string]: featuredScale,
+                        }}
+                    >
                         {mockData.featuredMessage || 'Featured message appears here...'}
                     </div>
                 );
                 break;
+            }
             case 'poll': {
                 // Matches overlay structure: .element--poll
                 const totalVotes = mockData.pollVotes.reduce((a, b) => a + b, 0);
