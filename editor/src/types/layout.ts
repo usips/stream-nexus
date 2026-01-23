@@ -84,6 +84,9 @@ export interface Style {
     fontWeight?: string;
     fontStyle?: string;
     color?: string;
+    lineHeight?: string;
+    letterSpacing?: string;
+    textAlign?: string;
     padding?: string;
     margin?: string;
     borderRadius?: string;
@@ -265,10 +268,8 @@ export const defaultLayout = (): Layout => ({
         },
         featured: {
             enabled: true,
-            autoSize: true,
-            anchor: 'bottom-left',
             position: { x: '0vw', bottom: '47.41vh' },
-            size: { maxWidth: 'calc(100vw - 16.41vw)' },
+            size: { width: 'auto', maxWidth: '83.59vw', height: '10vh' },
             style: { fontSize: '32px' },
         },
         poll: {

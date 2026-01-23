@@ -169,6 +169,12 @@ pub struct Style {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub color: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub line_height: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub letter_spacing: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_align: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub padding: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub margin: Option<String>,
@@ -430,14 +436,14 @@ impl Layout {
             },
         );
 
-        // Featured message - bottom left (auto-sized with maxWidth constraint)
+        // Featured message - bottom left (auto-width with max constraint)
         elements.insert(
             "featured".to_string(),
             ElementConfig {
                 enabled: true,
                 locked: false,
-                auto_size: true,
-                anchor: Some(AnchorPoint::BottomLeft),
+                auto_size: false,
+                anchor: None,
                 display_name: None,
                 position: Position {
                     x: Some(Dimension::Vw(0.0)),
@@ -447,9 +453,9 @@ impl Layout {
                     z_index: None,
                 },
                 size: Size {
-                    width: None,
-                    height: None,
-                    max_width: Some("calc(100vw - 16.41vw)".to_string()),
+                    width: None, // auto
+                    height: Some(Dimension::Vh(10.0)),
+                    max_width: Some("83.59vw".to_string()),
                     max_height: None,
                 },
                 style: Style {

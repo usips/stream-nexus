@@ -25,6 +25,9 @@ export interface Style {
     fontWeight?: string;
     fontStyle?: string;
     color?: string;
+    lineHeight?: string;
+    letterSpacing?: string;
+    textAlign?: string;
     padding?: string;
     margin?: string;
     borderRadius?: string;
