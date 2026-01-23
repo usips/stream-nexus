@@ -14,6 +14,50 @@ import {
 } from '../types/layout';
 import { resolveTokens } from '../utils/tokens';
 
+// ============================================================================
+// Unit Preservation Helpers
+// ============================================================================
+
+type DimensionUnit = 'px' | 'vw' | 'vh' | '%' | 'em';
+
+// Extract the unit from a dimension value (e.g., "15.63vw" -> "vw")
+function getUnit(value: string | number | null | undefined): DimensionUnit {
+    if (value === null || value === undefined) return 'vw'; // default
+    if (typeof value === 'number') return 'px';
+
+    const str = value.toString().trim();
+    if (str.endsWith('vw')) return 'vw';
+    if (str.endsWith('vh')) return 'vh';
+    if (str.endsWith('%')) return '%';
+    if (str.endsWith('em')) return 'em';
+    if (str.endsWith('px')) return 'px';
+
+    // Bare number = pixels
+    return 'px';
+}
+
+// Convert pixel value to the specified unit
+function pxToUnit(px: number, unit: DimensionUnit, isHorizontal: boolean): string | number {
+    const rounded = Math.round(px * 100) / 100;
+
+    switch (unit) {
+        case 'px':
+            return rounded;
+        case 'vw':
+            return `${(Math.round((px / CANVAS_WIDTH) * 100 * 100) / 100)}vw`;
+        case 'vh':
+            return `${(Math.round((px / CANVAS_HEIGHT) * 100 * 100) / 100)}vh`;
+        case '%': {
+            const ref = isHorizontal ? CANVAS_WIDTH : CANVAS_HEIGHT;
+            return `${(Math.round((px / ref) * 100 * 100) / 100)}%`;
+        }
+        case 'em':
+            return `${(Math.round((px / 16) * 100) / 100)}em`;
+        default:
+            return rounded;
+    }
+}
+
 interface EditorCanvasProps {
     layout: Layout;
     onLayoutChange: (layout: Layout) => void;
@@ -706,21 +750,25 @@ export function EditorCanvas({
         const useRight = dragState.startRight !== null;
         const useBottom = dragState.startBottom !== null;
 
-        // Build new position with vw/vh units, keeping original anchor
+        // Build new position, preserving original units
         const newPosition: Position = {};
 
         if (useRight) {
             const rightPx = CANVAS_WIDTH - newLeftPx - dragState.elementWidth;
-            newPosition.right = pxToVw(Math.max(0, rightPx));
+            const unit = getUnit(element.position.right);
+            newPosition.right = pxToUnit(Math.max(0, rightPx), unit, true);
         } else {
-            newPosition.x = pxToVw(newLeftPx);
+            const unit = getUnit(element.position.x);
+            newPosition.x = pxToUnit(newLeftPx, unit, true);
         }
 
         if (useBottom) {
             const bottomPx = CANVAS_HEIGHT - newTopPx - dragState.elementHeight;
-            newPosition.bottom = pxToVh(Math.max(0, bottomPx));
+            const unit = getUnit(element.position.bottom);
+            newPosition.bottom = pxToUnit(Math.max(0, bottomPx), unit, false);
         } else {
-            newPosition.y = pxToVh(newTopPx);
+            const unit = getUnit(element.position.y);
+            newPosition.y = pxToUnit(newTopPx, unit, false);
         }
 
         // Preserve z-index
@@ -781,21 +829,29 @@ export function EditorCanvas({
                     useBottom = centerY > CANVAS_HEIGHT / 2;
                 }
 
-                // Build final position with determined anchors
+                // Build final position with determined anchors, preserving units where possible
                 const newPosition: Position = {};
 
                 if (useRight) {
                     const rightPx = CANVAS_WIDTH - leftPx - widthPx;
-                    newPosition.right = pxToVw(Math.max(0, rightPx));
+                    // Use original right unit if it was set, otherwise use x unit or default to vw
+                    const unit = getUnit(pos.right ?? pos.x);
+                    newPosition.right = pxToUnit(Math.max(0, rightPx), unit, true);
                 } else {
-                    newPosition.x = pxToVw(leftPx);
+                    // Use original x unit if it was set, otherwise use right unit or default to vw
+                    const unit = getUnit(pos.x ?? pos.right);
+                    newPosition.x = pxToUnit(leftPx, unit, true);
                 }
 
                 if (useBottom) {
                     const bottomPx = CANVAS_HEIGHT - topPx - heightPx;
-                    newPosition.bottom = pxToVh(Math.max(0, bottomPx));
+                    // Use original bottom unit if it was set, otherwise use y unit or default to vh
+                    const unit = getUnit(pos.bottom ?? pos.y);
+                    newPosition.bottom = pxToUnit(Math.max(0, bottomPx), unit, false);
                 } else {
-                    newPosition.y = pxToVh(topPx);
+                    // Use original y unit if it was set, otherwise use bottom unit or default to vh
+                    const unit = getUnit(pos.y ?? pos.bottom);
+                    newPosition.y = pxToUnit(topPx, unit, false);
                 }
 
                 // Preserve z-index
@@ -1158,17 +1214,21 @@ export function EditorCanvas({
             }
         }
 
-        // Build position with vw/vh units, preserving which edges are used
+        // Build position, preserving original units
         const newPosition: Position = {};
         if (newRightPx !== null) {
-            newPosition.right = pxToVw(newRightPx);
+            const unit = getUnit(element.position.right);
+            newPosition.right = pxToUnit(newRightPx, unit, true);
         } else if (newLeftPx !== null) {
-            newPosition.x = pxToVw(newLeftPx);
+            const unit = getUnit(element.position.x);
+            newPosition.x = pxToUnit(newLeftPx, unit, true);
         }
         if (newBottomPx !== null) {
-            newPosition.bottom = pxToVh(newBottomPx);
+            const unit = getUnit(element.position.bottom);
+            newPosition.bottom = pxToUnit(newBottomPx, unit, false);
         } else if (newTopPx !== null) {
-            newPosition.y = pxToVh(newTopPx);
+            const unit = getUnit(element.position.y);
+            newPosition.y = pxToUnit(newTopPx, unit, false);
         }
 
         // Preserve z-index
@@ -1176,11 +1236,14 @@ export function EditorCanvas({
             newPosition.zIndex = element.position.zIndex;
         }
 
-        // Convert size to vw/vh
+        // Convert size, preserving original units
+        const widthUnit = getUnit(element.size.width);
+        const heightUnit = getUnit(element.size.height);
+
         updateElementConfig(resizeState.elementId, {
             size: {
-                width: pxToVw(Math.round(newWidthPx)),
-                height: pxToVh(Math.round(newHeightPx)),
+                width: pxToUnit(Math.round(newWidthPx), widthUnit, true),
+                height: pxToUnit(Math.round(newHeightPx), heightUnit, false),
             },
             ...(Object.keys(newPosition).length > 0 ? { position: newPosition } : {}),
         });
