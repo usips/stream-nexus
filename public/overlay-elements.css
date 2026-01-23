@@ -387,7 +387,8 @@ section#attribution {
     font-size: var(--message-text-size, 32px);
     font-family: var(--font-ui);
     color: var(--message-color, #ccc);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: visible;
     /* Scale is applied via CSS variable set by JS */
     --featured-scale: 1;
 }
@@ -399,6 +400,24 @@ section#attribution {
     border-right: 1px solid transparent;
     transform: scale(var(--featured-scale));
     transform-origin: top left;
+    /* Force width constraint and allow vertical overflow */
+    width: 100%;
+    max-width: 100%;
+    max-height: none;
+    box-sizing: border-box;
+    overflow: visible;
+}
+
+.element--featured .msg-container {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+}
+
+.element--featured .msg-text {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ============================================================================
