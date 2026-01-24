@@ -393,6 +393,14 @@ section#attribution {
     /* Use overflow: visible on both axes to prevent clipping of superchat content
        Note: overflow-x:hidden + overflow-y:visible causes browsers to treat y as auto */
     overflow: visible;
+
+    /* Hide scrollbar if it somehow appears */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.element--featured::-webkit-scrollbar {
+    display: none;
 }
 
 /* Featured messages have border-radius on the right instead of left */

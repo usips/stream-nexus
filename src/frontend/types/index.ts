@@ -142,6 +142,11 @@ export interface ViewerCounts {
     [platform: string]: number;
 }
 
+export interface FeatureMessageResponse {
+    id: string | null;
+    html?: string;
+}
+
 export interface LayoutListResponse {
     layouts: string[];
     active: string;
