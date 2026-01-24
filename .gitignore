@@ -38,3 +38,8 @@ exchange_rates.xml
 super_chats.json
 *.log
 layouts/
+
+# SQLite database
+*.db
+*.db-shm
+*.db-wal

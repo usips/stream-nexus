@@ -1,10 +1,11 @@
 use actix::{Actor, Context, Handler, MessageResult, Recipient};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use uuid::Uuid;
 
 use super::message;
+use crate::database::Database;
 use crate::exchange::ExchangeRates;
 use crate::layout::{Layout, LayoutManager};
 use crate::message::Message as ChatMessage;
@@ -22,18 +23,27 @@ pub struct Connection {
 pub struct ChatServer {
     pub clients: HashMap<usize, Connection>,
     pub chat_messages: HashMap<Uuid, ChatMessage>,
-    pub paid_messages: Vec<Uuid>,
     pub exchange_rates: ExchangeRates,
     pub viewer_counts: HashMap<String, usize>,
     pub layout_manager: Arc<Mutex<LayoutManager>>,
     pub active_layout: String,
-    /// Currently featured message ID (if any)
-    pub featured_message: Option<Uuid>,
+    /// Currently featured message (full data for decoupled rendering)
+    pub featured_message: Option<ChatMessage>,
+    /// SQLite database for persistent paid message storage
+    pub database: Database,
 }
 
 impl ChatServer {
     pub fn new(exchange_rates: ExchangeRates, layout_manager: Arc<Mutex<LayoutManager>>) -> Self {
         info!("Chat actor starting up.");
+
+        // Initialize SQLite database
+        let database = Database::new().expect("Failed to initialize database");
+
+        // Clean up messages older than 48 hours on startup
+        if let Err(e) = database.cleanup_old_messages(48) {
+            warn!("Failed to cleanup old messages: {}", e);
+        }
 
         // Determine active layout (use "default" if it exists)
         let active_layout = {
@@ -45,52 +55,25 @@ impl ChatServer {
             }
         };
 
-        // get last modified time of superchats.json
-        let super_chats_last_modified = std::fs::metadata("super_chats.json")
-            .map(|meta| meta.modified().unwrap())
-            .ok();
+        // Load paid messages from database into chat_messages for recent message history
+        let chat_messages: HashMap<Uuid, ChatMessage> = database
+            .get_paid_messages_since_hours(24)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|msg| (msg.id, msg))
+            .collect();
 
-        // if superchats.json exists and was modified in the last 15 minutes, load it
-        if let Some(super_chats_last_modified) = super_chats_last_modified {
-            let now = std::time::SystemTime::now();
-            let duration = now.duration_since(super_chats_last_modified).unwrap();
-            if duration.as_secs() < 900 {
-                // Load superchats from disk.
-                let super_chats_json = std::fs::read_to_string("super_chats.json");
-                if let Ok(super_chats_json) = super_chats_json {
-                    info!("Loading superchats from disk.");
-                    let super_chats: Vec<ChatMessage> =
-                        serde_json::from_str(&super_chats_json).unwrap();
-                    let paid_messages: Vec<Uuid> = super_chats.iter().map(|msg| msg.id).collect();
-
-                    // convert to hashmap
-                    let chat_messages: HashMap<Uuid, ChatMessage> = super_chats
-                        .iter()
-                        .map(|msg| (msg.id, msg.clone()))
-                        .collect();
-                    return Self {
-                        clients: HashMap::with_capacity(100),
-                        chat_messages,
-                        paid_messages,
-                        exchange_rates,
-                        viewer_counts: Default::default(),
-                        layout_manager,
-                        active_layout,
-                        featured_message: None,
-                    };
-                }
-            }
-        }
+        info!("Loaded {} paid messages from database", chat_messages.len());
 
         Self {
             clients: HashMap::with_capacity(100),
-            chat_messages: HashMap::with_capacity(100),
-            paid_messages: Vec::with_capacity(100),
+            chat_messages,
             exchange_rates,
             viewer_counts: HashMap::with_capacity(100),
             layout_manager,
             active_layout,
             featured_message: None,
+            database,
         }
     }
 
@@ -233,27 +216,13 @@ impl Handler<message::Content> for ChatServer {
         if self.chat_messages.len() >= self.chat_messages.capacity() - 1 {
             self.chat_messages.reserve(100);
         }
-        self.chat_messages.insert(id.to_owned(), chat_msg);
+        self.chat_messages.insert(id.to_owned(), chat_msg.clone());
 
-        // Backup premium chats to a vector.
-        // Performed at the end to avoid having to copy.
+        // Save paid messages to SQLite database
         if usd > 0.0 {
-            if self.paid_messages.len() >= self.paid_messages.capacity() - 1 {
-                self.paid_messages.reserve(100);
+            if let Err(e) = self.database.upsert_paid_message(&chat_msg) {
+                warn!("Failed to save paid message to database: {}", e);
             }
-            self.paid_messages.push(id);
-
-            // Save all messages with amount > 0 to disk in case of a crash
-            let mut super_chats: Vec<ChatMessage> = self
-                .paid_messages
-                .iter()
-                .filter_map(|id| self.chat_messages.get(id).cloned())
-                .collect();
-
-            super_chats.sort_by_key(|msg| msg.received_at);
-
-            let super_chats_json = serde_json::to_string(&super_chats).unwrap();
-            std::fs::write("super_chats.json", super_chats_json).unwrap();
         }
     }
 }
@@ -269,33 +238,59 @@ impl Handler<message::Disconnect> for ChatServer {
 }
 
 /// Handler for feature/unfeature message.
+/// Now looks up full message data and broadcasts it for decoupled rendering.
 impl<'a> Handler<message::FeatureMessage> for ChatServer {
-    type Result = ();
+    type Result = Option<ChatMessage>;
 
     fn handle(&mut self, msg: message::FeatureMessage, _: &mut Context<Self>) -> Self::Result {
-        // Store the featured message ID for new clients
-        self.featured_message = msg.id;
-        debug!("[ChatServer] Featured message set to: {:?}", self.featured_message);
+        // Handle unfeaturing
+        let featured_msg = if let Some(id) = msg.id {
+            // Try to find the message in memory first, then database
+            let found_msg = self.chat_messages.get(&id).cloned()
+                .or_else(|| {
+                    self.database.get_paid_message(&id)
+                        .ok()
+                        .flatten()
+                });
+
+            if found_msg.is_none() {
+                warn!("[ChatServer] Featured message {} not found in memory or database", id);
+            }
+            found_msg
+        } else {
+            None
+        };
+
+        // Store the full featured message
+        self.featured_message = featured_msg.clone();
+        debug!("[ChatServer] Featured message set to: {:?}", self.featured_message.as_ref().map(|m| m.id));
+
+        // Broadcast to all clients - send full message JSON if featuring, null if unfeaturing
+        let reply_message = match &featured_msg {
+            Some(chat_msg) => chat_msg.to_json(),
+            None => "null".to_string(),
+        };
 
         for (_, conn) in &self.clients {
             conn.recipient.do_send(message::Reply(
                 serde_json::to_string(&message::ReplyInner {
                     tag: "feature_message".to_owned(),
-                    message: serde_json::to_string(&msg.id)
-                        .expect("Failed to serialize feature string."),
+                    message: reply_message.clone(),
                 })
                 .expect("Failed to serialize feature ReplyInner"),
             ));
         }
+
+        featured_msg
     }
 }
 
-/// Handler for requesting current featured message
+/// Handler for requesting current featured message (returns full message data)
 impl Handler<message::RequestFeaturedMessage> for ChatServer {
     type Result = MessageResult<message::RequestFeaturedMessage>;
 
     fn handle(&mut self, _: message::RequestFeaturedMessage, _: &mut Context<Self>) -> Self::Result {
-        MessageResult(self.featured_message)
+        MessageResult(self.featured_message.clone())
     }
 }
 
@@ -330,7 +325,16 @@ impl Handler<message::RemoveMessage> for ChatServer {
     fn handle(&mut self, msg: message::RemoveMessage, _: &mut Context<Self>) -> Self::Result {
         debug!("[ChatServer] Removing message with ID {}", msg.id);
         self.chat_messages.remove(&msg.id);
-        self.paid_messages.retain(|&id| id != msg.id);
+
+        // Also remove from database
+        if let Err(e) = self.database.delete_paid_message(&msg.id) {
+            warn!("Failed to delete paid message from database: {}", e);
+        }
+
+        // Clear featured message if it's being removed
+        if self.featured_message.as_ref().map(|m| m.id) == Some(msg.id) {
+            self.featured_message = None;
+        }
 
         // Notify all clients to remove the message.
         for (_, conn) in &self.clients {
@@ -346,18 +350,29 @@ impl Handler<message::RemoveMessage> for ChatServer {
     }
 }
 
-/// Handler for all stored Superchats.
+/// Handler for all stored Superchats (from database, last 24 hours for dashboard)
 impl<'a> Handler<message::PaidMessages> for ChatServer {
     type Result = MessageResult<message::PaidMessages>;
 
     fn handle(&mut self, _: message::PaidMessages, _: &mut Context<Self>) -> Self::Result {
-        let mut super_chats: Vec<ChatMessage> = self
-            .paid_messages
-            .iter()
-            .filter_map(|id| self.chat_messages.get(id).cloned())
-            .collect();
-        super_chats.sort_by_key(|msg| msg.received_at);
-        debug!("Sending {} superchats.", super_chats.len());
+        // Get paid messages from the last 24 hours
+        let super_chats = self.database
+            .get_paid_messages_since_hours(24)
+            .unwrap_or_default();
+        debug!("Sending {} superchats from last 24 hours.", super_chats.len());
+        MessageResult(super_chats)
+    }
+}
+
+/// Handler for paid messages with custom time filter
+impl<'a> Handler<message::PaidMessagesSince> for ChatServer {
+    type Result = MessageResult<message::PaidMessagesSince>;
+
+    fn handle(&mut self, msg: message::PaidMessagesSince, _: &mut Context<Self>) -> Self::Result {
+        let super_chats = self.database
+            .get_paid_messages_since_hours(msg.hours)
+            .unwrap_or_default();
+        debug!("Sending {} superchats from last {} hours.", super_chats.len(), msg.hours);
         MessageResult(super_chats)
     }
 }

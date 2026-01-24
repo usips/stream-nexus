@@ -107,7 +107,7 @@ Attribution.craft = {
     displayName: 'Attribution',
 };
 
-// Featured Message element
+// Featured Message element - shows a realistic superchat preview
 export function FeaturedMessage({ style }: { style?: React.CSSProperties }) {
     const { connectors: { connect, drag }, selected } = useNode((state) => ({
         selected: state.events.selected,
@@ -117,11 +117,23 @@ export function FeaturedMessage({ style }: { style?: React.CSSProperties }) {
         <div
             ref={(ref) => ref && connect(drag(ref))}
             style={style}
-            className={`element-wrapper ${selected ? 'selected' : ''}`}
+            className={`element-wrapper element--featured ${selected ? 'selected' : ''}`}
         >
             <span className="element-label">Featured Message</span>
-            <div className="preview-featured">
-                Featured message appears here...
+            {/* Realistic superchat preview matching message.html template structure */}
+            <div className="msg msg--t msg--ta-10 msg--p-YouTube" style={{ margin: '8px 0' }}>
+                <div className="msg-header">
+                    <div className="msg-avatar-border">
+                        <span className="msg-letter">J</span>
+                    </div>
+                    <div className="msg-container">
+                        <div className="msg-user">
+                            <span className="msg-username">JohnDoe</span>
+                        </div>
+                        <div className="msg-amount">10.00 USD</div>
+                    </div>
+                </div>
+                <div className="msg-text">Thanks for the stream! This is a sample superchat message preview.</div>
             </div>
         </div>
     );

@@ -234,7 +234,10 @@ function updateConnectionStatus(connected: boolean): void {
                     handleMessage(message as ChatMessage);
                     break;
                 case "feature_message":
-                    handleFeatureMessage(message as string | null);
+                    // Server now sends full ChatMessage data or null
+                    // Extract the ID for dashboard styling
+                    const featuredMsg = message as ChatMessage | null;
+                    handleFeatureMessage(featuredMsg?.id ?? null);
                     break;
                 case "viewers":
                     handleViewers(message as ViewerCounts);

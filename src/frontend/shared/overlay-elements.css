@@ -390,8 +390,9 @@ section#attribution {
     font-size: calc(var(--base-featured-size) * var(--featured-scale, 1));
     font-family: var(--font-ui);
     color: var(--message-color, #ccc);
-    overflow-x: hidden;
-    overflow-y: visible;
+    /* Use overflow: visible on both axes to prevent clipping of superchat content
+       Note: overflow-x:hidden + overflow-y:visible causes browsers to treat y as auto */
+    overflow: visible;
 }
 
 /* Featured messages have border-radius on the right instead of left */
@@ -404,9 +405,32 @@ section#attribution {
     /* Width constraints for proper text wrapping */
     width: 100%;
     max-width: 100%;
-    max-height: none;
+    /* Critical: remove max-height and allow full content to display */
+    max-height: none !important;
+    height: auto !important;
     box-sizing: border-box;
     overflow: visible;
+}
+
+/* Ensure superchats display correctly in featured element */
+.element--featured .msg.msg--t {
+    /* Superchats have a two-row layout - ensure it displays fully */
+    flex-wrap: wrap;
+    max-height: none !important;
+    height: auto !important;
+}
+
+/* Superchat header row */
+.element--featured .msg-header {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Superchat message text area (second row) */
+.element--featured .msg--t .msg-text {
+    width: 100%;
+    padding: 1em;
+    padding-top: 0.5em;
 }
 
 .element--featured .msg-container {

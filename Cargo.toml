@@ -14,6 +14,7 @@ anyhow = "1.0"
 askama = { version = "0.12", features = ["with-actix-web"] }
 askama_actix = "0.14"
 chrono = "0.4.26"
+dirs = "5"
 dotenvy = "0.15"
 futures = "0.3.28"
 grass = "0.13.4"
@@ -22,6 +23,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 quick-xml = { version = "0.39" }
 rand = "0.8"
 reqwest = "0.13"
+rusqlite = { version = "0.31", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = "1.29.1"

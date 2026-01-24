@@ -44,20 +44,30 @@ impl Message for Content {
     type Result = ();
 }
 
-/// Feature/Unfeature message.
+/// Feature/Unfeature message - now includes full message data for decoupled rendering
 pub struct FeatureMessage {
     pub id: Option<uuid::Uuid>,
 }
 
 impl Message for FeatureMessage {
-    type Result = ();
+    /// Returns the full ChatMessage if found, None if unfeaturing or not found
+    type Result = Option<ChatMessage>;
 }
 
-/// Request current featured message
+/// Request current featured message (returns full message data)
 pub struct RequestFeaturedMessage;
 
 impl Message for RequestFeaturedMessage {
-    type Result = Option<uuid::Uuid>;
+    type Result = Option<ChatMessage>;
+}
+
+/// Request paid messages with time filter (hours)
+pub struct PaidMessagesSince {
+    pub hours: u32,
+}
+
+impl Message for PaidMessagesSince {
+    type Result = Vec<ChatMessage>;
 }
 
 /// Request for paid messages.

@@ -347,15 +347,20 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                             })
                             .wait(ctx);
 
-                        // Also send the current featured message if any
+                        // Also send the current featured message if any (full message data)
                         self.server
                             .send(message::RequestFeaturedMessage)
                             .into_actor(self)
                             .then(|res, _, ctx| {
-                                if let Ok(featured_id) = res {
+                                if let Ok(featured_msg) = res {
+                                    // Send full message JSON if featured, "null" if not
+                                    let msg_json = match featured_msg {
+                                        Some(msg) => msg.to_json(),
+                                        None => "null".to_string(),
+                                    };
                                     let reply = serde_json::to_string(&message::ReplyInner {
                                         tag: "feature_message".to_owned(),
-                                        message: serde_json::to_string(&featured_id).unwrap(),
+                                        message: msg_json,
                                     })
                                     .unwrap();
                                     ctx.text(reply);

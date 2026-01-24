@@ -213,7 +213,8 @@ const bindWebsocketEvents = (): void => {
                 break;
             case "feature_message":
                 console.log("[SNEED] Received feature_message event:", message);
-                handle_feature_message(message as string | null);
+                // Message is now full ChatMessage data or null (for unfeaturing)
+                handle_feature_message(message as ChatMessage | null);
                 break;
             case "viewers":
                 handle_viewers(message as ViewerCounts);
@@ -719,61 +720,71 @@ function filter_badges(messageEl: HTMLElement): void {
     });
 }
 
-// Store pending feature request if message isn't in DOM yet
-let pendingFeatureId: string | null = null;
+// Store pending feature request if layout isn't applied yet
+// Now stores full message data instead of just ID for decoupled rendering
+let pendingFeatureMessage: ChatMessage | null = null;
 
-function handle_feature_message(id: string | null): void {
+/**
+ * Handle featuring a message in the overlay.
+ * Now receives full message data from the server, eliminating DOM dependency.
+ * This allows featuring messages that aren't in the chat history.
+ */
+function handle_feature_message(message: ChatMessage | null): void {
     // Find all layout-created featured elements
     const featured_elements = document.querySelectorAll<HTMLElement>('.element--featured');
-    console.log("[SNEED] handle_feature_message:", id, "featured_elements:", featured_elements.length);
+    console.log("[SNEED] handle_feature_message:", message?.id ?? "null", "featured_elements:", featured_elements.length);
 
-    if (id === null) {
-        // Clear all featured elements
-        pendingFeatureId = null;
+    if (message === null) {
+        // Clear all featured elements (unfeaturing)
+        pendingFeatureMessage = null;
         featured_elements.forEach(el => el.innerHTML = "");
         console.log("[SNEED] Cleared featured message");
         return;
     }
 
-    // Store pending feature ID even if no featured elements exist yet
+    // Store pending feature message if no featured elements exist yet
     // (layout might not be applied yet)
     if (featured_elements.length === 0) {
-        console.log("[SNEED] No .element--featured elements found yet, storing pending feature:", id);
-        pendingFeatureId = id;
+        console.log("[SNEED] No .element--featured elements found yet, storing pending feature:", message.id);
+        pendingFeatureMessage = message;
         return;
     }
 
-    const sourceEl = document.getElementById(id);
-    console.log("[SNEED] Looking for message ID:", id, "found:", sourceEl !== null);
+    // Render the message directly from provided HTML data
+    // This decouples featured messages from chat history - they can be old superchats
+    // that are no longer in the chat panel DOM
+    const html = message.html;
+    if (!html) {
+        console.warn("[SNEED] Featured message has no HTML content:", message.id);
+        return;
+    }
 
-    if (sourceEl !== null) {
-        const cloned = sourceEl.cloneNode(true) as HTMLElement;
-        cloned.id = `feature-${id}`;
-        const content = cloned.outerHTML;
+    // Parse the HTML and modify the ID to avoid conflicts with chat panel
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const msgEl = tempDiv.firstElementChild as HTMLElement | null;
+
+    if (msgEl) {
+        msgEl.id = `feature-${message.id}`;
+        const content = msgEl.outerHTML;
+
         // Update all featured elements with the same content
         featured_elements.forEach(el => {
             el.innerHTML = content;
             console.log("[SNEED] Set featured element content, innerHTML length:", el.innerHTML.length);
         });
-        pendingFeatureId = null;
-        console.log("[SNEED] Featured message:", id);
+        pendingFeatureMessage = null;
+        console.log("[SNEED] Featured message:", message.id);
     } else {
-        // Message might be in buffer, store for later
-        pendingFeatureId = id;
-        console.log("[SNEED] Featured message not found yet, waiting for buffer:", id);
-        // Log existing message IDs to help debug
-        const allMsgs = document.querySelectorAll('.msg');
-        console.log("[SNEED] Existing message IDs:", Array.from(allMsgs).slice(0, 10).map(m => m.id));
+        console.warn("[SNEED] Failed to parse featured message HTML:", message.id);
     }
 }
 
-// Check if a pending feature can be applied (called after processing buffered messages)
+// Check if a pending feature can be applied (called after layout is applied)
 function checkPendingFeature(): void {
-    if (pendingFeatureId) {
-        const sourceEl = document.getElementById(pendingFeatureId);
-        if (sourceEl) {
-            handle_feature_message(pendingFeatureId);
-        }
+    if (pendingFeatureMessage) {
+        console.log("[SNEED] Applying pending featured message:", pendingFeatureMessage.id);
+        handle_feature_message(pendingFeatureMessage);
     }
 }
 

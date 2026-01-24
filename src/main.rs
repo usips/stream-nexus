@@ -1,3 +1,4 @@
+mod database;
 mod exchange;
 mod layout;
 mod message;
