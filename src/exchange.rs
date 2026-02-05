@@ -82,6 +82,10 @@ fn parse_xml(body: &str) -> Result<ExchangeRates> {
     // $1 USD == $1 USD. Redundant placeholder for safety.
     rates.insert(String::from("USD"), 1.0);
 
+    // Platform-specific virtual currencies (inserted after USD normalization).
+    // Kick.com: 100 Kicks = $1.09, so 1 Kick ≈ $0.01 USD.
+    rates.insert(String::from("KICKS"), 0.01);
+
     Ok(ExchangeRates { rates })
 }
 
