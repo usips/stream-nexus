@@ -213,7 +213,7 @@ impl Handler<message::Content> for ChatServer {
             ));
         }
 
-        if self.chat_messages.len() >= self.chat_messages.capacity() - 1 {
+        if self.chat_messages.len() + 1 >= self.chat_messages.capacity() {
             self.chat_messages.reserve(100);
         }
         self.chat_messages.insert(id.to_owned(), chat_msg.clone());
