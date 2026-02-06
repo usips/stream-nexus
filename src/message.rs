@@ -52,6 +52,10 @@ pub struct Message {
     pub is_mod: bool,
     pub is_owner: bool,
     pub is_staff: bool,
+
+    // Message type flags
+    #[serde(default)]
+    pub is_subscription: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, ActixMessage, Clone)]
@@ -108,6 +112,7 @@ impl Default for Message {
             is_mod: false,
             is_owner: false,
             is_staff: false,
+            is_subscription: false,
         }
     }
 }
@@ -183,6 +188,14 @@ impl Message {
             2
         } else {
             1
+        }
+    }
+
+    pub fn get_subscription_string(&self) -> String {
+        if self.is_subscription {
+            "msg--sub-event".to_string()
+        } else {
+            String::new()
         }
     }
 

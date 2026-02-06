@@ -1,5 +1,5 @@
 <div id="{{ message.id }}"
-    class="msg {{ message.get_platform_string() }} {{ message.get_badge_string() }} {{ message.get_paid_string() }}"
+    class="msg {{ message.get_platform_string() }} {{ message.get_badge_string() }} {{ message.get_paid_string() }} {{ message.get_subscription_string() }}"
     style="order: {{ message.get_sent_at_secs() }}" data-paid-tier="{{ message.get_paid_tier() }}" data-sent-at="{{ message.get_sent_at_secs() }}">
     {% if message.is_premium() ~%}
     <div class="msg-header">

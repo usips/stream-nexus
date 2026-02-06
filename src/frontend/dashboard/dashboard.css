@@ -218,6 +218,17 @@ body {
     border-left: 3px solid rgba(233, 69, 96, 0.6);
 }
 
+/* Subscription event messages (subs/gifted subs) - purple to distinguish from superchats */
+.dashboard-column-content .msg.msg--sub-event {
+    background: rgba(138, 43, 226, 0.15);
+    border-left: 3px solid #8b2be6;
+}
+
+.dashboard-column-content .msg.msg--sub-event:hover {
+    background: rgba(138, 43, 226, 0.25);
+    border-color: #a855f7;
+}
+
 /* ============================================================================
    Superchat Time Badge
    ============================================================================ */

@@ -83,6 +83,18 @@ impl Database {
             [],
         )?;
 
+        // Migration: add is_subscription column
+        let has_is_subscription = conn
+            .prepare("SELECT is_subscription FROM paid_messages LIMIT 0")
+            .is_ok();
+        if !has_is_subscription {
+            conn.execute(
+                "ALTER TABLE paid_messages ADD COLUMN is_subscription INTEGER NOT NULL DEFAULT 0",
+                [],
+            )?;
+            info!("Migrated database: added is_subscription column");
+        }
+
         debug!("Database schema initialized");
         Ok(())
     }
@@ -96,8 +108,8 @@ impl Database {
         conn.execute(
             "INSERT OR REPLACE INTO paid_messages
              (id, platform, sent_at, received_at, message, emojis, username, avatar,
-              amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+              amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff, is_subscription)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
             params![
                 msg.id.to_string(),
                 msg.platform,
@@ -114,6 +126,7 @@ impl Database {
                 msg.is_mod as i32,
                 msg.is_owner as i32,
                 msg.is_staff as i32,
+                msg.is_subscription as i32,
             ],
         )?;
 
@@ -127,7 +140,8 @@ impl Database {
 
         let mut stmt = conn.prepare(
             "SELECT id, platform, sent_at, received_at, message, emojis, username, avatar,
-                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff
+                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff,
+                    is_subscription
              FROM paid_messages WHERE id = ?1"
         )?;
 
@@ -155,7 +169,8 @@ impl Database {
 
         let mut stmt = conn.prepare(
             "SELECT id, platform, sent_at, received_at, message, emojis, username, avatar,
-                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff
+                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff,
+                    is_subscription
              FROM paid_messages
              WHERE received_at >= ?1
              ORDER BY received_at ASC"
@@ -176,7 +191,8 @@ impl Database {
 
         let mut stmt = conn.prepare(
             "SELECT id, platform, sent_at, received_at, message, emojis, username, avatar,
-                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff
+                    amount, currency, is_verified, is_sub, is_mod, is_owner, is_staff,
+                    is_subscription
              FROM paid_messages
              ORDER BY received_at ASC"
         )?;
@@ -246,6 +262,7 @@ impl Database {
             is_mod: row.get::<_, i32>(12)? != 0,
             is_owner: row.get::<_, i32>(13)? != 0,
             is_staff: row.get::<_, i32>(14)? != 0,
+            is_subscription: row.get::<_, i32>(15)? != 0,
         })
     }
 }
