@@ -19,6 +19,9 @@ let donationAutoScroll = true;
 // Track featured message IDs
 const featuredMessageIds = new Set<string>();
 
+// Donation filter - default to $1.00 minimum
+let minDonationFilter = 1.00;
+
 // ============================================================================
 // Auto-scroll Management
 // ============================================================================
@@ -357,6 +360,19 @@ function onPollEnd(): void {
 }
 
 // ============================================================================
+// Donation Filter
+// ============================================================================
+
+function applyDonationFilter(): void {
+    if (!donationHistory) return;
+    const messages = donationHistory.querySelectorAll<HTMLElement>('.msg');
+    messages.forEach(msg => {
+        const amount = parseFloat(msg.dataset.amount || '0');
+        msg.style.display = amount < minDonationFilter ? 'none' : '';
+    });
+}
+
+// ============================================================================
 // Message Handling
 // ============================================================================
 
@@ -472,6 +488,11 @@ function handleMessage(message: ChatMessage): HTMLElement | null {
                 if (featuredMessageIds.has(message.id)) {
                     newEl.classList.add("msg--was-featured");
                 }
+
+                // Apply donation filter
+                if (message.amount < minDonationFilter) {
+                    newEl.style.display = 'none';
+                }
             }
 
             // Scroll to bottom if auto-scroll is enabled
@@ -556,6 +577,17 @@ document.querySelectorAll<HTMLElement>(".msg").forEach((el) => {
         addTimestampToSuperchat(el, timestamp);
     }
 });
+
+// Initialize donation filter
+const donationFilterInput = document.getElementById('donation-filter-amount') as HTMLInputElement | null;
+if (donationFilterInput) {
+    donationFilterInput.addEventListener('input', () => {
+        minDonationFilter = parseFloat(donationFilterInput.value) || 0;
+        applyDonationFilter();
+    });
+    // Apply filter to server-rendered superchats
+    applyDonationFilter();
+}
 
 // Auto-scroll to bottom after initial load
 if (donationHistory) {

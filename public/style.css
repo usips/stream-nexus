@@ -203,6 +203,20 @@ section#chat::-webkit-scrollbar {
     --message-text-color: #FFFFFF;
 }
 
+/* Micro donation tier ($0.01-$0.99) - blue border, regular message look */
+.msg.msg--micro {
+    border-color: #1565C0;
+}
+
+.msg-amount-inline {
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #1565C0;
+    margin-left: 0.4em;
+    vertical-align: top;
+}
+
 /* ============================================================================
    Role Borders for Special Users
    ============================================================================ */

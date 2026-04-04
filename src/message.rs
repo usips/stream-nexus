@@ -161,11 +161,12 @@ impl Message {
 
     pub fn get_paid_string(&self) -> String {
         if self.is_premium() {
-            format!(
-                "msg--t msg--ta-{} msg--tc-{}",
-                self.get_paid_tier(),
-                self.currency
-            )
+            let tier = self.get_paid_tier();
+            if tier == 0 {
+                format!("msg--micro msg--ta-0 msg--tc-{}", self.currency)
+            } else {
+                format!("msg--t msg--ta-{} msg--tc-{}", tier, self.currency)
+            }
         } else {
             String::new()
         }
@@ -186,8 +187,10 @@ impl Message {
             5
         } else if self.amount >= 1.9 {
             2
-        } else {
+        } else if self.amount >= 1.0 {
             1
+        } else {
+            0 // micro donations: $0.01-$0.99
         }
     }
 

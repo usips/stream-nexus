@@ -218,6 +218,17 @@ body {
     border-left: 3px solid rgba(233, 69, 96, 0.6);
 }
 
+/* Micro donation messages - blue border, default background */
+.dashboard-column-content .msg.msg--micro {
+    background: rgba(0, 0, 0, 0.3);
+    border-color: #1565C0;
+}
+
+.dashboard-column-content .msg.msg--micro:hover {
+    background: rgba(21, 101, 192, 0.15);
+    border-color: #1976D2;
+}
+
 /* Subscription event messages (subs/gifted subs) - purple to distinguish from superchats */
 .dashboard-column-content .msg.msg--sub-event {
     background: rgba(138, 43, 226, 0.15);
@@ -227,6 +238,45 @@ body {
 .dashboard-column-content .msg.msg--sub-event:hover {
     background: rgba(138, 43, 226, 0.25);
     border-color: #a855f7;
+}
+
+/* ============================================================================
+   Donation Filter
+   ============================================================================ */
+
+.donation-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    flex-shrink: 0;
+}
+
+.donation-filter label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+}
+
+.donation-filter input {
+    width: 80px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.donation-filter input:focus {
+    outline: none;
+    border-color: #1565C0;
 }
 
 /* ============================================================================

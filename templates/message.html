@@ -1,7 +1,7 @@
 <div id="{{ message.id }}"
     class="msg {{ message.get_platform_string() }} {{ message.get_badge_string() }} {{ message.get_paid_string() }} {{ message.get_subscription_string() }}"
-    style="order: {{ message.get_sent_at_secs() }}" data-paid-tier="{{ message.get_paid_tier() }}" data-sent-at="{{ message.get_sent_at_secs() }}">
-    {% if message.is_premium() ~%}
+    style="order: {{ message.get_sent_at_secs() }}" data-paid-tier="{{ message.get_paid_tier() }}" data-amount="{{ message.amount }}" data-sent-at="{{ message.get_sent_at_secs() }}">
+    {% if message.is_premium() && message.get_paid_tier() > 0 ~%}
     <div class="msg-header">
         <div class="msg-avatar-border">
             <span class="msg-letter">{{ message.get_letter() }}</span>
@@ -30,6 +30,7 @@
     <div class="msg-container">
         <div class="msg-user">
             <span class="msg-username">{{ message.username|safe }}</span>
+            {%- if message.is_premium() %}<span class="msg-amount-inline">{{ message.get_paid_readable_amount() }}</span>{% endif -%}
             <span class="msg-badges">
                 {%- if message.is_owner %}<span class="msg-badge msg-badge--owner" title="Owner"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg></span>{% endif -%}
                 {%- if message.is_staff %}<span class="msg-badge msg-badge--staff" title="Staff"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z"/></svg></span>{% endif -%}
