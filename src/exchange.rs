@@ -41,7 +41,7 @@ fn parse_xml(body: &str) -> Result<ExchangeRates> {
         match r.read_event_into(&mut buf) {
             Ok(Event::Eof) => break,
             Ok(Event::Empty(e)) => match e.name().as_ref() {
-                b"Cube" => {
+                "Cube" => {
                     let mut c = String::new();
                     let mut v = String::new();
 
@@ -49,8 +49,8 @@ fn parse_xml(body: &str) -> Result<ExchangeRates> {
                         let attr = a.unwrap();
 
                         match attr.key.as_ref() {
-                            b"currency" => c = String::from_utf8(attr.value.to_vec())?,
-                            b"rate" => v = String::from_utf8(attr.value.to_vec())?,
+                            "currency" => c = attr.value.into_owned(),
+                            "rate" => v = attr.value.into_owned(),
                             _ => (),
                         }
                     }
@@ -121,4 +121,31 @@ pub async fn fetch_exchange_rates() -> Result<ExchangeRates> {
     let mut text = String::new();
     f.read_to_string(&mut text)?;
     parse_xml(&text)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SAMPLE: &str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+    <gesmes:subject>Reference rates</gesmes:subject>
+    <Cube>
+        <Cube time="2026-11-11">
+            <Cube currency="USD" rate="1.2000"/>
+            <Cube currency="GBP" rate="0.8000"/>
+        </Cube>
+    </Cube>
+</gesmes:Envelope>"#;
+
+    #[test]
+    fn parses_ecb_rates_relative_to_usd() {
+        let r = parse_xml(SAMPLE).unwrap();
+        assert_eq!(r.get_usd("USD", &5.0), 5.0);
+        // 1 EUR = 1.2 USD
+        assert!((r.get_usd("EUR", &1.0) - 1.2).abs() < 1e-9);
+        // 1 GBP = 1.2 / 0.8 USD
+        assert!((r.get_usd("GBP", &1.0) - 1.5).abs() < 1e-9);
+        assert_eq!(r.get_usd("XYZ", &1.0), 0.0);
+    }
 }

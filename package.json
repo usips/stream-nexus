@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",
-    "glob": "^11.0.3",
+    "glob": "^14.0.6",
     "matter-js": "^0.20.0"
   }
 }

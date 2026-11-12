@@ -20,10 +20,10 @@ futures = "0.3.28"
 grass = "0.13.4"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
-quick-xml = { version = "0.39" }
+quick-xml = { version = "0.42" }
 rand = "0.8"
 reqwest = "0.13"
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.42", features = ["bundled"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = "1.29.1"
