@@ -1,5 +1,5 @@
 use actix::{Actor, AsyncContext, Context, Handler, MessageResult, Recipient};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
@@ -36,6 +36,116 @@ pub struct ChatServer {
     pub featured_message: Option<ChatMessage>,
     /// SQLite database for persistent paid message storage
     pub database: Database,
+    /// Ids removed by a platform or moderator, so a re-sent copy isn't resurrected.
+    pub removed_ids: BoundedIdSet,
+    /// Messages inserted since `chat_messages` was last pruned.
+    inserts_since_prune: usize,
+}
+
+/// How many removed ids are remembered.
+const REMOVED_IDS_CAP: usize = 10_000;
+/// How many unpaid messages are kept in memory.
+const UNPAID_MESSAGES_CAP: usize = 5_000;
+/// How long paid messages are kept in memory (matches the 24 h startup seed).
+const PAID_MESSAGES_MAX_AGE_MS: i64 = 24 * 60 * 60 * 1000;
+/// Prune `chat_messages` after this many inserts.
+const PRUNE_EVERY_INSERTS: usize = 500;
+
+/// A set of ids that forgets the oldest once it holds `cap` entries.
+pub struct BoundedIdSet {
+    cap: usize,
+    ids: HashSet<Uuid>,
+    order: VecDeque<Uuid>,
+}
+
+impl BoundedIdSet {
+    pub fn new(cap: usize) -> Self {
+        Self {
+            cap,
+            ids: HashSet::with_capacity(cap),
+            order: VecDeque::with_capacity(cap),
+        }
+    }
+
+    pub fn insert(&mut self, id: Uuid) {
+        if !self.ids.insert(id) {
+            return;
+        }
+        self.order.push_back(id);
+        while self.order.len() > self.cap {
+            if let Some(old) = self.order.pop_front() {
+                self.ids.remove(&old);
+            }
+        }
+    }
+
+    pub fn contains(&self, id: &Uuid) -> bool {
+        self.ids.contains(id)
+    }
+}
+
+/// Whether a re-sent message carries nothing new compared with the stored copy. Both
+/// must already be normalised (escaped, emojis replaced, amount in USD). Timestamps are
+/// ignored: a scraper re-sending after a reload stamps a fresh `received_at`.
+pub fn same_content(a: &ChatMessage, b: &ChatMessage) -> bool {
+    a.message == b.message
+        && a.emojis == b.emojis
+        && a.amount == b.amount
+        && a.currency == b.currency
+        && a.username == b.username
+        && a.avatar == b.avatar
+        && a.is_placeholder == b.is_placeholder
+        && a.is_verified == b.is_verified
+        && a.is_sub == b.is_sub
+        && a.is_mod == b.is_mod
+        && a.is_owner == b.is_owner
+        && a.is_staff == b.is_staff
+        && a.is_subscription == b.is_subscription
+}
+
+/// Ids to drop from memory: paid messages older than `paid_max_age_ms` before `now_ms`,
+/// and the oldest unpaid messages beyond `unpaid_cap`.
+pub fn messages_to_evict<'a>(
+    messages: impl Iterator<Item = &'a ChatMessage>,
+    unpaid_cap: usize,
+    paid_max_age_ms: i64,
+    now_ms: i64,
+) -> Vec<Uuid> {
+    let mut evict = Vec::new();
+    let mut unpaid: Vec<(i64, Uuid)> = Vec::new();
+    for msg in messages {
+        if msg.amount > 0.0 {
+            if now_ms - msg.received_at > paid_max_age_ms {
+                evict.push(msg.id);
+            }
+        } else {
+            unpaid.push((msg.received_at, msg.id));
+        }
+    }
+    if unpaid.len() > unpaid_cap {
+        unpaid.sort_unstable();
+        let excess = unpaid.len() - unpaid_cap;
+        evict.extend(unpaid.into_iter().take(excess).map(|(_, id)| id));
+    }
+    evict
+}
+
+/// The newest `max` messages by `received_at`, oldest first.
+pub fn newest_messages<'a>(
+    messages: impl Iterator<Item = &'a ChatMessage>,
+    max: usize,
+) -> Vec<ChatMessage> {
+    let mut all: Vec<&ChatMessage> = messages.collect();
+    all.sort_by_key(|msg| msg.received_at);
+    let skip = all.len().saturating_sub(max);
+    all.into_iter().skip(skip).cloned().collect()
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::SystemTime::UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 impl ChatServer {
@@ -80,6 +190,8 @@ impl ChatServer {
             active_layout,
             featured_message: None,
             database,
+            removed_ids: BoundedIdSet::new(REMOVED_IDS_CAP),
+            inserts_since_prune: 0,
         }
     }
 
@@ -293,6 +405,21 @@ impl Handler<message::Content> for ChatServer {
         chat_msg.amount = usd;
         chat_msg.currency = "USD".to_string();
 
+        // Scrapers re-send messages they have already sent (page reloads, several tabs on
+        // one channel, pinned gifts replayed on load). Only broadcast what is new.
+        if self.removed_ids.contains(&id) {
+            debug!("[ChatServer] Ignoring re-sent removed message {}", id);
+            return;
+        }
+        if let Some(stored) = self.chat_messages.get(&id) {
+            if same_content(stored, &chat_msg) {
+                debug!("[ChatServer] Ignoring duplicate message {}", id);
+                return;
+            }
+            // An edit: keep the original arrival time so ordering is stable.
+            chat_msg.received_at = stored.received_at;
+        }
+
         // Send message to all clients.
         for (_, conn) in &self.clients {
             conn.recipient.do_send(message::Reply(
@@ -308,6 +435,23 @@ impl Handler<message::Content> for ChatServer {
             self.chat_messages.reserve(100);
         }
         self.chat_messages.insert(id.to_owned(), chat_msg.clone());
+
+        self.inserts_since_prune += 1;
+        if self.inserts_since_prune >= PRUNE_EVERY_INSERTS {
+            self.inserts_since_prune = 0;
+            let evict = messages_to_evict(
+                self.chat_messages.values(),
+                UNPAID_MESSAGES_CAP,
+                PAID_MESSAGES_MAX_AGE_MS,
+                now_ms(),
+            );
+            for id in &evict {
+                self.chat_messages.remove(id);
+            }
+            if !evict.is_empty() {
+                debug!("[ChatServer] Evicted {} old messages from memory", evict.len());
+            }
+        }
 
         // Save paid messages to SQLite database
         if usd > 0.0 {
@@ -392,17 +536,7 @@ impl<'a> Handler<message::RecentMessages> for ChatServer {
     fn handle(&mut self, _: message::RecentMessages, _: &mut Context<Self>) -> Self::Result {
         const MAX_MESSAGES: usize = 100;
 
-        let mut last_messages: Vec<ChatMessage> = if self.chat_messages.len() >= MAX_MESSAGES {
-            self.chat_messages
-                .keys()
-                .cloned()
-                .skip(self.chat_messages.len() - MAX_MESSAGES)
-                .filter_map(|id| self.chat_messages.get(&id).cloned())
-                .collect()
-        } else {
-            self.chat_messages.values().cloned().collect()
-        };
-        last_messages.sort_by_key(|msg| msg.received_at);
+        let last_messages = newest_messages(self.chat_messages.values(), MAX_MESSAGES);
 
         debug!("Sending {} recent messages.", last_messages.len());
         MessageResult(last_messages)
@@ -416,6 +550,7 @@ impl Handler<message::RemoveMessage> for ChatServer {
     fn handle(&mut self, msg: message::RemoveMessage, _: &mut Context<Self>) -> Self::Result {
         debug!("[ChatServer] Removing message with ID {}", msg.id);
         self.chat_messages.remove(&msg.id);
+        self.removed_ids.insert(msg.id);
 
         // Also remove from database
         if let Err(e) = self.database.delete_paid_message(&msg.id) {
@@ -613,6 +748,93 @@ impl Handler<message::SubscribeLayout> for ChatServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn chat(received_at: i64, amount: f64) -> ChatMessage {
+        ChatMessage {
+            received_at,
+            sent_at: received_at,
+            amount,
+            currency: "USD".to_string(),
+            ..ChatMessage::default()
+        }
+    }
+
+    #[test]
+    fn same_content_ignores_timestamps() {
+        let a = chat(1_000, 5.0);
+        let mut b = a.clone();
+        b.received_at = 9_000;
+        b.sent_at = 9_000;
+        assert!(same_content(&a, &b));
+    }
+
+    #[test]
+    fn same_content_detects_changes() {
+        let a = chat(1_000, 5.0);
+        let changes: Vec<fn(&mut ChatMessage)> = vec![
+            |m| m.message.push('!'),
+            |m| m.emojis.push(("a".into(), "b".into(), "c".into())),
+            |m| m.amount = 10.0,
+            |m| m.username.push('x'),
+            |m| m.avatar.push('x'),
+            |m| m.is_placeholder = true,
+            |m| m.is_sub = true,
+            |m| m.is_mod = true,
+            |m| m.is_owner = true,
+            |m| m.is_staff = true,
+            |m| m.is_verified = true,
+            |m| m.is_subscription = true,
+        ];
+        for change in changes {
+            let mut b = a.clone();
+            change(&mut b);
+            assert!(!same_content(&a, &b), "change not detected: {:?}", b);
+        }
+    }
+
+    #[test]
+    fn bounded_id_set_forgets_oldest() {
+        let mut set = BoundedIdSet::new(2);
+        let (a, b, c) = (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4());
+        set.insert(a);
+        set.insert(b);
+        set.insert(a); // duplicate doesn't refresh or grow
+        set.insert(c);
+        assert!(!set.contains(&a));
+        assert!(set.contains(&b));
+        assert!(set.contains(&c));
+    }
+
+    #[test]
+    fn messages_to_evict_caps_unpaid_oldest_first() {
+        let msgs: Vec<ChatMessage> = (0..5).map(|i| chat(i * 10, 0.0)).collect();
+        let evict = messages_to_evict(msgs.iter(), 3, PAID_MESSAGES_MAX_AGE_MS, 100);
+        assert_eq!(evict.len(), 2);
+        assert!(evict.contains(&msgs[0].id));
+        assert!(evict.contains(&msgs[1].id));
+    }
+
+    #[test]
+    fn messages_to_evict_keeps_recent_paid_and_drops_old_paid() {
+        let now = PAID_MESSAGES_MAX_AGE_MS * 2;
+        let old_paid = chat(0, 5.0);
+        let new_paid = chat(now - 1_000, 5.0);
+        let unpaid = chat(0, 0.0);
+        let msgs = vec![old_paid.clone(), new_paid, unpaid];
+        let evict = messages_to_evict(msgs.iter(), 0, PAID_MESSAGES_MAX_AGE_MS, now);
+        assert_eq!(evict.len(), 2);
+        assert!(evict.contains(&old_paid.id));
+        assert!(evict.contains(&msgs[2].id));
+    }
+
+    #[test]
+    fn newest_messages_takes_latest_in_order() {
+        let msgs: Vec<ChatMessage> = [50, 10, 40, 20, 30].iter().map(|&t| chat(t, 0.0)).collect();
+        let newest = newest_messages(msgs.iter(), 3);
+        let times: Vec<i64> = newest.iter().map(|m| m.received_at).collect();
+        assert_eq!(times, vec![30, 40, 50]);
+        assert_eq!(newest_messages(msgs.iter(), 100).len(), 5);
+    }
 
     fn key(platform: &str, channel: &str) -> (String, String) {
         (platform.to_string(), channel.to_string())
