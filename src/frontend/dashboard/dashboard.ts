@@ -242,6 +242,9 @@ function updateConnectionStatus(connected: boolean): void {
                     const featuredMsg = message as ChatMessage | null;
                     handleFeatureMessage(featuredMsg?.id ?? null);
                     break;
+                case "remove_message":
+                    document.getElementById(message as string)?.remove();
+                    break;
                 case "viewers":
                     handleViewers(message as ViewerCounts);
                     break;

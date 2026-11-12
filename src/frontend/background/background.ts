@@ -39,6 +39,9 @@ class BackgroundWebSocket {
     private socket: WebSocket | null = null;
     private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     private onDonation: (amount: number, username: string) => void;
+    /** Donation ids already spawned, so a re-sent or edited message doesn't spawn twice. */
+    private seenDonationIds = new Set<string>();
+    private static readonly SEEN_DONATION_IDS_CAP = 1000;
 
     constructor(onDonation: (amount: number, username: string) => void) {
         this.onDonation = onDonation;
@@ -77,7 +80,7 @@ class BackgroundWebSocket {
 
             switch (parsed.tag) {
                 case 'chat_message':
-                    if (message.amount > 0) {
+                    if (message.amount > 0 && this.markDonationSeen(message.id)) {
                         this.onDonation(message.amount, message.username);
                     }
                     break;
@@ -89,6 +92,22 @@ class BackgroundWebSocket {
         } catch (e) {
             console.error('[Background] Failed to parse message:', e);
         }
+    }
+
+    /** Returns true the first time an id is seen. */
+    private markDonationSeen(id: string): boolean {
+        if (this.seenDonationIds.has(id)) {
+            return false;
+        }
+        this.seenDonationIds.add(id);
+        if (this.seenDonationIds.size > BackgroundWebSocket.SEEN_DONATION_IDS_CAP) {
+            // Sets iterate in insertion order: drop the oldest.
+            const oldest = this.seenDonationIds.values().next().value;
+            if (oldest !== undefined) {
+                this.seenDonationIds.delete(oldest);
+            }
+        }
+        return true;
     }
 
     private scheduleReconnect(): void {

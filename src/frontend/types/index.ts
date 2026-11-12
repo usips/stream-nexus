@@ -158,6 +158,7 @@ export interface ChatMessage {
 export type WebSocketMessageTag =
     | 'chat_message'
     | 'feature_message'
+    | 'remove_message'
     | 'viewers'
     | 'layout_update'
     | 'layout_list';

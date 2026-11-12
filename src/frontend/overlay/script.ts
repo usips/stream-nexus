@@ -218,10 +218,10 @@ const bindWebsocketEvents = (): void => {
             case "chat_message":
                 const chatMsg = message as ChatMessage;
                 console.log("[SNEED] Received message:", chatMsg.id, "containers:", chat_containers.length);
-                for (const info of confetti_instances) {
-                    info.instance.handleChatMessage();
-                }
                 handle_message(chatMsg);
+                break;
+            case "remove_message":
+                handle_remove_message(message as string);
                 break;
             case "feature_message":
                 console.log("[SNEED] Received feature_message event:", message);
@@ -841,10 +841,39 @@ function checkPendingFeature(): void {
     }
 }
 
+// Ids already handled (inserted, queued, or consumed as a command). Checked before
+// anything with side effects runs, so a re-sent message can't replay confetti, alerts
+// or poll votes, even when it isn't in the DOM (no chat element yet, or trimmed).
+const SEEN_MESSAGE_IDS_CAP = 2000;
+const seenMessageIds = new Set<string>();
+
+// Returns true the first time an id is seen.
+function mark_message_seen(id: string): boolean {
+    if (seenMessageIds.has(id)) {
+        return false;
+    }
+    seenMessageIds.add(id);
+    if (seenMessageIds.size > SEEN_MESSAGE_IDS_CAP) {
+        // Sets iterate in insertion order: drop the oldest.
+        const oldest = seenMessageIds.values().next().value;
+        if (oldest !== undefined) {
+            seenMessageIds.delete(oldest);
+        }
+    }
+    return true;
+}
+
 function handle_message(message: ChatMessage): HTMLElement | null {
     const existingEl = document.getElementById(message.id);
     if (existingEl !== null) {
         return existingEl;
+    }
+    if (!mark_message_seen(message.id)) {
+        return null;
+    }
+
+    for (const info of confetti_instances) {
+        info.instance.handleChatMessage();
     }
 
     if (handle_command(message)) {
@@ -860,6 +889,25 @@ function handle_message(message: ChatMessage): HTMLElement | null {
     // Regular messages go through the buffer for smooth flow
     messageBuffer.push(message);
     return null;
+}
+
+// Remove a message (deleted on the platform or by a moderator) from every chat
+// container and from the delivery buffer. The id stays in seenMessageIds so a
+// re-sent copy isn't shown again.
+function handle_remove_message(id: string): void {
+    mark_message_seen(id);
+    messageBuffer.queue = messageBuffer.queue.filter(item => item.message.id !== id);
+
+    // The first container's copy uses the id, the others `${id}-${i}`.
+    let removedPremium = false;
+    const selector = `[id="${CSS.escape(id)}"], [id^="${CSS.escape(id)}-"]`;
+    document.querySelectorAll<HTMLElement>(selector).forEach(el => {
+        removedPremium ||= el.classList.contains("msg--sticky");
+        el.remove();
+    });
+    if (removedPremium) {
+        recalculate_premium_positions();
+    }
 }
 
 // Filter badges based on per-element options
