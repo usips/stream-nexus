@@ -193,6 +193,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                             ctx,
                             message::ViewCount {
                                 platform: update.platform,
+                                channel: update.channel,
                                 viewers,
                             },
                         );
@@ -364,6 +365,25 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ChatClient {
                                     })
                                     .unwrap();
                                     ctx.text(reply);
+                                }
+                                fut::ready(())
+                            })
+                            .wait(ctx);
+
+                        // And the current viewer totals, so late overlays aren't blank.
+                        self.server
+                            .send(message::RequestViewers)
+                            .into_actor(self)
+                            .then(|res, _, ctx| {
+                                if let Ok(totals) = res {
+                                    if !totals.is_empty() {
+                                        let reply = serde_json::to_string(&message::ReplyInner {
+                                            tag: "viewers".to_owned(),
+                                            message: serde_json::to_string(&totals).unwrap(),
+                                        })
+                                        .unwrap();
+                                        ctx.text(reply);
+                                    }
                                 }
                                 fut::ready(())
                             })

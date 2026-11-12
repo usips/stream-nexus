@@ -93,16 +93,25 @@ impl Message for RemoveMessage {
     type Result = ();
 }
 
-/// Request for view counts.
+/// Viewer count report for one channel on one platform.
 #[derive(Deserialize, Serialize, Debug)]
 pub struct ViewCount {
     pub platform: String,
-    //pub channel: String,
+    /// Channel the count belongs to; counts are tracked per (platform, channel)
+    /// and summed per platform, so several tabs don't overwrite each other.
+    pub channel: Option<String>,
     pub viewers: usize,
 }
 
 impl Message for ViewCount {
     type Result = ();
+}
+
+/// Request the current per-platform viewer totals.
+pub struct RequestViewers;
+
+impl Message for RequestViewers {
+    type Result = std::collections::BTreeMap<String, usize>;
 }
 
 // ============================================================================

@@ -1,6 +1,7 @@
-use actix::{Actor, Context, Handler, MessageResult, Recipient};
-use std::collections::HashMap;
+use actix::{Actor, AsyncContext, Context, Handler, MessageResult, Recipient};
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
@@ -24,7 +25,11 @@ pub struct ChatServer {
     pub clients: HashMap<usize, Connection>,
     pub chat_messages: HashMap<Uuid, ChatMessage>,
     pub exchange_rates: ExchangeRates,
-    pub viewer_counts: HashMap<String, usize>,
+    /// Viewer counts per (platform, channel) with the time they were last reported.
+    /// A missing channel is stored as "".
+    pub viewer_counts: HashMap<(String, String), (usize, Instant)>,
+    /// Per-platform totals most recently broadcast to clients.
+    pub viewer_totals: BTreeMap<String, usize>,
     pub layout_manager: Arc<Mutex<LayoutManager>>,
     pub active_layout: String,
     /// Currently featured message (full data for decoupled rendering)
@@ -70,6 +75,7 @@ impl ChatServer {
             chat_messages,
             exchange_rates,
             viewer_counts: HashMap::with_capacity(100),
+            viewer_totals: BTreeMap::new(),
             layout_manager,
             active_layout,
             featured_message: None,
@@ -101,9 +107,82 @@ impl ChatServer {
             }
         }
     }
+
+    fn viewers_reply(totals: &BTreeMap<String, usize>) -> message::Reply {
+        message::Reply(
+            serde_json::to_string(&message::ReplyInner {
+                tag: "viewers".to_owned(),
+                message: serde_json::to_string(totals).expect("Failed to serialize viewers."),
+            })
+            .expect("Failed to serialize viewers replyinner"),
+        )
+    }
+
+    /// Recompute per-platform totals and broadcast them if they changed.
+    fn broadcast_viewers_if_changed(&mut self) {
+        let now = Instant::now();
+        let totals = platform_totals(&self.viewer_counts, now, VIEWER_TTL);
+        if let Some(update) = viewer_update(&self.viewer_totals, &totals) {
+            for conn in self.clients.values() {
+                conn.recipient.do_send(Self::viewers_reply(&update));
+            }
+        }
+        self.viewer_totals = totals;
+    }
 }
 
-// conn.recipient.do_send(message::Reply(message.to_owned()));
+/// How long a (platform, channel) viewer count stays valid without a fresh report.
+/// CHUCK reports at least once a minute while a tab is open.
+pub const VIEWER_TTL: Duration = Duration::from_secs(180);
+/// How often stale viewer counts are pruned.
+const VIEWER_PRUNE_INTERVAL: Duration = Duration::from_secs(30);
+
+/// Store one viewer report. A report of 0 (stream ended, tab closing) withdraws that
+/// (platform, channel) entry instead of storing 0, so it can't zero other tabs' counts.
+pub fn record_viewers(
+    counts: &mut HashMap<(String, String), (usize, Instant)>,
+    report: message::ViewCount,
+    now: Instant,
+) {
+    let key = (report.platform, report.channel.unwrap_or_default());
+    if report.viewers == 0 {
+        counts.remove(&key);
+    } else {
+        counts.insert(key, (report.viewers, now));
+    }
+}
+
+/// Sum the non-expired viewer counts of every channel, per platform.
+pub fn platform_totals(
+    counts: &HashMap<(String, String), (usize, Instant)>,
+    now: Instant,
+    ttl: Duration,
+) -> BTreeMap<String, usize> {
+    let mut totals = BTreeMap::new();
+    for ((platform, _channel), (viewers, updated)) in counts {
+        if now.saturating_duration_since(*updated) <= ttl {
+            *totals.entry(platform.clone()).or_insert(0) += viewers;
+        }
+    }
+    totals
+}
+
+/// The `viewers` payload to broadcast when totals go from `prev` to `next`, or None if
+/// nothing changed. Platforms that disappeared are sent once as 0, because overlays merge
+/// keys into their state and never delete them.
+pub fn viewer_update(
+    prev: &BTreeMap<String, usize>,
+    next: &BTreeMap<String, usize>,
+) -> Option<BTreeMap<String, usize>> {
+    if prev == next {
+        return None;
+    }
+    let mut update = next.clone();
+    for platform in prev.keys() {
+        update.entry(platform.clone()).or_insert(0);
+    }
+    Some(update)
+}
 
 /// Make actor from `ChatServer`
 impl Actor for ChatServer {
@@ -112,6 +191,15 @@ impl Actor for ChatServer {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         ctx.set_mailbox_capacity(256);
+
+        // Drop viewer counts from tabs that stopped reporting (closed without an
+        // unload message, crashed, lost their socket) and tell clients.
+        ctx.run_interval(VIEWER_PRUNE_INTERVAL, |act, _| {
+            let now = Instant::now();
+            act.viewer_counts
+                .retain(|_, (_, updated)| now.saturating_duration_since(*updated) <= VIEWER_TTL);
+            act.broadcast_viewers_if_changed();
+        });
     }
 }
 
@@ -123,6 +211,9 @@ impl Handler<message::Connect> for ChatServer {
         debug!("New client connected to chat.");
         // random usize
         let id: usize = rand::random();
+        if !self.viewer_totals.is_empty() {
+            msg.recipient.do_send(Self::viewers_reply(&self.viewer_totals));
+        }
         self.clients.insert(
             id,
             Connection {
@@ -382,23 +473,17 @@ impl Handler<message::ViewCount> for ChatServer {
     type Result = ();
 
     fn handle(&mut self, viewers: message::ViewCount, _: &mut Context<Self>) -> Self::Result {
-        if let Some(old) = self.viewer_counts.insert(viewers.platform, viewers.viewers) {
-            if old == viewers.viewers {
-                return;
-            }
-        }
+        record_viewers(&mut self.viewer_counts, viewers, Instant::now());
+        self.broadcast_viewers_if_changed();
+    }
+}
 
-        for (_, conn) in &self.clients {
-            let new_viewers = self.viewer_counts.clone();
-            conn.recipient.do_send(message::Reply(
-                serde_json::to_string(&message::ReplyInner {
-                    tag: "viewers".to_owned(),
-                    message: serde_json::to_string(&new_viewers)
-                        .expect("Failed to serialize viewers."),
-                })
-                .expect("Failed to serialize viewers replyinner"),
-            ));
-        }
+/// Handler for requesting current viewer totals.
+impl Handler<message::RequestViewers> for ChatServer {
+    type Result = MessageResult<message::RequestViewers>;
+
+    fn handle(&mut self, _: message::RequestViewers, _: &mut Context<Self>) -> Self::Result {
+        MessageResult(self.viewer_totals.clone())
     }
 }
 
@@ -522,5 +607,94 @@ impl Handler<message::SubscribeLayout> for ChatServer {
         if let Some(conn) = self.clients.get_mut(&msg.client_id) {
             conn.subscribed_layout = Some(msg.layout_name);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn key(platform: &str, channel: &str) -> (String, String) {
+        (platform.to_string(), channel.to_string())
+    }
+
+    #[test]
+    fn platform_totals_sums_channels_per_platform() {
+        let now = Instant::now();
+        let mut counts = HashMap::new();
+        counts.insert(key("Kick", "absi"), (100, now));
+        counts.insert(key("Kick", "other"), (25, now));
+        counts.insert(key("YouTube", ""), (7, now));
+
+        let totals = platform_totals(&counts, now, VIEWER_TTL);
+        assert_eq!(totals.get("Kick"), Some(&125));
+        assert_eq!(totals.get("YouTube"), Some(&7));
+        assert_eq!(totals.len(), 2);
+    }
+
+    #[test]
+    fn platform_totals_ignores_expired_entries() {
+        let start = Instant::now();
+        let later = start + VIEWER_TTL + Duration::from_secs(1);
+        let mut counts = HashMap::new();
+        counts.insert(key("Kick", "stale"), (100, start));
+        counts.insert(key("Kick", "fresh"), (10, later));
+        counts.insert(key("Rumble", "gone"), (5, start));
+
+        let totals = platform_totals(&counts, later, VIEWER_TTL);
+        assert_eq!(totals.get("Kick"), Some(&10));
+        assert_eq!(totals.get("Rumble"), None);
+    }
+
+    #[test]
+    fn viewer_update_skips_unchanged_totals() {
+        let totals: BTreeMap<String, usize> = [("Kick".to_string(), 5)].into();
+        assert_eq!(viewer_update(&totals, &totals.clone()), None);
+        assert_eq!(viewer_update(&BTreeMap::new(), &BTreeMap::new()), None);
+    }
+
+    #[test]
+    fn viewer_update_sends_dropped_platforms_as_zero_once() {
+        let prev: BTreeMap<String, usize> =
+            [("Kick".to_string(), 5), ("Rumble".to_string(), 3)].into();
+        let next: BTreeMap<String, usize> = [("Kick".to_string(), 6)].into();
+
+        let update = viewer_update(&prev, &next).expect("totals changed");
+        assert_eq!(update.get("Kick"), Some(&6));
+        assert_eq!(update.get("Rumble"), Some(&0));
+
+        // Once broadcast, `next` becomes the new baseline and Rumble isn't repeated.
+        assert_eq!(viewer_update(&next, &next.clone()), None);
+    }
+
+    fn report(platform: &str, channel: Option<&str>, viewers: usize) -> message::ViewCount {
+        message::ViewCount {
+            platform: platform.to_string(),
+            channel: channel.map(str::to_string),
+            viewers,
+        }
+    }
+
+    #[test]
+    fn record_viewers_zero_removes_only_that_channel() {
+        let now = Instant::now();
+        let mut counts = HashMap::new();
+        record_viewers(&mut counts, report("Kick", Some("main"), 100), now);
+        record_viewers(&mut counts, report("Kick", Some("popout"), 40), now);
+        assert_eq!(platform_totals(&counts, now, VIEWER_TTL).get("Kick"), Some(&140));
+
+        record_viewers(&mut counts, report("Kick", Some("popout"), 0), now);
+        assert_eq!(counts.len(), 1);
+        assert_eq!(platform_totals(&counts, now, VIEWER_TTL).get("Kick"), Some(&100));
+    }
+
+    #[test]
+    fn record_viewers_replaces_same_channel_and_keys_missing_channel_as_empty() {
+        let now = Instant::now();
+        let mut counts = HashMap::new();
+        record_viewers(&mut counts, report("YouTube", None, 10), now);
+        record_viewers(&mut counts, report("YouTube", None, 12), now);
+        assert_eq!(counts.get(&key("YouTube", "")).map(|v| v.0), Some(12));
+        assert_eq!(platform_totals(&counts, now, VIEWER_TTL).get("YouTube"), Some(&12));
     }
 }
