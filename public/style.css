@@ -406,10 +406,13 @@ section#chat::-webkit-scrollbar {
 .msg--combo {
     --combo-scale: 1;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.4em;
     max-height: none;
+    background: none;
+    border-color: transparent;
     font-size: calc(var(--message-text-size, var(--message-font-size)) * var(--combo-scale));
-    transform-origin: left center;
+    transform-origin: right center;
     transition: font-size 150ms ease-out;
 }
 
