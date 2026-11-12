@@ -287,6 +287,10 @@
 
 .canvas-viewport {
     position: relative;
+    /* Preserve the 1920×1080 design surface before the zoom transform is
+       applied. As a flex child this otherwise shrinks horizontally to the
+       editor column, distorting the visible canvas toward a 1:1 ratio. */
+    flex: 0 0 auto;
     /* Transparency checkerboard pattern */
     background-color: #1a1a1a;
     background-image:
@@ -690,6 +694,37 @@
     margin: 0;
 }
 
+.settings-help {
+    display: block;
+    color: #777;
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.confetti-colors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.confetti-color-row {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 34px;
+    gap: 6px;
+    align-items: center;
+}
+
+.settings-row .confetti-color-row input[type="color"] {
+    height: 34px;
+    padding: 2px;
+}
+
+.confetti-color-row .confetti-color-remove {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+}
+
 /* ============================================================================
    Preview Elements (in canvas)
    Element styles are imported from shared/overlay-elements.css
@@ -1035,6 +1070,55 @@
 
 .preview-donation-matter .physics-preview .bullet {
     animation: fall 0.5s ease-in-out infinite;
+}
+
+/* Preview for canvas-confetti element */
+.element--confetti,
+.preview-confetti {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+}
+
+.confetti-preview-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.confetti-preview-particles span {
+    position: absolute;
+    width: 14px;
+    height: 8px;
+    opacity: 0.85;
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+}
+
+.confetti-preview-label {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    min-width: 150px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.72);
+    text-align: center;
+}
+
+.confetti-preview-label strong,
+.confetti-preview-label small {
+    display: block;
+}
+
+.confetti-preview-label small {
+    margin-top: 4px;
+    color: #aaa;
 }
 
 .preview-donation-matter .physics-preview .bullet:nth-child(1) {

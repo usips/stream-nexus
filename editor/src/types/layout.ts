@@ -147,6 +147,36 @@ export interface TextOptions {
     content?: string;
 }
 
+export type ConfettiSpawnMode = 'random' | 'precipitation';
+export type ConfettiTriggerMode = 'timer' | 'event';
+export type ConfettiShape = 'square' | 'circle' | 'star';
+
+// canvas-confetti options plus Stream Nexus spawn/trigger behavior.
+export interface ConfettiOptions {
+    [key: string]: unknown;
+    spawnMode?: ConfettiSpawnMode;
+    triggerMode?: ConfettiTriggerMode;
+    timerMinSeconds?: number;
+    timerMaxSeconds?: number;
+    eventSpacingSeconds?: number;
+    particleCount?: number;
+    angle?: number;
+    spread?: number;
+    startVelocity?: number;
+    decay?: number;
+    gravity?: number;
+    drift?: number;
+    flat?: boolean;
+    ticks?: number;
+    colors?: string[];
+    shapes?: ConfettiShape[];
+    scalar?: number;
+    zIndex?: number;
+    resize?: boolean;
+    useWorker?: boolean;
+    disableForReducedMotion?: boolean;
+}
+
 export interface MessageStyle {
     avatarSize: string;
     maxHeight: string;
@@ -219,6 +249,30 @@ export const defaultChatOptions = (): ChatOptions => ({
     showModBadge: true,
     showVerifiedBadge: true,
     showSubBadge: true,
+});
+
+export const defaultConfettiOptions = (): ConfettiOptions => ({
+    spawnMode: 'random',
+    triggerMode: 'timer',
+    timerMinSeconds: 5,
+    timerMaxSeconds: 15,
+    eventSpacingSeconds: 1,
+    particleCount: 50,
+    angle: 90,
+    spread: 45,
+    startVelocity: 45,
+    decay: 0.9,
+    gravity: 1,
+    drift: 0,
+    flat: false,
+    ticks: 200,
+    colors: ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d', '#ff36ff'],
+    shapes: ['square', 'circle'],
+    scalar: 1,
+    zIndex: 100,
+    resize: true,
+    useWorker: false,
+    disableForReducedMotion: false,
 });
 
 export const defaultMessageStyle = (): MessageStyle => ({

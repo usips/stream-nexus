@@ -530,3 +530,13 @@ section#attribution {
 .element--matter canvas {
     display: block;
 }
+
+/* ============================================================================
+   Confetti Element
+   ============================================================================ */
+
+.element--confetti.confetti-canvas {
+    display: block;
+    background: transparent;
+    pointer-events: none;
+}
