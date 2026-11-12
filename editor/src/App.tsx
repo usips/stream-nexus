@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Editor, Frame, Element, useEditor } from '@craftjs/core';
 import { useWebSocket } from './hooks/useWebSocket';
-import { Layout, ElementConfig, defaultLayout, defaultElementConfig, defaultChatOptions } from './types/layout';
+import { Layout, ElementConfig, defaultLayout, defaultElementConfig, defaultChatOptions, defaultConfettiOptions } from './types/layout';
 import { TopBar } from './components/TopBar';
 import { Toolbox } from './components/Toolbox';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -15,6 +15,7 @@ import {
     PollDisplay,
     SuperchatDisplay,
     DonationMatter,
+    Confetti,
     Container,
 } from './components/elements';
 import './styles.css';
@@ -648,6 +649,11 @@ function App() {
                 case 'superchat':
                     newElement.position = { y: '0vh' };
                     break;
+                case 'confetti':
+                    newElement.position = { x: '25vw', y: '25vh', zIndex: maxZIndex + 10 };
+                    newElement.size = { width: '50vw', height: '50vh' };
+                    newElement.options = defaultConfettiOptions();
+                    break;
             }
         } else {
             // When dropped, still apply element-specific size/style defaults
@@ -663,6 +669,10 @@ function App() {
                 case 'featured':
                     newElement.size = { maxWidth: 'calc(100vw - 16.41vw)' };
                     newElement.style = { fontSize: '32px' };
+                    break;
+                case 'confetti':
+                    newElement.size = { width: '50vw', height: '50vh' };
+                    newElement.options = defaultConfettiOptions();
                     break;
             }
         }
@@ -696,6 +706,7 @@ function App() {
                     PollDisplay,
                     SuperchatDisplay,
                     DonationMatter,
+                    Confetti,
                 }}
             >
                 <TopBar

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Layout, ElementConfig, AnchorPoint, getPositionPropsForAnchor, CANVAS_WIDTH, CANVAS_HEIGHT } from '../types/layout';
 import { getAvailableTokens } from '../utils/tokens';
+import { ConfettiOptionsEditor } from './ConfettiOptionsEditor';
 
 // ============================================================================
 // DimensionInput Component - Number input with unit dropdown
@@ -201,6 +202,7 @@ function getDefaultDisplayName(elementId: string): string {
         featured: 'Featured Message',
         poll: 'Poll Display',
         superchat: 'Superchat Display',
+        confetti: 'Confetti',
     };
     const suffix = elementId.match(/-(\d+)$/)?.[1];
     const baseName = names[baseId] || baseId.charAt(0).toUpperCase() + baseId.slice(1);
@@ -544,6 +546,10 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
     const updateOptions = (newOptions: Record<string, unknown>) => {
         onUpdate({ options: { ...options, ...newOptions } } as Partial<ElementConfig>);
     };
+
+    if (elementType === 'confetti') {
+        return <ConfettiOptionsEditor options={options} onChange={updateOptions} />;
+    }
 
     // Live Badge options
     if (elementType === 'live') {

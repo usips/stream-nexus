@@ -222,3 +222,28 @@ export function DonationMatter({ style }: { style?: React.CSSProperties }) {
 DonationMatter.craft = {
     displayName: 'Donation Matter',
 };
+
+// Confetti element (the live overlay replaces this preview with a bounded canvas)
+export function Confetti({ style }: { style?: React.CSSProperties }) {
+    const { connectors: { connect, drag }, selected } = useNode((state) => ({
+        selected: state.events.selected,
+    }));
+
+    return (
+        <div
+            ref={(ref) => ref && connect(drag(ref))}
+            style={style}
+            className={`element-wrapper element--confetti ${selected ? 'selected' : ''}`}
+        >
+            <span className="element-label">Confetti</span>
+            <div className="confetti-preview-label">
+                <strong>Confetti</strong>
+                <small>Bounded particle effect</small>
+            </div>
+        </div>
+    );
+}
+
+Confetti.craft = {
+    displayName: 'Confetti',
+};

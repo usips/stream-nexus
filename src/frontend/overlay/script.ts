@@ -7,8 +7,10 @@ import type {
     BadgeSettings,
     LiveBadgeOptions,
     ChatOptions,
+    ConfettiOptions,
 } from '../types';
 import { DonationMatter, DonationMatterConfig } from '../background/DonationMatter';
+import { ConfettiElement } from './ConfettiElement';
 
 // Matter.js is loaded as an external via script tag
 declare const Matter: typeof import('matter-js') | undefined;
@@ -33,6 +35,13 @@ interface MatterInfo {
     elementId: string;
 }
 let matter_instances: MatterInfo[] = [];
+
+// Track bounded canvas-confetti instances
+interface ConfettiInfo {
+    instance: ConfettiElement;
+    elementId: string;
+}
+let confetti_instances: ConfettiInfo[] = [];
 
 // Current layout state
 let current_layout: Layout | null = null;
@@ -209,6 +218,9 @@ const bindWebsocketEvents = (): void => {
             case "chat_message":
                 const chatMsg = message as ChatMessage;
                 console.log("[SNEED] Received message:", chatMsg.id, "containers:", chat_containers.length);
+                for (const info of confetti_instances) {
+                    info.instance.handleChatMessage();
+                }
                 handle_message(chatMsg);
                 break;
             case "feature_message":
@@ -302,6 +314,12 @@ function apply_layout(layout: Layout): void {
                     matter_instances[matterIdx].instance.destroy();
                     matter_instances.splice(matterIdx, 1);
                 }
+                // Clean up confetti timer, worker, and canvas
+                const confettiIdx = confetti_instances.findIndex(c => c.elementId === existingId);
+                if (confettiIdx !== -1) {
+                    confetti_instances[confettiIdx].instance.destroy();
+                    confetti_instances.splice(confettiIdx, 1);
+                }
                 // Remove from chat containers
                 const chatIdx = chat_containers.findIndex(c => c.elementId === existingId);
                 if (chatIdx !== -1) {
@@ -346,6 +364,13 @@ function apply_layout(layout: Layout): void {
                         showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
                         showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
                     };
+                }
+            }
+
+            if (baseType === 'confetti') {
+                const confettiInfo = confetti_instances.find(c => c.elementId === elementId);
+                if (confettiInfo) {
+                    confettiInfo.instance.updateConfig((config.options || {}) as ConfettiOptions);
                 }
             }
         } else {
@@ -407,6 +432,26 @@ function apply_layout(layout: Layout): void {
                         console.warn('[SNEED] Matter.js not loaded, cannot initialize DonationMatter');
                     }
                 }
+
+
+                if (baseType === 'confetti') {
+                    try {
+                        if (!(el instanceof HTMLCanvasElement)) {
+                            throw new Error(`Confetti element ${elementId} is not a canvas`);
+                        }
+                        const confettiInstance = new ConfettiElement(
+                            el,
+                            (config.options || {}) as ConfettiOptions,
+                        );
+                        confetti_instances.push({
+                            instance: confettiInstance,
+                            elementId,
+                        });
+                        console.log('[SNEED] Confetti initialized for element:', elementId);
+                    } catch (e) {
+                        console.error('[SNEED] Failed to initialize confetti:', e);
+                    }
+                }
             }
         }
     }
@@ -448,7 +493,9 @@ function apply_layout(layout: Layout): void {
 
 // Create DOM element for a specific element type
 function create_element_for_type(elementId: string, baseType: string, config: ElementConfig): HTMLElement | null {
-    const el = document.createElement('section');
+    const el = baseType === 'confetti'
+        ? document.createElement('canvas')
+        : document.createElement('section');
     el.id = elementId;
     el.className = `element element--${baseType}`;
 
@@ -498,6 +545,12 @@ function create_element_for_type(elementId: string, baseType: string, config: El
             // Matter element is a container for the physics canvas
             // DonationMatter will be initialized after the element is added to DOM
             el.style.overflow = 'hidden';
+            break;
+
+        case 'confetti':
+            // The layout element is the uniquely identified drawing canvas.
+            el.classList.add('confetti-canvas');
+            el.setAttribute('aria-hidden', 'true');
             break;
 
         default:

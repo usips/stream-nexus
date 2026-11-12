@@ -72,6 +72,35 @@ export interface TextOptions {
     content?: string;
 }
 
+export type ConfettiSpawnMode = 'random' | 'precipitation';
+export type ConfettiTriggerMode = 'timer' | 'event';
+export type ConfettiShape = 'square' | 'circle' | 'star';
+
+export interface ConfettiOptions {
+    [key: string]: unknown;
+    spawnMode?: ConfettiSpawnMode;
+    triggerMode?: ConfettiTriggerMode;
+    timerMinSeconds?: number;
+    timerMaxSeconds?: number;
+    eventSpacingSeconds?: number;
+    particleCount?: number;
+    angle?: number;
+    spread?: number;
+    startVelocity?: number;
+    decay?: number;
+    gravity?: number;
+    drift?: number;
+    flat?: boolean;
+    ticks?: number;
+    colors?: string[];
+    shapes?: ConfettiShape[];
+    scalar?: number;
+    zIndex?: number;
+    resize?: boolean;
+    useWorker?: boolean;
+    disableForReducedMotion?: boolean;
+}
+
 export interface MessageStyle {
     avatarSize: string;
     maxHeight: string;

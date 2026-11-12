@@ -425,6 +425,7 @@ export function EditorCanvas({
             featured: { width: 600, height: 150 },
             poll: { width: 300, height: 200 },
             superchat: { width: 300, height: 150 },
+            confetti: { width: 960, height: 540 },
         };
 
         const defaults = defaultSizesMap[baseId] || { width: 200, height: 100 };
@@ -1287,6 +1288,7 @@ export function EditorCanvas({
         poll: { width: 300, height: 150 },
         superchat: { width: 300, height: 100 },
         matter: { width: '100%', height: '100%' },
+        confetti: { width: 960, height: 540 },
     };
 
     // Parse CSS string into style object
@@ -1408,6 +1410,7 @@ export function EditorCanvas({
             poll: 'Poll',
             superchat: 'Superchat',
             matter: 'Donation Matter',
+            confetti: 'Confetti',
         };
         return names[baseId] || elementId;
     };
@@ -1651,6 +1654,47 @@ export function EditorCanvas({
                     </div>
                 );
                 break;
+            case 'confetti': {
+                const confettiOptions = config.options || {};
+                const colors = Array.isArray(confettiOptions.colors) && confettiOptions.colors.length > 0
+                    ? confettiOptions.colors as string[]
+                    : ['#26ccff', '#a25afd', '#ff5e7e', '#88ff5a', '#fcff42', '#ffa62d'];
+                const spawnLabel = confettiOptions.spawnMode === 'precipitation' ? 'Precipitation' : 'Random';
+                const triggerLabel = confettiOptions.triggerMode === 'event' ? 'Chat messages' : 'Timer';
+                const previewParticles = Array.from({ length: 18 }, (_, index) => ({
+                    color: colors[index % colors.length],
+                    left: `${8 + ((index * 29) % 84)}%`,
+                    top: confettiOptions.spawnMode === 'precipitation'
+                        ? `${2 + ((index * 7) % 28)}%`
+                        : `${8 + ((index * 37) % 82)}%`,
+                    rotate: `${(index * 31) % 180}deg`,
+                    round: index % 3 === 0,
+                }));
+
+                content = (
+                    <div className="element--confetti preview-confetti">
+                        <div className="confetti-preview-particles" aria-hidden="true">
+                            {previewParticles.map((particle, index) => (
+                                <span
+                                    key={index}
+                                    style={{
+                                        backgroundColor: particle.color,
+                                        left: particle.left,
+                                        top: particle.top,
+                                        transform: `rotate(${particle.rotate})`,
+                                        borderRadius: particle.round ? '50%' : '1px',
+                                    }}
+                                />
+                            ))}
+                        </div>
+                        <div className="confetti-preview-label">
+                            <strong>Confetti</strong>
+                            <small>{spawnLabel} · {triggerLabel}</small>
+                        </div>
+                    </div>
+                );
+                break;
+            }
             default:
                 content = <div>Unknown element: {elementId}</div>;
         }

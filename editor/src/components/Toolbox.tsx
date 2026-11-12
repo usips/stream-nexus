@@ -81,6 +81,13 @@ export function Toolbox({ onAddElement }: ToolboxProps) {
                 onAddElement={onAddElement}
             />
 
+            <ToolboxItem
+                label="Confetti"
+                icon="🎉"
+                elementId="confetti"
+                onAddElement={onAddElement}
+            />
+
             <h3 style={{ marginTop: '24px' }}>Tips</h3>
             <div style={{ fontSize: '12px', color: '#888', lineHeight: 1.5 }}>
                 <p>Click an element to select it and edit its properties.</p>

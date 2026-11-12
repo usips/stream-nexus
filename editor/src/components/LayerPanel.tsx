@@ -21,6 +21,7 @@ function getDisplayName(elementId: string, config: ElementConfig): string {
         poll: 'Poll',
         superchat: 'Superchat',
         matter: 'Donation Matter',
+        confetti: 'Confetti',
     };
     return names[baseId] || elementId;
 }
@@ -37,6 +38,7 @@ function getElementIcon(elementId: string): string {
         poll: '📊',
         superchat: '💰',
         matter: '💥',
+        confetti: '🎉',
     };
     return icons[baseId] || '📦';
 }
