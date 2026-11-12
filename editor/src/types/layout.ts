@@ -139,6 +139,11 @@ export interface ChatOptions {
     showModBadge?: boolean;      // Default: true
     showVerifiedBadge?: boolean; // Default: true
     showSubBadge?: boolean;      // Default: true
+
+    // Emote combos: collapse emote spam into "[emote] x N"
+    emoteCombos?: boolean;       // Default: false
+    comboThreshold?: number;     // Default: 3 (matching messages before a combo forms)
+    comboTimeout?: number;       // Default: 10 (seconds without a match before it ends)
 }
 
 // Text element specific options

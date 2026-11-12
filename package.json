@@ -11,6 +11,7 @@
     "build:static": "shx cp -r static/* public/",
     "build:all": "npm run build:frontend && npm run build:static && npm run build:editor",
     "watch:frontend": "webpack --watch",
+    "test:frontend": "node --test tests/frontend/",
     "dev:editor": "cd editor && npm run dev",
     "clean": "shx rm -rf public/script.js public/style.css public/dashboard.js public/dashboard.css public/variables.css public/overlay-elements.css public/editor public/js/*.js public/matter.min.js public/background.js"
   },

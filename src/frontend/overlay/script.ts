@@ -11,6 +11,13 @@ import type {
 } from '../types';
 import { DonationMatter, DonationMatterConfig } from '../background/DonationMatter';
 import { ConfettiElement } from './ConfettiElement';
+import {
+    ComboTracker,
+    ComboCandidate,
+    ComboSettings,
+    classify_tokens,
+    tokenize_message_html,
+} from './emoteCombo';
 
 // Matter.js is loaded as an external via script tag
 declare const Matter: typeof import('matter-js') | undefined;
@@ -26,8 +33,34 @@ interface ChatContainerInfo {
     container: HTMLElement;
     elementId: string;
     options: ChatOptions;
+    combos: ComboTracker;
 }
 let chat_containers: ChatContainerInfo[] = [];
+
+// Per-element chat options, falling back to the layout's messageStyle, then defaults.
+function resolve_chat_options(chatOpts: ChatOptions, ms: Partial<Layout['messageStyle']>): ChatOptions {
+    return {
+        showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
+        showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
+        condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
+        direction: chatOpts.direction ?? ms.direction ?? 'bottom',
+        showOwnerBadge: chatOpts.showOwnerBadge ?? ms.showOwnerBadge ?? true,
+        showStaffBadge: chatOpts.showStaffBadge ?? ms.showStaffBadge ?? true,
+        showModBadge: chatOpts.showModBadge ?? ms.showModBadge ?? true,
+        showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
+        showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
+        emoteCombos: chatOpts.emoteCombos ?? false,
+        comboThreshold: chatOpts.comboThreshold ?? 3,
+        comboTimeout: chatOpts.comboTimeout ?? 10,
+    };
+}
+
+function combo_settings(options: ChatOptions): ComboSettings {
+    return {
+        threshold: Math.max(2, Math.floor(Number(options.comboThreshold) || 3)),
+        timeoutMs: Math.max(1, Number(options.comboTimeout) || 10) * 1000,
+    };
+}
 
 // Track DonationMatter instances
 interface MatterInfo {
@@ -323,6 +356,7 @@ function apply_layout(layout: Layout): void {
                 // Remove from chat containers
                 const chatIdx = chat_containers.findIndex(c => c.elementId === existingId);
                 if (chatIdx !== -1) {
+                    chat_containers[chatIdx].combos.clear();
                     chat_containers.splice(chatIdx, 1);
                 }
                 el.remove();
@@ -353,17 +387,11 @@ function apply_layout(layout: Layout): void {
                 // Update chat container options
                 const chatInfo = chat_containers.find(c => c.elementId === elementId);
                 if (chatInfo) {
-                    chatInfo.options = {
-                        showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
-                        showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
-                        condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
-                        direction: chatOpts.direction ?? ms.direction ?? 'bottom',
-                        showOwnerBadge: chatOpts.showOwnerBadge ?? ms.showOwnerBadge ?? true,
-                        showStaffBadge: chatOpts.showStaffBadge ?? ms.showStaffBadge ?? true,
-                        showModBadge: chatOpts.showModBadge ?? ms.showModBadge ?? true,
-                        showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
-                        showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
-                    };
+                    chatInfo.options = resolve_chat_options(chatOpts, ms);
+                    chatInfo.combos.settings = combo_settings(chatInfo.options);
+                    if (!chatInfo.options.emoteCombos) {
+                        chatInfo.combos.clear();
+                    }
                 }
             }
 
@@ -388,22 +416,13 @@ function apply_layout(layout: Layout): void {
                         const chatOpts = (config.options || {}) as ChatOptions;
                         const ms = layout.messageStyle || {};
 
-                        const options: ChatOptions = {
-                            showAvatars: chatOpts.showAvatars ?? ms.showAvatars ?? true,
-                            showUsernames: chatOpts.showUsernames ?? ms.showUsernames ?? true,
-                            condensedMode: chatOpts.condensedMode ?? ms.condensedMode ?? false,
-                            direction: chatOpts.direction ?? ms.direction ?? 'bottom',
-                            showOwnerBadge: chatOpts.showOwnerBadge ?? ms.showOwnerBadge ?? true,
-                            showStaffBadge: chatOpts.showStaffBadge ?? ms.showStaffBadge ?? true,
-                            showModBadge: chatOpts.showModBadge ?? ms.showModBadge ?? true,
-                            showVerifiedBadge: chatOpts.showVerifiedBadge ?? ms.showVerifiedBadge ?? true,
-                            showSubBadge: chatOpts.showSubBadge ?? ms.showSubBadge ?? true,
-                        };
+                        const options = resolve_chat_options(chatOpts, ms);
 
                         chat_containers.push({
                             container: messagesContainer,
                             elementId,
                             options,
+                            combos: new ComboTracker(messagesContainer, combo_settings(options)),
                         });
 
                         el.classList.toggle('chat--condensed', options.condensedMode === true);
@@ -897,6 +916,9 @@ function handle_message(message: ChatMessage): HTMLElement | null {
 function handle_remove_message(id: string): void {
     mark_message_seen(id);
     messageBuffer.queue = messageBuffer.queue.filter(item => item.message.id !== id);
+    for (const info of chat_containers) {
+        info.combos.remove(id);
+    }
 
     // The first container's copy uses the id, the others `${id}-${i}`.
     let removedPremium = false;
@@ -945,12 +967,24 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
 
     let firstEl: HTMLElement | null = null;
 
+    // Emote-only messages may collapse into a combo in containers that enable it.
+    const combo = chat_containers.some(c => c.options.emoteCombos)
+        ? combo_candidate(message)
+        : null;
+    const order = Math.floor(message.sent_at / 1000);
+
     // Add message to each chat container with per-element options
     for (let i = 0; i < chat_containers.length; i++) {
-        const { container, options } = chat_containers[i];
+        const { container, options, combos } = chat_containers[i];
 
         // Per-element direction
         const isTopFirst = options.direction === 'top';
+
+        const useCombo = combo !== null && options.emoteCombos === true;
+        if (useCombo && combos.handle(message.id, combo, order)) {
+            scroll_to_newest(container, isTopFirst);
+            continue;
+        }
 
         // Process message HTML with per-element username visibility
         let messageHtml = message.html;
@@ -971,6 +1005,10 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
         if (insertedEl) {
             // Use per-element badge options
             filter_badges_with_options(insertedEl, options);
+
+            if (useCombo) {
+                combos.registerPending(combo.key, insertedEl);
+            }
 
             if (i === 0) {
                 firstEl = insertedEl;
@@ -998,20 +1036,33 @@ function processMessageImmediate(message: ChatMessage): HTMLElement | null {
             }
         }
 
-        // Auto-scroll to show newest messages
-        const chatSection = container.parentElement;
-        if (chatSection) {
-            if (isTopFirst) {
-                // column-reverse: newest at top, scroll to top
-                chatSection.scrollTop = 0;
-            } else {
-                // column: newest at bottom, scroll to bottom
-                chatSection.scrollTop = chatSection.scrollHeight;
-            }
-        }
+        scroll_to_newest(container, isTopFirst);
     }
 
     return firstEl;
+}
+
+// Auto-scroll a chat container to show its newest messages
+function scroll_to_newest(container: HTMLElement, isTopFirst: boolean): void {
+    const chatSection = container.parentElement;
+    if (chatSection) {
+        if (isTopFirst) {
+            // column-reverse: newest at top, scroll to top
+            chatSection.scrollTop = 0;
+        } else {
+            // column: newest at bottom, scroll to bottom
+            chatSection.scrollTop = chatSection.scrollHeight;
+        }
+    }
+}
+
+// Whether a message can join an emote combo: unpaid, not an event, and nothing
+// but one emote (possibly repeated) and whitespace.
+function combo_candidate(message: ChatMessage): ComboCandidate | null {
+    if (message.amount > 0 || message.is_subscription) {
+        return null;
+    }
+    return classify_tokens(tokenize_message_html(message.message));
 }
 
 function handle_premium(node: HTMLElement, message: ChatMessage): void {

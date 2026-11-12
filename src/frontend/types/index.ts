@@ -66,6 +66,9 @@ export interface ChatOptions {
     showModBadge?: boolean;
     showVerifiedBadge?: boolean;
     showSubBadge?: boolean;
+    emoteCombos?: boolean;       // Collapse emote spam into "[emote] x N" combos
+    comboThreshold?: number;     // Matching messages before a combo forms (default 3)
+    comboTimeout?: number;       // Seconds without a match before a combo ends (default 10)
 }
 
 export interface TextOptions {
@@ -149,6 +152,7 @@ export interface ChatMessage {
     is_mod: boolean;
     is_owner: boolean;
     is_staff: boolean;
+    is_subscription?: boolean;
 }
 
 // ============================================================================

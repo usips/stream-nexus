@@ -400,6 +400,77 @@ section#chat::-webkit-scrollbar {
 }
 
 /* ============================================================================
+   Emote Combos ("[emote] x N")
+   ============================================================================ */
+
+.msg--combo {
+    --combo-scale: 1;
+    align-items: center;
+    gap: 0.4em;
+    max-height: none;
+    font-size: calc(var(--message-text-size, var(--message-font-size)) * var(--combo-scale));
+    transform-origin: left center;
+    transition: font-size 150ms ease-out;
+}
+
+.msg-combo-emote {
+    display: flex;
+    align-items: center;
+    line-height: 1;
+}
+
+.msg-combo-emote img {
+    height: 2em;
+    width: auto;
+    max-width: 4em;
+}
+
+.msg-combo-emote .emoji--unicode {
+    font-size: 1.8em;
+}
+
+.msg-combo-count {
+    font-weight: 800;
+    font-style: italic;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 0.3em rgba(255, 200, 0, 0.6);
+}
+
+.msg-combo-x {
+    font-size: 0.8em;
+    margin-right: 0.1em;
+    opacity: 0.8;
+}
+
+.msg-combo-n {
+    font-size: 1.3em;
+}
+
+/* Combo no longer growing: settle into a normal-looking line. */
+.msg--combo:not(.msg--combo-active) .msg-combo-count {
+    text-shadow: none;
+    opacity: 0.8;
+}
+
+.msg--combo-pop {
+    animation: combo-pop 250ms ease-out;
+}
+
+@keyframes combo-pop {
+    0% { transform: scale(1.12); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .msg--combo,
+    .msg--combo-pop {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* ============================================================================
    Additional Display Toggles
    ============================================================================ */
 

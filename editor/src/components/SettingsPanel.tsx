@@ -803,6 +803,7 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
         const showModBadge = options.showModBadge !== false;
         const showVerifiedBadge = options.showVerifiedBadge !== false;
         const showSubBadge = options.showSubBadge !== false;
+        const emoteCombos = options.emoteCombos === true;
 
         return (
             <CollapsibleSection title="Chat Options" defaultOpen={true}>
@@ -895,6 +896,49 @@ function ElementOptionsSection({ elementId, config, onUpdate }: ElementOptionsSe
                         </label>
                     </div>
                 </div>
+
+                {/* Emote Combos */}
+                <div className="settings-row">
+                    <label>Emote Combos</label>
+                    <div className="settings-checkbox-group">
+                        <label className="settings-checkbox-inline">
+                            <input
+                                type="checkbox"
+                                checked={emoteCombos}
+                                onChange={(e) => updateOptions({ emoteCombos: e.target.checked })}
+                            />
+                            <span>Collapse emote spam into "[emote] x N"</span>
+                        </label>
+                    </div>
+                </div>
+                {emoteCombos && (
+                    <>
+                        <div className="settings-row">
+                            <label>Combo Threshold</label>
+                            <input
+                                type="number"
+                                min={2}
+                                value={(options.comboThreshold as number | undefined) ?? ''}
+                                placeholder="3"
+                                onChange={(e) => updateOptions({
+                                    comboThreshold: e.target.value ? parseInt(e.target.value, 10) : undefined,
+                                })}
+                            />
+                        </div>
+                        <div className="settings-row">
+                            <label>Combo Timeout (s)</label>
+                            <input
+                                type="number"
+                                min={1}
+                                value={(options.comboTimeout as number | undefined) ?? ''}
+                                placeholder="10"
+                                onChange={(e) => updateOptions({
+                                    comboTimeout: e.target.value ? parseFloat(e.target.value) : undefined,
+                                })}
+                            />
+                        </div>
+                    </>
+                )}
 
                 {/* Message Style - per-element */}
                 <div className="settings-row">

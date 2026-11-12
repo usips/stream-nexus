@@ -382,6 +382,13 @@ impl Handler<message::Content> for ChatServer {
                 .replace("'", "&#039;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;");
+            // The overlay reads data-emoji to group emote combos.
+            let name = name
+                .replace("&", "&amp;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#039;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;");
             let key: usize = rand::random();
             let value: String = format!(
                 "<img class=\"emoji\" src=\"{}\" data-emoji=\"{}\" alt=\"{}\" />",
